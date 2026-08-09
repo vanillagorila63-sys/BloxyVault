@@ -171,43 +171,61 @@ function seedBotLobbies() {
   });
 }
 
-function resolveCoinflip(creator, creatorSide, creatorItems, joiner, joinerSide, joinerItems) {
-  const creatorValue = stakeValue(creatorItems);
-  const joinerValue = stakeValue(joinerItems);
+// Rake target: 7.5% of the TOTAL pot value, taken from the winner's full
+// haul AFTER the flip resolves (not carved from either side beforehand).
+// Since items are discrete, the actual amount taken will land near 7.5% but
+// not exactly on it - CF_RAKE_MAX_MULTIPLE caps how far over that's allowed
+// to drift; if nothing in the winner's haul comes reasonably close without
+// blowing way past the target (e.g. the only candidate is one huge pet),
+// no rake is taken at all rather than grabbing something oversized.
+// Perfectly even 1-for-1 stakes (both sides worth exactly the same) are
+// exempt from the rake entirely, regardless of the above.
+const CF_RAKE_TARGET_PCT = 0.075;
+const CF_RAKE_MAX_MULTIPLE = 1.5; // never take more than ~1.5x target (~11.25% of pot) - skip entirely past that
+const CF_RAKE_MAX_ITEMS = 2; // hard cap: never take more than 2 individual items as rake, no matter what the value math says
 
-  // House rake: when the two sides aren't exactly equal (allowed as long as
-  // they're within the ±10% match window enforced in handleCoinflipJoin),
-  // the item(s) on the larger side that make up that difference go straight
-  // to the house instead of into the flip. A perfectly matched flip (equal
-  // values) has no excess, so no rake - matches an even 1-for-1 exactly.
-  let rakeItems = [];
-  let matchedCreatorItems = creatorItems;
-  let matchedJoinerItems = joinerItems;
-  if (creatorValue !== joinerValue) {
-    const excess = Math.abs(creatorValue - joinerValue);
-    const biggerIsCreator = creatorValue > joinerValue;
-    const biggerItems = biggerIsCreator ? creatorItems : joinerItems;
-    rakeItems = pickClosestSubset(biggerItems, excess);
-    if (rakeItems.length) {
-      if (biggerIsCreator) matchedCreatorItems = creatorItems.filter((id) => !rakeItems.includes(id));
-      else matchedJoinerItems = joinerItems.filter((id) => !rakeItems.includes(id));
-    }
+function subtractItemList(full, toRemove){
+  const remaining = [...full];
+  for(const id of toRemove){
+    const idx = remaining.indexOf(id);
+    if(idx !== -1) remaining.splice(idx, 1);
   }
+  return remaining;
+}
 
+function resolveCoinflip(creator, creatorSide, creatorItems, joiner, joinerSide, joinerItems) {
   const result = Math.random() < 0.5 ? 'H' : 'T';
   const winner = result === creatorSide ? creator : joiner;
   const loser = winner === creator ? joiner : creator;
-  const winnerItems = winner === creator ? matchedCreatorItems : matchedJoinerItems;
-  const loserItems = winner === creator ? matchedJoinerItems : matchedCreatorItems;
+  const winnerOwnItems = winner === creator ? creatorItems : joinerItems;
+  const loserItems = winner === creator ? joinerItems : creatorItems;
+  const fullHaul = [...winnerOwnItems, ...loserItems]; // winner's own stake back + everything the loser staked
 
-  // Both sides' stakes were escrowed (removed from inventory) back at
-  // coinflip:create / coinflip:join time. The winner gets their own
-  // (matched, post-rake) stake back PLUS the loser's (matched) stake; the
-  // loser's stake just stays gone. Bots aren't real accounts, so skip
-  // touching `users` for them entirely.
+  const creatorValue = stakeValue(creatorItems);
+  const joinerValue = stakeValue(joinerItems);
+  const totalPotValue = creatorValue + joinerValue;
+  const targetRake = totalPotValue * CF_RAKE_TARGET_PCT;
+  let rakeItems = [];
+  // Perfectly even 1-for-1 stakes (both sides worth exactly the same) are
+  // exempt from the rake entirely - only imbalanced-or-uneven pots get raked.
+  if (creatorValue !== joinerValue && targetRake > 0 && fullHaul.length > 0) {
+    const candidate = pickClosestSubset(fullHaul, targetRake);
+    const candidateValue = stakeValue(candidate);
+    // Two independent safety limits, both must pass: the value can't drift
+    // too far past the target (CF_RAKE_MAX_MULTIPLE), AND the item COUNT is
+    // hard-capped (CF_RAKE_MAX_ITEMS) regardless of value - so even if the
+    // value-matching logic ever picks a surprising combination, it physically
+    // cannot take more than a couple of items no matter what.
+    if (candidateValue > 0 && candidate.length <= CF_RAKE_MAX_ITEMS && candidateValue <= targetRake * CF_RAKE_MAX_MULTIPLE) {
+      rakeItems = candidate;
+    }
+    console.log(`[cf-rake] pot=${totalPotValue} target=${Math.round(targetRake)} candidate=${JSON.stringify(candidate)} candidateValue=${candidateValue} candidateCount=${candidate.length} taken=${JSON.stringify(rakeItems)}`);
+  }
+  const winnerFinalItems = rakeItems.length ? subtractItemList(fullHaul, rakeItems) : fullHaul;
+
+  // Bots aren't real accounts, so skip touching `users` for them entirely.
   if (!botNameSet.has(winner)) {
-    addItems(winner, winnerItems);
-    addItems(winner, loserItems);
+    addItems(winner, winnerFinalItems);
   }
   if (rakeItems.length) {
     addItems(ADMIN_USERNAME, rakeItems);
@@ -478,6 +496,81 @@ function handleAdminLookup(username, msg) {
 }
 
 // ---------------------------------------------------------------------------
+// Withdrawal requests - a real player says "I want to cash these specific
+// pets out for the real Roblox items", the admin sees the request (plus can
+// double-check their actual inventory via admin:lookup above to make sure
+// they're not lying about what they have), does the real-world trade
+// themselves outside this app, then marks it fulfilled here - which is what
+// actually removes the items, so there's a clear log of who asked for what
+// and when, rather than silent inventory edits with no trail.
+// ---------------------------------------------------------------------------
+let withdrawRequests = []; // { id, username, items, requestedAt, status, actuallyRemoved? }
+
+function handleWithdrawRequest(username, msg) {
+  const items = msg.items || [];
+  const errTo = usernameToSocket.get(username);
+  if (!items.length) return send(errTo, { type: 'error', message: 'Select at least one item to withdraw.' });
+  if (!ownsAll(username, items)) return send(errTo, { type: 'error', message: "You don't own all of those items." });
+
+  const id = 'wd_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+  withdrawRequests.push({ id, username, items, requestedAt: Date.now(), status: 'pending' });
+  send(errTo, { type: 'withdraw:requested', id });
+  broadcastPendingWithdrawalsToAdmin();
+}
+
+function broadcastPendingWithdrawalsToAdmin(){
+  const adminWs = usernameToSocket.get(ADMIN_USERNAME);
+  if (!adminWs) return;
+  send(adminWs, { type: 'admin:withdrawList', requests: withdrawRequests.filter(r => r.status === 'pending') });
+}
+
+function handleAdminWithdrawList(username) {
+  if (username !== ADMIN_USERNAME) return;
+  broadcastPendingWithdrawalsToAdmin();
+}
+
+function handleAdminWithdrawFulfill(username, msg) {
+  if (username !== ADMIN_USERNAME) return;
+  const req = withdrawRequests.find(r => r.id === msg.requestId && r.status === 'pending');
+  if (!req) return;
+
+  // Remove exactly what's requested, capped by whatever they still actually
+  // own right now (they may have sold/lost/traded something since asking) -
+  // and report back precisely what was removed, so any mismatch is visible
+  // rather than silently over- or under-removing.
+  const target = ensureUser(req.username);
+  const requested = {};
+  for (const id of req.items) requested[id] = (requested[id] || 0) + 1;
+  const actuallyRemoved = {};
+  for (const [id, reqQty] of Object.entries(requested)) {
+    const owned = target.inventory[id] || 0;
+    const removeQty = Math.min(reqQty, owned);
+    if (removeQty > 0) { target.inventory[id] = owned - removeQty; actuallyRemoved[id] = removeQty; }
+  }
+  req.status = 'fulfilled';
+  req.actuallyRemoved = actuallyRemoved;
+  syncAccount(req.username);
+  send(usernameToSocket.get(req.username), { type: 'chat:message', username: 'System', text: `Your withdrawal request was fulfilled by ${ADMIN_USERNAME}.`, timestamp: Date.now(), system: true });
+  broadcastPendingWithdrawalsToAdmin();
+}
+
+function handleAdminWithdrawReject(username, msg) {
+  if (username !== ADMIN_USERNAME) return;
+  const req = withdrawRequests.find(r => r.id === msg.requestId && r.status === 'pending');
+  if (!req) return;
+  req.status = 'rejected';
+  send(usernameToSocket.get(req.username), { type: 'error', message: 'Your withdrawal request was declined.' });
+  broadcastPendingWithdrawalsToAdmin();
+}
+
+function handleWithdrawCancel(username, msg) {
+  const req = withdrawRequests.find(r => r.id === msg.requestId && r.status === 'pending' && r.username === username);
+  if (!req) return;
+  req.status = 'cancelled';
+  broadcastPendingWithdrawalsToAdmin();
+}
+
+// ---------------------------------------------------------------------------
 // Chat - real, shared, no bots. Very light rate limiting (one message per
 // 500ms per connection) just to stop an accidental flood from one client.
 // ---------------------------------------------------------------------------
@@ -617,6 +710,9 @@ wss.on('connection', (ws) => {
       send(ws, { type: 'login:ok', user: { username, coins: u.coins, inventory: u.inventory } });
       send(ws, { type: 'coinflip:lobbies', lobbies: cfLobbies.map((l) => ({ id: l.id, creator: l.creator, side: l.side, items: l.items })) });
       broadcastBattlesTo(ws);
+      if (username === ADMIN_USERNAME) {
+        send(ws, { type: 'admin:withdrawList', requests: withdrawRequests.filter((r) => r.status === 'pending') });
+      }
       return;
     }
 
@@ -635,6 +731,11 @@ wss.on('connection', (ws) => {
       case 'account:reset': return handleAccountReset(username);
       case 'debug:addTestCoins': return handleAddTestCoins(username);
       case 'admin:lookup': return handleAdminLookup(username, msg);
+      case 'withdraw:request': return handleWithdrawRequest(username, msg);
+      case 'withdraw:cancel': return handleWithdrawCancel(username, msg);
+      case 'admin:withdrawList': return handleAdminWithdrawList(username);
+      case 'admin:withdrawFulfill': return handleAdminWithdrawFulfill(username, msg);
+      case 'admin:withdrawReject': return handleAdminWithdrawReject(username, msg);
       case 'chat:send': return handleChatSend(username, msg, ws);
       case 'tip:send': return handleTipSend(username, msg);
     }
