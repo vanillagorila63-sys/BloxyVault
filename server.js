@@ -18,7 +18,7 @@ const path = require('path');
 const gameData = JSON.parse(fs.readFileSync(path.join(__dirname, 'gameData.json'), 'utf8'));
 const { petCatalog, caseData, caseItems, modeConfigs, botNamesCf, botNamesBattles } = gameData;
 
-const STARTING_BALANCE = 5000;
+const STARTING_BALANCE = 1000000; // bumped from 5000 - the cheapest case alone costs 375k, old value made the game unplayable for new accounts
 const CASEBATTLE_WAIT_MS = 8000;   // must match the client's enterWaitingRoom() countdown
 const ROUND_PACE_MS = 4300;        // must match the client's MOCK_ROUND_PACE_MS
 
@@ -97,10 +97,52 @@ function pickBotNames(n, pool) {
 // ---------------------------------------------------------------------------
 // Coinflip
 // ---------------------------------------------------------------------------
-let cfLobbies = []; // { id, creator, side, items }
+let cfLobbies = []; // { id, creator, side, items, isBotLobby? }
+const botNameSet = new Set([...botNamesCf, ...botNamesBattles]); // never treated as real accounts
 
 function broadcastCfLobbies() {
   broadcast({ type: 'coinflip:lobbies', lobbies: cfLobbies.map((l) => ({ id: l.id, creator: l.creator, side: l.side, items: l.items })) });
+}
+
+// Picks a stake of real catalog items landing near targetValue (or fully
+// random if no target), same approach the old local practice-mode used.
+function pickBotStake(targetValue) {
+  const pool = Object.entries(petCatalog).filter(([, p]) => p.value > 0);
+  if (!targetValue) {
+    const count = 1 + Math.floor(Math.random() * 2);
+    const picked = [];
+    for (let i = 0; i < count; i++) picked.push(pool[Math.floor(Math.random() * pool.length)][0]);
+    return picked;
+  }
+  const lo = targetValue * 0.9, hi = targetValue * 1.1;
+  for (let attempt = 0; attempt < 200; attempt++) {
+    const shuffled = pool.slice().sort(() => Math.random() - 0.5);
+    let sum = 0, combo = [];
+    for (const [id, p] of shuffled) {
+      if (sum + p.value <= hi) { combo.push(id); sum += p.value; }
+      if (sum >= lo) break;
+    }
+    if (sum >= lo && sum <= hi) return combo;
+  }
+  const closestId = pool.reduce((best, [id, p]) => Math.abs(p.value - targetValue) < Math.abs(petCatalog[best].value - targetValue) ? id : best, pool[0][0]);
+  return [closestId];
+}
+
+// A handful of open bot lobbies always available so there's something to do
+// even if you're the only real player connected right now.
+function seedBotLobbies() {
+  const values = [40000, 120000, 400000];
+  values.forEach((value, i) => {
+    if (cfLobbies.some((l) => l.isBotLobby && l.seedIndex === i)) return;
+    cfLobbies.push({
+      id: 'cfbot_' + i + '_' + Date.now(),
+      creator: botNamesCf[i % botNamesCf.length],
+      side: Math.random() < 0.5 ? 'H' : 'T',
+      items: pickBotStake(value),
+      isBotLobby: true,
+      seedIndex: i,
+    });
+  });
 }
 
 function resolveCoinflip(creator, creatorSide, creatorItems, joiner, joinerSide, joinerItems) {
@@ -113,12 +155,18 @@ function resolveCoinflip(creator, creatorSide, creatorItems, joiner, joinerSide,
   // Both sides' stakes were escrowed (removed from inventory) back at
   // coinflip:create / coinflip:join time. The winner gets their own stake
   // back PLUS everything the loser staked; the loser's stake just stays gone.
-  addItems(winner, winnerItems);
-  addItems(winner, loserItems);
+  // Bots aren't real accounts, so skip touching `users` for them entirely.
+  if (!botNameSet.has(winner)) {
+    addItems(winner, winnerItems);
+    addItems(winner, loserItems);
+  }
 
   syncAccount(creator);
   syncAccount(joiner);
   broadcast({ type: 'coinflip:result', creator, creatorSide, creatorItems, joiner, joinerSide, joinerItems, winner, result });
+
+  seedBotLobbies();
+  broadcastCfLobbies();
 }
 
 function handleCoinflipCreate(username, msg) {
@@ -131,6 +179,18 @@ function handleCoinflipCreate(username, msg) {
   cfLobbies.push({ id, creator: username, side: msg.side, items });
   syncAccount(username);
   broadcastCfLobbies();
+
+  // If no real player challenges this lobby in a few seconds, a bot will.
+  const stakeVal = stakeValue(items);
+  setTimeout(() => {
+    const lobby = cfLobbies.find((l) => l.id === id);
+    if (!lobby) return; // already resolved or cancelled
+    const botName = botNamesCf[Math.floor(Math.random() * botNamesCf.length)];
+    const botItems = pickBotStake(stakeVal);
+    const botSide = lobby.side === 'H' ? 'T' : 'H';
+    cfLobbies = cfLobbies.filter((l) => l.id !== id);
+    resolveCoinflip(lobby.creator, lobby.side, lobby.items, botName, botSide, botItems);
+  }, 4000 + Math.random() * 4000);
 }
 
 function handleCoinflipJoin(username, msg) {
@@ -281,6 +341,51 @@ async function runBattle(b) {
 }
 
 // ---------------------------------------------------------------------------
+// Exchange - convert items to coins or coins to items. This was previously
+// client-only (never touched the server), which is exactly why a purchase
+// looked like it worked locally but the server - which is now the actual
+// source of truth for your account - never learned about it.
+// ---------------------------------------------------------------------------
+const TAX_RATE = 0.05; // must match the client's TAX_RATE
+
+function handleExchangeSell(username, msg) {
+  const ids = [...new Set(msg.items || [])]; // sells ALL owned qty of each id, matching client semantics
+  const u = ensureUser(username);
+  let rawTotal = 0;
+  for (const id of ids) {
+    const qty = u.inventory[id] || 0;
+    const val = itemValue(id);
+    rawTotal += qty * val;
+    u.inventory[id] = 0;
+  }
+  const payout = Math.floor(rawTotal * (1 - TAX_RATE));
+  u.coins += payout;
+  syncAccount(username);
+}
+
+function handleExchangeBuy(username, msg) {
+  const ids = msg.items || [];
+  const cost = ids.reduce((sum, id) => sum + itemValue(id), 0);
+  const u = ensureUser(username);
+  if (u.coins < cost) return send(usernameToSocket.get(username), { type: 'error', message: `Not enough coins - you need ${cost}.` });
+  u.coins -= cost;
+  addItems(username, ids);
+  syncAccount(username);
+}
+
+// Practice-mode convenience: resets your OWN account back to the starting
+// balance. This is intentionally a "give yourself money" cheat - fine for a
+// solo hobby server, but if you ever have real friends playing against each
+// other here for keeps, you may want to remove this handler so balances
+// actually mean something in head-to-head games.
+function handleAccountReset(username) {
+  const u = ensureUser(username);
+  u.coins = STARTING_BALANCE;
+  u.inventory = {};
+  syncAccount(username);
+}
+
+// ---------------------------------------------------------------------------
 // Connection lifecycle
 // ---------------------------------------------------------------------------
 const server = http.createServer((req, res) => {
@@ -317,6 +422,9 @@ wss.on('connection', (ws) => {
       case 'casebattle:create': return handleCaseBattleCreate(username, msg);
       case 'casebattle:join': return handleCaseBattleJoin(username, msg);
       case 'casebattle:start': return handleCaseBattleStart(username, msg);
+      case 'exchange:sell': return handleExchangeSell(username, msg);
+      case 'exchange:buy': return handleExchangeBuy(username, msg);
+      case 'account:reset': return handleAccountReset(username);
     }
   });
 
@@ -340,4 +448,5 @@ function broadcastBattlesTo(ws) {
 }
 
 const PORT = process.env.PORT || 8080;
+seedBotLobbies(); // so there's something to do even before any real player connects
 server.listen(PORT, () => console.log(`BloxyVault server listening on :${PORT}`));
