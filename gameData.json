@@ -224,7 +224,7 @@
     },
     "new3": {
       "name": "BGS Plaque",
-      "value": 0,
+      "value": 10000000000,
       "chance": 0.5,
       "rarity": "secret"
     },
