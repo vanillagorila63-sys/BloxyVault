@@ -15,13 +15,13 @@
     "b0_2": {
       "name": "Levithan",
       "value": 20000000,
-      "chance": 1.5,
+      "chance": 1,
       "rarity": "mythic"
     },
     "b0_3": {
       "name": "Mythic Plasma Wolflord",
       "value": 7000000,
-      "chance": 3.5,
+      "chance": 3,
       "rarity": "legendary"
     },
     "b0_4": {
@@ -33,7 +33,7 @@
     "b0_5": {
       "name": "Tophat (F)",
       "value": 300000,
-      "chance": 5,
+      "chance": 6,
       "rarity": "legendary"
     },
     "b0_6": {
@@ -51,85 +51,85 @@
     "b1_1": {
       "name": "Giant Robot",
       "value": 15000000,
-      "chance": 1,
+      "chance": 1.4,
       "rarity": "mythic"
     },
     "b1_2": {
       "name": "Shiny Mythic Christmas Robot",
       "value": 5000000,
-      "chance": 7,
+      "chance": 2.4,
       "rarity": "legendary"
     },
     "b1_3": {
       "name": "Shiny Robot 2.0",
       "value": 2000000,
-      "chance": 30,
+      "chance": 4,
       "rarity": "rare"
     },
     "b1_4": {
       "name": "Robot 2.0",
       "value": 900000,
-      "chance": 30,
+      "chance": 7,
       "rarity": "rare"
     },
     "b1_5": {
       "name": "Patriotic Robot",
       "value": 400000,
-      "chance": 31.8,
+      "chance": 85,
       "rarity": "rare"
     },
     "b2_0": {
       "name": "Mythic Lucky Pyramidium",
       "value": 8000000,
-      "chance": 1.5,
+      "chance": 2,
       "rarity": "mythic"
     },
     "b2_1": {
       "name": "Shiny Mythic Dream Catcher",
       "value": 15000000,
-      "chance": 8,
+      "chance": 1,
       "rarity": "epic"
     },
     "b2_2": {
       "name": "Mythic Godly Shamrock",
       "value": 4000000,
-      "chance": 8,
+      "chance": 2,
       "rarity": "epic"
     },
     "b2_3": {
       "name": "Shiny Almighty Hexarium",
       "value": 1500000,
-      "chance": 25,
+      "chance": 5,
       "rarity": "rare"
     },
     "b2_4": {
       "name": "Mythic Pot O' Doggy",
       "value": 550000,
-      "chance": 35,
+      "chance": 45,
       "rarity": "common"
     },
     "b2_5": {
       "name": "Pot O' Gold",
       "value": 300000,
-      "chance": 22.5,
+      "chance": 45,
       "rarity": "rare"
     },
     "b3_0": {
       "name": "Leviathan",
       "value": 20000000,
-      "chance": 0.5,
+      "chance": 1,
       "rarity": "mythic"
     },
     "b3_1": {
       "name": "Giant Robot",
       "value": 15000000,
-      "chance": 4,
+      "chance": 1,
       "rarity": "legendary"
     },
     "b3_2": {
       "name": "Dementor",
       "value": 5000000,
-      "chance": 12.5,
+      "chance": 3,
       "rarity": "epic"
     },
     "b3_3": {
@@ -141,13 +141,13 @@
     "b3_4": {
       "name": "Easter Basket",
       "value": 400000,
-      "chance": 30,
+      "chance": 20,
       "rarity": "rare"
     },
     "b3_5": {
       "name": "Soul Heart",
       "value": 350000,
-      "chance": 38,
+      "chance": 60,
       "rarity": "common"
     },
     "b4_0": {
@@ -159,19 +159,19 @@
     "b4_1": {
       "name": "Mythic Almighty Pumpkin",
       "value": 20000000,
-      "chance": 0.5,
+      "chance": 0.3,
       "rarity": "mythic"
     },
     "b4_2": {
       "name": "Mythic Sinister Skull",
       "value": 10000000,
-      "chance": 2,
+      "chance": 0.6,
       "rarity": "legendary"
     },
     "b4_3": {
       "name": "Mythic King Skull",
       "value": 15000000,
-      "chance": 0.5,
+      "chance": 1,
       "rarity": "mythic"
     },
     "b4_4": {
@@ -183,31 +183,31 @@
     "b4_5": {
       "name": "Mythic Angelic Skull",
       "value": 8000000,
-      "chance": 8,
+      "chance": 2.5,
       "rarity": "epic"
     },
     "b4_6": {
       "name": "Mythic Guardian Skull",
       "value": 8000000,
-      "chance": 15,
+      "chance": 2.5,
       "rarity": "epic"
     },
     "b4_7": {
       "name": "Mythic 1B Trophy",
       "value": 2000000,
-      "chance": 30,
+      "chance": 22,
       "rarity": "rare"
     },
     "b4_8": {
       "name": "Mythic Fire Basilisk",
       "value": 2500000,
-      "chance": 7.9,
+      "chance": 15,
       "rarity": "legendary"
     },
     "b4_9": {
       "name": "Sinister Lord",
       "value": 750000,
-      "chance": 35,
+      "chance": 55,
       "rarity": "common"
     },
     "new1": {
