@@ -2,43 +2,43 @@
   "petCatalog": {
     "b0_0": {
       "name": "Shiny Levithan",
-      "value": 20500000,
+      "value": 45000000,
       "chance": 0.3,
       "rarity": "secret"
     },
     "b0_1": {
       "name": "Mythic Peppermint Leviathan",
-      "value": 3580000,
+      "value": 9000000,
       "chance": 3,
       "rarity": "legendary"
     },
     "b0_2": {
       "name": "Levithan",
-      "value": 12000000,
+      "value": 20000000,
       "chance": 1.5,
       "rarity": "mythic"
     },
     "b0_3": {
       "name": "Mythic Plasma Wolflord",
-      "value": 1500000,
+      "value": 7000000,
       "chance": 3.5,
       "rarity": "legendary"
     },
     "b0_4": {
       "name": "Shiny Peppermint Leviathan",
-      "value": 950000,
+      "value": 1000000,
       "chance": 4,
       "rarity": "legendary"
     },
     "b0_5": {
       "name": "Tophat (F)",
-      "value": 750000,
+      "value": 300000,
       "chance": 5,
       "rarity": "legendary"
     },
     "b0_6": {
       "name": "Peppermint Leviathan",
-      "value": 90000,
+      "value": 250000,
       "chance": 82.7,
       "rarity": "common"
     },
@@ -50,7 +50,7 @@
     },
     "b1_1": {
       "name": "Giant Robot",
-      "value": 10000000,
+      "value": 15000000,
       "chance": 1,
       "rarity": "mythic"
     },
@@ -62,19 +62,19 @@
     },
     "b1_3": {
       "name": "Shiny Robot 2.0",
-      "value": 600000,
+      "value": 2000000,
       "chance": 30,
       "rarity": "rare"
     },
     "b1_4": {
       "name": "Robot 2.0",
-      "value": 120000,
+      "value": 900000,
       "chance": 30,
       "rarity": "rare"
     },
     "b1_5": {
       "name": "Patriotic Robot",
-      "value": 60000,
+      "value": 400000,
       "chance": 31.8,
       "rarity": "rare"
     },
@@ -86,55 +86,55 @@
     },
     "b2_1": {
       "name": "Shiny Mythic Dream Catcher",
-      "value": 6000000,
+      "value": 15000000,
       "chance": 8,
       "rarity": "epic"
     },
     "b2_2": {
       "name": "Mythic Godly Shamrock",
-      "value": 1500000,
+      "value": 4000000,
       "chance": 8,
       "rarity": "epic"
     },
     "b2_3": {
       "name": "Shiny Almighty Hexarium",
-      "value": 900000,
+      "value": 1500000,
       "chance": 25,
       "rarity": "rare"
     },
     "b2_4": {
       "name": "Mythic Pot O' Doggy",
-      "value": 350000,
+      "value": 550000,
       "chance": 35,
       "rarity": "common"
     },
     "b2_5": {
       "name": "Pot O' Gold",
-      "value": 30000,
+      "value": 300000,
       "chance": 22.5,
       "rarity": "rare"
     },
     "b3_0": {
       "name": "Leviathan",
-      "value": 12000000,
+      "value": 20000000,
       "chance": 0.5,
       "rarity": "mythic"
     },
     "b3_1": {
       "name": "Giant Robot",
-      "value": 7000000,
+      "value": 15000000,
       "chance": 4,
       "rarity": "legendary"
     },
     "b3_2": {
       "name": "Dementor",
-      "value": 3000000,
+      "value": 5000000,
       "chance": 12.5,
       "rarity": "epic"
     },
     "b3_3": {
       "name": "Lord Shock",
-      "value": 1000000,
+      "value": 500000,
       "chance": 15,
       "rarity": "epic"
     },
@@ -146,7 +146,7 @@
     },
     "b3_5": {
       "name": "Soul Heart",
-      "value": 40000,
+      "value": 350000,
       "chance": 38,
       "rarity": "common"
     },
@@ -158,55 +158,55 @@
     },
     "b4_1": {
       "name": "Mythic Almighty Pumpkin",
-      "value": 30000000,
+      "value": 20000000,
       "chance": 0.5,
       "rarity": "mythic"
     },
     "b4_2": {
       "name": "Mythic Sinister Skull",
-      "value": 15000000,
+      "value": 10000000,
       "chance": 2,
       "rarity": "legendary"
     },
     "b4_3": {
       "name": "Mythic King Skull",
-      "value": 10000000,
+      "value": 15000000,
       "chance": 0.5,
       "rarity": "mythic"
     },
     "b4_4": {
       "name": "Mythic Wolf Skull",
-      "value": 10000000,
+      "value": 8500000,
       "chance": 1,
       "rarity": "mythic"
     },
     "b4_5": {
       "name": "Mythic Angelic Skull",
-      "value": 4000000,
+      "value": 8000000,
       "chance": 8,
       "rarity": "epic"
     },
     "b4_6": {
       "name": "Mythic Guardian Skull",
-      "value": 3000000,
+      "value": 8000000,
       "chance": 15,
       "rarity": "epic"
     },
     "b4_7": {
       "name": "Mythic 1B Trophy",
-      "value": 1500000,
+      "value": 2000000,
       "chance": 30,
       "rarity": "rare"
     },
     "b4_8": {
       "name": "Mythic Fire Basilisk",
-      "value": 500000,
+      "value": 2500000,
       "chance": 7.9,
       "rarity": "legendary"
     },
     "b4_9": {
       "name": "Sinister Lord",
-      "value": 120000,
+      "value": 750000,
       "chance": 35,
       "rarity": "common"
     },
@@ -1510,60 +1510,60 @@
   "caseData": [
     {
       "name": "Levithian Seas",
-      "price": 499999
+      "price": 2000000
     },
     {
       "name": "Factory",
-      "price": 445119
+      "price": 1750000
     },
     {
       "name": "Leprachauns Stash",
-      "price": 421872
+      "price": 1500000
     },
     {
       "name": "ThrowBack",
-      "price": 375329
+      "price": 1000000
     },
     {
       "name": "Sinister Strike",
-      "price": 1190329
+      "price": 3000000
     }
   ],
   "caseItems": {
     "0": [
       {
         "name": "Shiny Levithan",
-        "value": 20500000,
+        "value": 45000000,
         "chance": 0.3
       },
       {
+        "name": "Levithan",
+        "value": 20000000,
+        "chance": 1
+      },
+      {
         "name": "Mythic Peppermint Leviathan",
-        "value": 3580000,
+        "value": 9000000,
         "chance": 3
       },
       {
-        "name": "Levithan",
-        "value": 12000000,
-        "chance": 1.5
-      },
-      {
         "name": "Mythic Plasma Wolflord",
-        "value": 1500000,
-        "chance": 3.5
+        "value": 7000000,
+        "chance": 3
       },
       {
         "name": "Shiny Peppermint Leviathan",
-        "value": 950000,
+        "value": 1000000,
         "chance": 4
       },
       {
         "name": "Tophat (F)",
-        "value": 750000,
-        "chance": 5
+        "value": 300000,
+        "chance": 6
       },
       {
         "name": "Peppermint Leviathan",
-        "value": 90000,
+        "value": 250000,
         "chance": 82.7
       }
     ],
@@ -1575,92 +1575,92 @@
       },
       {
         "name": "Giant Robot",
-        "value": 10000000,
-        "chance": 1
+        "value": 15000000,
+        "chance": 1.4
       },
       {
         "name": "Shiny Mythic Christmas Robot",
         "value": 5000000,
-        "chance": 7
+        "chance": 2.4
       },
       {
         "name": "Shiny Robot 2.0",
-        "value": 600000,
-        "chance": 30
+        "value": 2000000,
+        "chance": 4
       },
       {
         "name": "Robot 2.0",
-        "value": 120000,
-        "chance": 30
+        "value": 900000,
+        "chance": 7
       },
       {
         "name": "Patriotic Robot",
-        "value": 60000,
-        "chance": 31.8
+        "value": 400000,
+        "chance": 85
       }
     ],
     "2": [
       {
-        "name": "Mythic Lucky Pyramidium",
-        "value": 8000000,
-        "chance": 1.5
+        "name": "Shiny Mythic Dream Catcher",
+        "value": 15000000,
+        "chance": 1
       },
       {
-        "name": "Shiny Mythic Dream Catcher",
-        "value": 6000000,
-        "chance": 8
+        "name": "Mythic Lucky Pyramidium",
+        "value": 8000000,
+        "chance": 2
       },
       {
         "name": "Mythic Godly Shamrock",
-        "value": 1500000,
-        "chance": 8
+        "value": 4000000,
+        "chance": 2
       },
       {
         "name": "Shiny Almighty Hexarium",
-        "value": 900000,
-        "chance": 25
+        "value": 1500000,
+        "chance": 5
       },
       {
         "name": "Mythic Pot O' Doggy",
-        "value": 350000,
-        "chance": 35
+        "value": 550000,
+        "chance": 45
       },
       {
         "name": "Pot O' Gold",
-        "value": 30000,
-        "chance": 22.5
+        "value": 300000,
+        "chance": 45
       }
     ],
     "3": [
       {
         "name": "Leviathan",
-        "value": 12000000,
-        "chance": 0.5
+        "value": 20000000,
+        "chance": 1
       },
       {
         "name": "Giant Robot",
-        "value": 7000000,
-        "chance": 4
+        "value": 15000000,
+        "chance": 1
       },
       {
         "name": "Dementor",
-        "value": 3000000,
-        "chance": 12.5
+        "value": 5000000,
+        "chance": 3
       },
       {
         "name": "Lord Shock",
-        "value": 1000000,
+        "value": 500000,
         "chance": 15
       },
       {
         "name": "Easter Basket",
         "value": 400000,
-        "chance": 30
+        "chance": 20
       },
       {
         "name": "Soul Heart",
-        "value": 40000,
-        "chance": 38
+        "value": 350000,
+        "chance": 60
       }
     ],
     "4": [
@@ -1671,48 +1671,48 @@
       },
       {
         "name": "Mythic Almighty Pumpkin",
-        "value": 30000000,
-        "chance": 0.5
+        "value": 20000000,
+        "chance": 0.3
       },
       {
         "name": "Mythic Sinister Skull",
-        "value": 15000000,
-        "chance": 2
+        "value": 10000000,
+        "chance": 0.6
       },
       {
         "name": "Mythic King Skull",
-        "value": 10000000,
-        "chance": 0.5
+        "value": 15000000,
+        "chance": 1
       },
       {
         "name": "Mythic Wolf Skull",
-        "value": 10000000,
+        "value": 8500000,
         "chance": 1
       },
       {
         "name": "Mythic Angelic Skull",
-        "value": 4000000,
-        "chance": 8
+        "value": 8000000,
+        "chance": 2.5
       },
       {
         "name": "Mythic Guardian Skull",
-        "value": 3000000,
+        "value": 8000000,
+        "chance": 2.5
+      },
+      {
+        "name": "Mythic Fire Basilisk",
+        "value": 2500000,
         "chance": 15
       },
       {
         "name": "Mythic 1B Trophy",
-        "value": 1500000,
-        "chance": 30
-      },
-      {
-        "name": "Mythic Fire Basilisk",
-        "value": 500000,
-        "chance": 7.9
+        "value": 2000000,
+        "chance": 22
       },
       {
         "name": "Sinister Lord",
-        "value": 120000,
-        "chance": 35
+        "value": 750000,
+        "chance": 55
       }
     ]
   },
