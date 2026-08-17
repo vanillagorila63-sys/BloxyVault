@@ -15,6 +15,7 @@ const { WebSocketServer } = require('ws');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const db = require('./db');
 
 const gameData = JSON.parse(fs.readFileSync(path.join(__dirname, 'gameData.json'), 'utf8'));
 const { petCatalog, caseData, caseItems, modeConfigs, botNamesCf, botNamesBattles } = gameData;
@@ -35,6 +36,19 @@ const ADMIN_USERNAME = 'tim_tim1345';
 // with one of every pet and a large coin balance so it never runs dry.
 const GIVEAWAY_USERNAME = 'DTN_BGSI';
 const GIVEAWAY_STARTING_BALANCE = 2000000000;
+
+// Gates every testing-only, no-real-verification path in this file:
+// /dev/skip-login (logs in as anyone with zero Roblox check), the
+// debug:addTestCoins cheat, and account:reset. All three exist purely for
+// local development and are OFF by default - Railway doesn't reliably set
+// NODE_ENV on its own, so this deliberately requires an explicit opt-in
+// rather than trusting an environment flag that might not be set. Only add
+// ENABLE_DEV_BYPASS=true in Railway's Variables tab if you actually want
+// these reachable (e.g. a separate staging deploy) - never on the real one.
+const ENABLE_DEV_BYPASS = process.env.ENABLE_DEV_BYPASS === 'true';
+if (ENABLE_DEV_BYPASS) {
+  console.warn('[security] ENABLE_DEV_BYPASS is ON - /dev/skip-login, debug:addTestCoins, and account:reset are reachable. Do not leave this on in production.');
+}
 
 // ---------------------------------------------------------------------------
 // Connection + account state
@@ -85,6 +99,13 @@ setInterval(() => {
 function ensureUser(username) {
   if (!users.has(username)) {
     users.set(username, { coins: STARTING_BALANCE, inventory: {}, stats: { wagered: 0, won: 0, lost: 0 } });
+    // Fire-and-forget: this username has never been seen before in this
+    // process. It's already usable in memory immediately (no need to wait
+    // on the DB round-trip before the player can act) - Postgres just needs
+    // to catch up with a matching row.
+    db.insertNewUser(username, STARTING_BALANCE, { wagered: 0, won: 0, lost: 0 }).catch((err) => {
+      console.error(`[db] insertNewUser failed for ${username}:`, err.message);
+    });
   }
   const u = users.get(username);
   if (!u.stats) u.stats = { wagered: 0, won: 0, lost: 0 }; // backfill for accounts created before stats existed
@@ -93,9 +114,16 @@ function ensureUser(username) {
     // just on first creation - covers accounts that already existed
     // in memory before this feature was added, and any pets added to
     // the catalog later (they'll get topped up to 99x automatically too).
+    // Only the items that actually needed correcting get persisted - once
+    // stable at 99x, later calls change nothing and skip the DB write
+    // entirely, so this never turns into hundreds of writes per message.
+    const toppedUp = [];
     if (u.coins < GIVEAWAY_STARTING_BALANCE) u.coins = GIVEAWAY_STARTING_BALANCE;
     for (const id of Object.keys(petCatalog)) {
-      if (!u.inventory[id] || u.inventory[id] < 99) u.inventory[id] = 99;
+      if (!u.inventory[id] || u.inventory[id] < 99) { u.inventory[id] = 99; toppedUp.push(id); }
+    }
+    if (toppedUp.length) {
+      persistUser(username, { type: 'giveaway_topup', amount: 0, balanceBefore: u.coins, balanceAfter: u.coins, itemsTouched: toppedUp, reason: 'Self-healing top-up to 99x' });
     }
   }
   return u;
@@ -163,7 +191,10 @@ function payoutRain() {
     for (const username of rainClaimants) {
       const share = Math.floor(rainPool * (weights.get(username) / totalWeight));
       if (share > 0) {
-        ensureUser(username).coins += share;
+        const u = ensureUser(username);
+        const before = u.coins;
+        u.coins += share;
+        persistUser(username, { type: 'rain_payout', amount: share, balanceBefore: before, balanceAfter: u.coins });
         syncAccount(username);
         send(usernameToSocket.get(username), { type: 'rain:payout', amount: share });
       }
@@ -183,8 +214,10 @@ function handleRainDeposit(username, msg) {
   if (u.coins < amount) {
     return send(usernameToSocket.get(username), { type: 'error', message: "You don't have enough coins for that." });
   }
+  const before = u.coins;
   u.coins -= amount;
   rainPool += amount;
+  persistUser(username, { type: 'rain_deposit', amount: -amount, balanceBefore: before, balanceAfter: u.coins });
   syncAccount(username);
   broadcastRainState();
 }
@@ -291,6 +324,22 @@ function syncAccount(username) {
   if (!ws) return; // not currently connected - they'll get fresh state on next login
   const u = ensureUser(username);
   send(ws, { type: 'account', user: { username, coins: u.coins, inventory: u.inventory, stats: u.stats } });
+}
+
+// Fire-and-forget persistence: memory has already been updated synchronously
+// (same as before this feature existed) by the time this is called, so this
+// just mirrors that already-decided state into Postgres afterward. Errors
+// are logged, not thrown - a slow/hiccupping DB write should never crash a
+// live game round or block the response the player already got.
+//
+// `txn` (optional) - see db.js's persistUserState doc comment for shape.
+// Pass it whenever coins or stats changed, so a real audit row gets written.
+function persistUser(username, txn) {
+  const u = users.get(username);
+  if (!u) return;
+  db.persistUserState(username, u, txn).catch((err) => {
+    console.error(`[db] persistUser failed for ${username} (${txn ? txn.type : 'no-txn'}):`, err.message);
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -426,12 +475,15 @@ function resolveCoinflip(creator, creatorSide, creatorItems, joiner, joinerSide,
   if (!botNameSet.has(winner)) {
     addItems(winner, winnerFinalItems);
     trackWin(winner, wonAmount);
+    persistUser(winner, { type: 'coinflip_win', amount: 0, itemsTouched: [...new Set(winnerFinalItems)] });
   }
   if (!botNameSet.has(loser)) {
     trackLoss(loser, wonAmount);
+    persistUser(loser, { type: 'coinflip_loss', amount: 0 });
   }
   if (rakeItems.length) {
     addItems(ADMIN_USERNAME, rakeItems);
+    persistUser(ADMIN_USERNAME, { type: 'coinflip_rake', amount: 0, itemsTouched: [...new Set(rakeItems)] });
     syncAccount(ADMIN_USERNAME);
   }
 
@@ -450,6 +502,7 @@ function handleCoinflipCreate(username, msg) {
   }
   removeItems(username, items); // escrow
   trackWager(username, stakeValue(items));
+  persistUser(username, { type: 'coinflip_create_escrow', amount: 0, itemsTouched: [...new Set(items)] });
   const id = 'cf_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
   cfLobbies.push({ id, creator: username, side: msg.side, items });
   syncAccount(username);
@@ -483,6 +536,7 @@ function handleCoinflipJoin(username, msg) {
   }
   removeItems(username, items); // escrow
   trackWager(username, joinValue);
+  persistUser(username, { type: 'coinflip_join_escrow', amount: 0, itemsTouched: [...new Set(items)] });
   cfLobbies = cfLobbies.filter((l) => l.id !== msg.lobbyId);
   broadcastCfLobbies();
   const joinerSide = lobby.side === 'H' ? 'T' : 'H';
@@ -494,6 +548,7 @@ function handleCoinflipCancel(username, msg) {
   if (!lobby || lobby.creator !== username) return;
   addItems(username, lobby.items); // return escrow
   untrackWager(username, stakeValue(lobby.items)); // never actually played - shouldn't count as "played"
+  persistUser(username, { type: 'coinflip_cancel_refund', amount: 0, itemsTouched: [...new Set(lobby.items)] });
   cfLobbies = cfLobbies.filter((l) => l.id !== msg.lobbyId);
   syncAccount(username);
   broadcastCfLobbies();
@@ -543,6 +598,7 @@ function handleJackpotEnter(username, msg) {
   if (items.length) removeItems(username, items); // escrow
   const value = amount + stakeValue(items);
   trackWager(username, value);
+  persistUser(username, { type: 'jackpot_enter', amount: -amount, itemsTouched: [...new Set(items)] });
   syncAccount(username);
 
   if (!jackpotRound) {
@@ -567,11 +623,16 @@ function resolveJackpot() {
   const coinsPortion = round.entrants.reduce((s, e) => s + e.coinsStaked, 0);
   const allItems = round.entrants.reduce((arr, e) => arr.concat(e.items), []);
   const u = ensureUser(winner.username);
+  const before = u.coins;
   if (coinsPortion > 0) u.coins += coinsPortion;
   if (allItems.length) addItems(winner.username, allItems);
   trackWin(winner.username, total);
+  persistUser(winner.username, { type: 'jackpot_win', amount: coinsPortion, balanceBefore: before, balanceAfter: u.coins, itemsTouched: [...new Set(allItems)] });
   for (const e of round.entrants) {
-    if (e.username !== winner.username) trackLoss(e.username, e.value);
+    if (e.username !== winner.username) {
+      trackLoss(e.username, e.value);
+      persistUser(e.username, { type: 'jackpot_loss', amount: 0 });
+    }
   }
   // trackLoss above only touches the server's copy of each loser's stats -
   // without syncing them individually too, only the winner's own client
@@ -614,8 +675,10 @@ function handleCaseBattleCreate(username, msg) {
   const cost = battleCost(msg.caseQueue);
   const u = ensureUser(username);
   if (u.coins < cost) return send(usernameToSocket.get(username), { type: 'error', message: "You don't have enough coins for this battle." });
+  const before = u.coins;
   u.coins -= cost;
   trackWager(username, cost);
+  persistUser(username, { type: 'casebattle_create_wager', amount: -cost, balanceBefore: before, balanceAfter: u.coins });
   syncAccount(username);
 
   const id = 'battle_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
@@ -645,8 +708,10 @@ function handleCaseBattleJoin(username, msg) {
   const cost = battleCost(b.caseQueue);
   const u = ensureUser(username);
   if (u.coins < cost) return send(usernameToSocket.get(username), { type: 'error', message: "You don't have enough coins for this battle." });
+  const before = u.coins;
   u.coins -= cost;
   trackWager(username, cost);
+  persistUser(username, { type: 'casebattle_join_wager', amount: -cost, balanceBefore: before, balanceAfter: u.coins });
   syncAccount(username);
 
   const team = b.cfg.isTeam ? b.players.length % 2 : 0;
@@ -688,8 +753,11 @@ function handleCaseBattleCancel(username, msg) {
   const otherReal = b.players.some((p) => p.username !== username && !p.isBot);
   if (otherReal) return;
   const cost = battleCost(b.caseQueue);
-  ensureUser(username).coins += cost;
+  const u = ensureUser(username);
+  const before = u.coins;
+  u.coins += cost;
   untrackWager(username, cost);
+  persistUser(username, { type: 'casebattle_cancel_refund', amount: cost, balanceBefore: before, balanceAfter: u.coins });
   syncAccount(username);
   battles.delete(b.id);
   broadcastBattles();
@@ -733,14 +801,34 @@ async function runBattle(b) {
     winnerValue = battleTotal; // full combined pot, matching how "Team A won X" is displayed as one number
     const winners = b.players.filter((p) => String(p.team) === winningTeam && !p.isBot);
     const share = Math.floor(battleTotal / Math.max(1, b.players.filter((p) => String(p.team) === winningTeam).length));
-    winners.forEach((p) => { ensureUser(p.username).coins += share; trackWin(p.username, share); syncAccount(p.username); });
-    b.players.filter((p) => String(p.team) !== winningTeam && !p.isBot).forEach((p) => trackLoss(p.username, perPlayerCost));
+    winners.forEach((p) => {
+      const u = ensureUser(p.username);
+      const before = u.coins;
+      u.coins += share;
+      trackWin(p.username, share);
+      persistUser(p.username, { type: 'casebattle_win', amount: share, balanceBefore: before, balanceAfter: u.coins });
+      syncAccount(p.username);
+    });
+    b.players.filter((p) => String(p.team) !== winningTeam && !p.isBot).forEach((p) => {
+      trackLoss(p.username, perPlayerCost);
+      persistUser(p.username, { type: 'casebattle_loss', amount: 0 });
+    });
   } else {
     const top = [...b.players].sort((a, c) => c.total - a.total)[0];
     winner = top.username;
     winnerValue = battleTotal; // the winner takes everyone's pulls, so the banner should reflect that, not just their own
-    if (!top.isBot) { ensureUser(top.username).coins += battleTotal; trackWin(top.username, battleTotal); syncAccount(top.username); }
-    b.players.filter((p) => p !== top && !p.isBot).forEach((p) => trackLoss(p.username, perPlayerCost));
+    if (!top.isBot) {
+      const u = ensureUser(top.username);
+      const before = u.coins;
+      u.coins += battleTotal;
+      trackWin(top.username, battleTotal);
+      persistUser(top.username, { type: 'casebattle_win', amount: battleTotal, balanceBefore: before, balanceAfter: u.coins });
+      syncAccount(top.username);
+    }
+    b.players.filter((p) => p !== top && !p.isBot).forEach((p) => {
+      trackLoss(p.username, perPlayerCost);
+      persistUser(p.username, { type: 'casebattle_loss', amount: 0 });
+    });
   }
 
   b.status = 'finished';
@@ -781,19 +869,23 @@ function handleExchangeSell(username, msg) {
   const u = ensureUser(username);
   let rawTotal = 0;
   let stockChanged = false;
+  const itemsTouched = [];
   for (const [id, reqQty] of Object.entries(requested)) {
     const owned = u.inventory[id] || 0;
     const sellQty = Math.min(reqQty, owned);
     if (sellQty <= 0) continue;
     rawTotal += sellQty * itemValue(id);
     u.inventory[id] = owned - sellQty;
+    itemsTouched.push(id);
     // The pet doesn't just vanish - it becomes available for someone
     // else to buy in the Exchange's "coin to item" side.
     shopStock[id] = (shopStock[id] || 0) + sellQty;
     stockChanged = true;
   }
+  const before = u.coins;
   const payout = Math.floor(rawTotal * (1 - TAX_RATE));
   u.coins += payout;
+  persistUser(username, { type: 'exchange_sell', amount: payout, balanceBefore: before, balanceAfter: u.coins, itemsTouched });
   syncAccount(username);
   if (stockChanged) broadcast({ type: 'exchange:stock', stock: shopStock });
 }
@@ -812,9 +904,11 @@ function handleExchangeBuy(username, msg) {
   const cost = ids.reduce((sum, id) => sum + itemValue(id), 0);
   const u = ensureUser(username);
   if (u.coins < cost) return send(usernameToSocket.get(username), { type: 'error', message: `Not enough coins - you need ${cost}.` });
+  const before = u.coins;
   u.coins -= cost;
   for (const [id, reqQty] of Object.entries(requested)) shopStock[id] -= reqQty;
   addItems(username, ids);
+  persistUser(username, { type: 'exchange_buy', amount: -cost, balanceBefore: before, balanceAfter: u.coins, itemsTouched: [...new Set(ids)] });
   syncAccount(username);
   broadcast({ type: 'exchange:stock', stock: shopStock });
 }
@@ -825,9 +919,16 @@ function handleExchangeBuy(username, msg) {
 // other here for keeps, you may want to remove this handler so balances
 // actually mean something in head-to-head games.
 function handleAccountReset(username) {
+  if (!ENABLE_DEV_BYPASS) return send(usernameToSocket.get(username), { type: 'error', message: 'That feature is disabled.' });
   const u = ensureUser(username);
+  const before = u.coins;
   u.coins = STARTING_BALANCE;
+  const itemsTouched = Object.keys(u.inventory);
   u.inventory = {};
+  // Zero out every previously-owned item's row too, not just the ones that
+  // happened to still be non-zero - a stale row with an old qty would
+  // otherwise reappear on the next server restart's DB load.
+  persistUser(username, { type: 'account_reset', amount: u.coins - before, balanceBefore: before, balanceAfter: u.coins, itemsTouched, reason: 'Dev bypass: account reset' });
   syncAccount(username);
 }
 
@@ -836,8 +937,11 @@ function handleAccountReset(username) {
 // server-side (not read from the client) so it can't be abused into an
 // arbitrary-amount cheat via a hand-crafted message.
 function handleAddTestCoins(username) {
+  if (!ENABLE_DEV_BYPASS) return send(usernameToSocket.get(username), { type: 'error', message: 'That feature is disabled.' });
   const u = ensureUser(username);
+  const before = u.coins;
   u.coins += 1000000000;
+  persistUser(username, { type: 'debug_add_coins', amount: u.coins - before, balanceBefore: before, balanceAfter: u.coins, reason: 'Dev bypass: add test coins' });
   syncAccount(username);
 }
 
@@ -888,21 +992,35 @@ function handleGameWager(username, msg) {
   const amount = Math.max(0, Math.floor(Number(msg.amount) || 0));
   const items = Array.isArray(msg.items) ? msg.items.filter(id => typeof id === 'string') : [];
   if (amount <= 0 && items.length === 0) return;
+  if (msg.game === 'mines' && amount > MINES_MAX_BET) {
+    return send(usernameToSocket.get(username), { type: 'error', message: `Mines is capped at ${MINES_MAX_BET} coins per round.` });
+  }
   const u = ensureUser(username);
   if (amount > u.coins) return; // can't wager more than they actually have
+  const before = u.coins;
   if (amount > 0) u.coins -= amount;
   for (const id of items) {
     u.inventory[id] = Math.max(0, (u.inventory[id] || 0) - 1); // clamped - never goes negative even if client/server briefly disagree
   }
   trackWager(username, amount > 0 ? amount : stakeValue(items));
+  persistUser(username, { type: `${msg.game || 'game'}_wager`, amount: -amount, balanceBefore: before, balanceAfter: u.coins, itemsTouched: items });
   syncAccount(username);
 }
+
+const MINES_MAX_BET = 500000; // must match the client's MINES_MAX_BET
 
 function handleGameResolve(username, msg) {
   const payout = Math.max(0, Math.floor(Number(msg.payout) || 0));
   const wager = Math.max(0, Math.floor(Number(msg.wager) || 0));
   const items = Array.isArray(msg.items) ? msg.items.filter(id => typeof id === 'string') : [];
+  // Belt-and-suspenders: the client already stops you from starting a Mines
+  // round above this, but don't trust that alone - reject anything that
+  // claims a bigger wager was involved.
+  if (msg.game === 'mines' && wager > MINES_MAX_BET) {
+    return send(usernameToSocket.get(username), { type: 'error', message: `Mines is capped at ${MINES_MAX_BET} coins per round.` });
+  }
   const u = ensureUser(username);
+  const before = u.coins;
   if (payout > 0) {
     u.coins += payout;
     trackWin(username, payout);
@@ -912,6 +1030,7 @@ function handleGameResolve(username, msg) {
   for (const id of items) {
     u.inventory[id] = (u.inventory[id] || 0) + 1;
   }
+  persistUser(username, { type: `${msg.game || 'game'}_resolve`, amount: payout, balanceBefore: before, balanceAfter: u.coins, itemsTouched: items });
   syncAccount(username);
 
   // Feed it to the site-wide live feed too, if it's a game the feed knows
@@ -954,15 +1073,21 @@ function handleAdminLookup(username, msg) {
 // ---------------------------------------------------------------------------
 let withdrawRequests = []; // { id, username, items, requestedAt, status, actuallyRemoved? }
 
-function handleWithdrawRequest(username, msg) {
+async function handleWithdrawRequest(username, msg) {
   const items = msg.items || [];
   const errTo = usernameToSocket.get(username);
   if (!items.length) return send(errTo, { type: 'error', message: 'Select at least one item to withdraw.' });
   if (!ownsAll(username, items)) return send(errTo, { type: 'error', message: "You don't own all of those items." });
 
-  const id = 'wd_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
-  withdrawRequests.push({ id, username, items, requestedAt: Date.now(), status: 'pending' });
-  send(errTo, { type: 'withdraw:requested', id });
+  const req = { id: 'wd_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8), username, items, requestedAt: Date.now(), status: 'pending' };
+  try {
+    await db.insertWithdrawRequest(req);
+  } catch (err) {
+    console.error(`[db] Failed to persist withdraw request for ${username}:`, err.message);
+    return send(errTo, { type: 'error', message: 'Something went wrong submitting that - try again in a moment.' });
+  }
+  withdrawRequests.push(req);
+  send(errTo, { type: 'withdraw:requested', id: req.id });
   broadcastPendingWithdrawalsToAdmin();
 }
 
@@ -977,7 +1102,7 @@ function handleAdminWithdrawList(username) {
   broadcastPendingWithdrawalsToAdmin();
 }
 
-function handleAdminWithdrawFulfill(username, msg) {
+async function handleAdminWithdrawFulfill(username, msg) {
   if (username !== ADMIN_USERNAME) return;
   const req = withdrawRequests.find(r => r.id === msg.requestId && r.status === 'pending');
   if (!req) return;
@@ -995,25 +1120,56 @@ function handleAdminWithdrawFulfill(username, msg) {
     const removeQty = Math.min(reqQty, owned);
     if (removeQty > 0) { target.inventory[id] = owned - removeQty; actuallyRemoved[id] = removeQty; }
   }
+
+  // The DB row is the actual source of truth for "has this already been
+  // actioned" - this only succeeds if it's still 'pending' there right now,
+  // so two admin clicks (or a retry) can never both go through and remove
+  // items twice, even if the in-memory array briefly disagreed.
+  let ok;
+  try {
+    ok = await db.resolveWithdrawRequest(req.id, 'pending', 'fulfilled', actuallyRemoved);
+  } catch (err) {
+    console.error(`[db] Failed to resolve withdraw request ${req.id}:`, err.message);
+    return;
+  }
+  if (!ok) return; // someone/something else already resolved this request
+
   req.status = 'fulfilled';
   req.actuallyRemoved = actuallyRemoved;
+  persistUser(req.username, { type: 'withdraw_fulfilled', amount: 0, itemsTouched: Object.keys(actuallyRemoved), reason: `Fulfilled by ${ADMIN_USERNAME}`, adminUsername: ADMIN_USERNAME });
   syncAccount(req.username);
   send(usernameToSocket.get(req.username), { type: 'chat:message', username: 'System', text: `Your withdrawal request was fulfilled by ${ADMIN_USERNAME}.`, timestamp: Date.now(), system: true });
   broadcastPendingWithdrawalsToAdmin();
 }
 
-function handleAdminWithdrawReject(username, msg) {
+async function handleAdminWithdrawReject(username, msg) {
   if (username !== ADMIN_USERNAME) return;
   const req = withdrawRequests.find(r => r.id === msg.requestId && r.status === 'pending');
   if (!req) return;
+  let ok;
+  try {
+    ok = await db.resolveWithdrawRequest(req.id, 'pending', 'rejected', null);
+  } catch (err) {
+    console.error(`[db] Failed to resolve withdraw request ${req.id}:`, err.message);
+    return;
+  }
+  if (!ok) return; // already resolved
   req.status = 'rejected';
   send(usernameToSocket.get(req.username), { type: 'error', message: 'Your withdrawal request was declined.' });
   broadcastPendingWithdrawalsToAdmin();
 }
 
-function handleWithdrawCancel(username, msg) {
+async function handleWithdrawCancel(username, msg) {
   const req = withdrawRequests.find(r => r.id === msg.requestId && r.status === 'pending' && r.username === username);
   if (!req) return;
+  let ok;
+  try {
+    ok = await db.resolveWithdrawRequest(req.id, 'pending', 'cancelled', null);
+  } catch (err) {
+    console.error(`[db] Failed to resolve withdraw request ${req.id}:`, err.message);
+    return;
+  }
+  if (!ok) return; // already resolved (e.g. admin acted on it at the same moment)
   req.status = 'cancelled';
   broadcastPendingWithdrawalsToAdmin();
 }
@@ -1050,14 +1206,19 @@ function handleTipSend(username, msg) {
   if (coins > 0 && u.coins < coins) return send(errTo, { type: 'error', message: "You don't have that many coins." });
   if (items.length && !ownsAll(username, items)) return send(errTo, { type: 'error', message: "You don't own all of those items." });
 
+  const senderBefore = u.coins;
+  const targetBefore = target.coins;
   if (coins > 0) { u.coins -= coins; target.coins += coins; }
+  let senderItemsTouched = [];
   if (items.length) {
     // The giveaway account's stock never runs out - only credit the
     // recipient, don't deduct from the sender, so it stays at 99x forever.
-    if (username !== GIVEAWAY_USERNAME) removeItems(username, items);
+    if (username !== GIVEAWAY_USERNAME) { removeItems(username, items); senderItemsTouched = [...new Set(items)]; }
     addItems(toUsername, items);
   }
 
+  persistUser(username, { type: 'tip_send', amount: -coins, balanceBefore: senderBefore, balanceAfter: u.coins, itemsTouched: senderItemsTouched, reason: `To ${toUsername}` });
+  persistUser(toUsername, { type: 'tip_receive', amount: coins, balanceBefore: targetBefore, balanceAfter: target.coins, itemsTouched: [...new Set(items)], reason: `From ${username}` });
   syncAccount(username);
   syncAccount(toUsername);
 
@@ -1146,9 +1307,16 @@ const server = http.createServer(async (req, res) => {
   }
 
   // TEMPORARY — testing-only bypass matching the client's skip-verify button.
-  // Issues a real session token with zero Roblox check. Delete this whole
-  // block before using this for real, same as the client-side bypass.
+  // Issues a real session token with zero Roblox check. Gated behind
+  // ENABLE_DEV_BYPASS (off by default) rather than reachable in production -
+  // see the flag's definition near the top of this file. Still fully
+  // removable later (Phase 3) once you're confident nothing depends on it.
   if(url.pathname === '/dev/skip-login'){
+    if (!ENABLE_DEV_BYPASS) {
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: false }));
+      return;
+    }
     const username = (url.searchParams.get('username') || '').slice(0, 40) || 'testuser';
     const token = issueSessionToken(username);
     res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -1243,4 +1411,29 @@ function broadcastBattlesTo(ws) {
 }
 
 const PORT = process.env.PORT || 8080;
-server.listen(PORT, () => console.log(`BloxyVault server listening on :${PORT}`));
+
+// Boot sequence: schema first, then load every persisted user + their
+// inventory into the in-memory `users` Map (same shape it's always had -
+// nothing downstream needs to know this came from a database instead of
+// starting empty), then pending withdrawal requests, and only THEN start
+// accepting connections. If any of this fails, exit loudly rather than
+// silently starting with an empty in-memory state that looks fine but
+// quietly isn't backed by anything real.
+(async () => {
+  try {
+    await db.initSchema();
+
+    const loadedUsers = await db.loadAllUsers();
+    for (const [uname, u] of loadedUsers) users.set(uname, u);
+    console.log(`[boot] Loaded ${loadedUsers.size} user account(s) from Postgres.`);
+
+    const loadedRequests = await db.loadPendingWithdrawRequests();
+    withdrawRequests = loadedRequests;
+    console.log(`[boot] Loaded ${loadedRequests.length} pending withdrawal request(s) from Postgres.`);
+
+    server.listen(PORT, () => console.log(`BloxyVault server listening on :${PORT}`));
+  } catch (err) {
+    console.error('[boot] Failed to start - could not initialize/load from Postgres:', err);
+    process.exit(1);
+  }
+})();
