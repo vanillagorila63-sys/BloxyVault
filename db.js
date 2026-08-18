@@ -386,6 +386,27 @@ async function mergeCasedDuplicates(canonicalUsername, variants) {
 // from the caller, same pattern as persistUser - a coinflip's outcome has
 // already been decided and broadcast by the time this is called, so a slow
 // DB write here should never hold up the live result.
+// Returns a user's most recent transactions, newest first - used by the
+// admin lookup panel. Straightforward read against the existing Phase 1
+// transactions table, no schema changes needed.
+async function loadRecentTransactionsForUser(username, limit) {
+  const res = await pool.query(
+    `SELECT type, amount, balance_before, balance_after, items_delta, reason, admin_username, created_at
+     FROM transactions WHERE username = $1 ORDER BY created_at DESC LIMIT $2`,
+    [username, limit]
+  );
+  return res.rows.map((r) => ({
+    type: r.type,
+    amount: Number(r.amount),
+    balanceBefore: Number(r.balance_before),
+    balanceAfter: Number(r.balance_after),
+    itemsDelta: r.items_delta,
+    reason: r.reason,
+    adminUsername: r.admin_username,
+    timestamp: new Date(r.created_at).getTime(),
+  }));
+}
+
 async function insertCoinflipHistory(row) {
   await pool.query(
     `INSERT INTO coinflip_history (creator, joiner, creator_side, joiner_side, creator_items, joiner_items, creator_value, joiner_value, result, winner)
@@ -436,4 +457,5 @@ module.exports = {
   loadCoinflipHistoryForUser,
   findDuplicateCaseClusters,
   mergeCasedDuplicates,
+  loadRecentTransactionsForUser,
 };

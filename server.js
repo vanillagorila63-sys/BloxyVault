@@ -99,28 +99,48 @@ setInterval(() => {
 }, 60 * 60 * 1000);
 
 function ensureUser(username) {
-  if (!users.has(username)) {
-    users.set(username, { coins: STARTING_BALANCE, inventory: {}, stats: { wagered: 0, won: 0, lost: 0 } });
-    // Fire-and-forget: this username has never been seen before in this
-    // process. It's already usable in memory immediately (no need to wait
-    // on the DB round-trip before the player can act) - Postgres just needs
-    // to catch up with a matching row.
-    db.insertNewUser(username, STARTING_BALANCE, { wagered: 0, won: 0, lost: 0 }).catch((err) => {
-      console.error(`[db] insertNewUser failed for ${username}:`, err.message);
-    });
+  const isNewAccount = !users.has(username);
+  const isGiveaway = username.toLowerCase() === GIVEAWAY_USERNAME.toLowerCase();
+
+  if (isNewAccount) {
+    const startingCoins = isGiveaway ? GIVEAWAY_STARTING_BALANCE : STARTING_BALANCE;
+    const startingInventory = {};
+    if (isGiveaway) for (const id of Object.keys(petCatalog)) startingInventory[id] = 99;
+    users.set(username, { coins: startingCoins, inventory: startingInventory, stats: { wagered: 0, won: 0, lost: 0 } });
+    if (isGiveaway) {
+      // Seed both the balance AND the full inventory atomically in one go,
+      // with a real transaction row - this only ever happens once, right
+      // at creation, not on every touch (see below for why that matters).
+      persistUser(username, { type: 'giveaway_seed', amount: startingCoins, balanceBefore: 0, balanceAfter: startingCoins, itemsTouched: Object.keys(startingInventory), reason: 'Initial giveaway account setup' });
+    } else {
+      // Fire-and-forget: this username has never been seen before in this
+      // process. It's already usable in memory immediately (no need to wait
+      // on the DB round-trip before the player can act) - Postgres just
+      // needs to catch up with a matching row.
+      db.insertNewUser(username, startingCoins, { wagered: 0, won: 0, lost: 0 }).catch((err) => {
+        console.error(`[db] insertNewUser failed for ${username}:`, err.message);
+      });
+    }
   }
   const u = users.get(username);
   if (!u.stats) u.stats = { wagered: 0, won: 0, lost: 0 }; // backfill for accounts created before stats existed
-  if (username.toLowerCase() === GIVEAWAY_USERNAME.toLowerCase()) {
-    // Keep this hand-out account topped up every time it's touched, not
-    // just on first creation - covers accounts that already existed
-    // in memory before this feature was added, and any pets added to
-    // the catalog later (they'll get topped up to 99x automatically too).
-    // Only the items that actually needed correcting get persisted - once
-    // stable at 99x, later calls change nothing and skip the DB write
-    // entirely, so this never turns into hundreds of writes per message.
+  if (isGiveaway && !isNewAccount) {
+    // Keep this hand-out account's INVENTORY topped up on every touch (not
+    // just at creation) - covers accounts that already existed in memory
+    // before this feature was added, and any pets added to the catalog
+    // later (they'll get topped up to 99x automatically too). Only the
+    // items that actually needed correcting get persisted - once stable at
+    // 99x, later calls change nothing and skip the DB write entirely.
+    //
+    // Coins are deliberately NOT re-floored here anymore (unlike the
+    // inventory). They used to be, but that meant an admin's "Remove
+    // Coins" action on this account got silently undone within the same
+    // request - syncAccount() calls ensureUser() again right after the
+    // deduction, which would see the now-lower balance and reset it straight
+    // back up before the response even went out. Coins are only ever
+    // seeded once now, at creation, same as a normal account - after that
+    // they behave like any other balance and admin adjustments actually stick.
     const toppedUp = [];
-    if (u.coins < GIVEAWAY_STARTING_BALANCE) u.coins = GIVEAWAY_STARTING_BALANCE;
     for (const id of Object.keys(petCatalog)) {
       if (!u.inventory[id] || u.inventory[id] < 99) { u.inventory[id] = 99; toppedUp.push(id); }
     }
@@ -1041,19 +1061,69 @@ function handleGameResolve(username, msg) {
   }
 }
 
-function handleAdminLookup(username, msg) {
+async function handleAdminLookup(username, msg) {
   if (username !== ADMIN_USERNAME) return;
   const target = String(msg.username || '');
   const u = users.get(target);
+  let transactions = [];
+  if (u) {
+    try {
+      transactions = await db.loadRecentTransactionsForUser(target, 15);
+    } catch (err) {
+      console.error(`[db] Failed to load transaction history for ${target}:`, err.message);
+    }
+  }
   send(usernameToSocket.get(username), {
     type: 'admin:lookupResult',
     username: target,
     found: !!u,
     coins: u ? u.coins : null,
     inventory: u ? u.inventory : null,
+    stats: u ? u.stats : null,
+    transactions,
   });
 }
 
+// Admin-only balance adjustment - covers both "add coins" and "remove
+// coins" (removeCoins is just addCoins with a negated, clamped amount).
+// Every call writes a real transaction row via the same persistUser() path
+// every other coin-mutating action already uses, so this shows up in the
+// user's transaction history exactly like a game payout or a tip would,
+// just tagged as an admin action with who did it and why.
+async function handleAdminAdjustCoins(username, msg, direction) {
+  if (username !== ADMIN_USERNAME) return;
+  const errTo = usernameToSocket.get(username);
+  const target = String(msg.username || '');
+  const amount = Math.floor(Number(msg.amount) || 0);
+  const reason = String(msg.reason || '').slice(0, 200) || (direction > 0 ? 'Admin coin grant' : 'Admin coin removal');
+  if (!target || amount <= 0) {
+    return send(errTo, { type: 'error', message: 'Enter a username and a positive amount.' });
+  }
+  if (!users.has(target)) {
+    return send(errTo, { type: 'error', message: `No account found for "${target}".` });
+  }
+  const u = ensureUser(target);
+  const before = u.coins;
+  const delta = direction > 0 ? amount : -Math.min(amount, u.coins); // never push a balance negative
+  u.coins += delta;
+  persistUser(target, {
+    type: 'admin_adjust',
+    amount: delta,
+    balanceBefore: before,
+    balanceAfter: u.coins,
+    reason,
+    adminUsername: username,
+  });
+  syncAccount(target);
+  send(errTo, { type: 'admin:adjustResult', username: target, ok: true, coins: u.coins, delta });
+}
+// pets out for the real Roblox items", the admin sees the request (plus can
+// double-check their actual inventory via admin:lookup above to make sure
+// they're not lying about what they have), does the real-world trade
+// themselves outside this app, then marks it fulfilled here - which is what
+// actually removes the items, so there's a clear log of who asked for what
+// and when, rather than silent inventory edits with no trail.
+// ---------------------------------------------------------------------------
 // ---------------------------------------------------------------------------
 // Withdrawal requests - a real player says "I want to cash these specific
 // pets out for the real Roblox items", the admin sees the request (plus can
@@ -1147,6 +1217,7 @@ async function handleAdminWithdrawReject(username, msg) {
   }
   if (!ok) return; // already resolved
   req.status = 'rejected';
+  persistUser(req.username, { type: 'withdraw_rejected', amount: 0, reason: `Rejected by ${ADMIN_USERNAME}`, adminUsername: ADMIN_USERNAME });
   send(usernameToSocket.get(req.username), { type: 'error', message: 'Your withdrawal request was declined.' });
   broadcastPendingWithdrawalsToAdmin();
 }
@@ -1163,6 +1234,7 @@ async function handleWithdrawCancel(username, msg) {
   }
   if (!ok) return; // already resolved (e.g. admin acted on it at the same moment)
   req.status = 'cancelled';
+  persistUser(username, { type: 'withdraw_cancelled', amount: 0, reason: 'Cancelled by player' });
   broadcastPendingWithdrawalsToAdmin();
 }
 
@@ -1397,6 +1469,8 @@ wss.on('connection', (ws) => {
       case 'exchange:buy': return handleExchangeBuy(username, msg);
       case 'account:reset': return handleAccountReset(username);
       case 'admin:lookup': return handleAdminLookup(username, msg);
+      case 'admin:addCoins': return handleAdminAdjustCoins(username, msg, 1);
+      case 'admin:removeCoins': return handleAdminAdjustCoins(username, msg, -1);
       case 'game:wager': return handleGameWager(username, msg);
       case 'game:resolve': return handleGameResolve(username, msg);
       case 'leaderboard:request': return handleLeaderboardRequest(username);
