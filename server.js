@@ -384,6 +384,24 @@ function pushFeedEvent(entry) {
   broadcast({ type: 'feed:event', entry: full });
 }
 
+// Chat history - purely in-memory (resets on restart, same as the rest of
+// this file's live state), but at least survives a client-side page
+// refresh now: previously the chat log was rebuilt ONLY from live
+// chat:message broadcasts received while connected, so refreshing (or
+// reconnecting) wiped it back to completely empty even though the
+// conversation was still very much ongoing for everyone else. Kept oldest-
+// first (chronological), capped at CHAT_HISTORY_MAX - once full, the
+// oldest message drops off the front to make room, same "1st one
+// disappears" behavior the client's own CHAT_MAX_MESSAGES cap already had.
+const CHAT_HISTORY_MAX = 100;
+let chatHistory = [];
+
+function pushChatMessage(entry) {
+  chatHistory.push(entry);
+  if (chatHistory.length > CHAT_HISTORY_MAX) chatHistory.shift();
+  broadcast({ type: 'chat:message', ...entry });
+}
+
 function syncAccount(username) {
   const ws = usernameToSocket.get(username);
   if (!ws) return; // not currently connected - they'll get fresh state on next login
@@ -1876,7 +1894,7 @@ function handleChatSend(username, msg, ws) {
   const now = Date.now();
   if (now - (lastChatAt.get(ws) || 0) < 500) return;
   lastChatAt.set(ws, now);
-  const text = String(msg.text || '').slice(0, 300).trim();
+  const text = String(msg.text || '').slice(0, 70).trim();
   if (!text) return;
 
   // /mute and /unmute are commands, not real chat messages - they never get
@@ -1904,7 +1922,7 @@ function handleChatSend(username, msg, ws) {
       send(usernameToSocket.get(username), { type: 'toast', message: `Muted ${targetName} for ${label}.` });
       const targetWs = usernameToSocket.get(targetName);
       if (targetWs) send(targetWs, { type: 'toast', message: `You've been muted for ${label} by a moderator.`, isError: true });
-      broadcast({ type: 'chat:message', username: 'System', text: `${targetName} was muted for ${label}.`, timestamp: now, wagered: 0, system: true });
+      pushChatMessage({ username: 'System', text: `${targetName} was muted for ${label}.`, timestamp: now, wagered: 0, system: true });
     } else {
       const targetName = unmuteMatch[1];
       const targetUser = ensureUser(targetName);
@@ -1912,7 +1930,7 @@ function handleChatSend(username, msg, ws) {
       send(usernameToSocket.get(username), { type: 'toast', message: `Unmuted ${targetName}.` });
       const targetWs = usernameToSocket.get(targetName);
       if (targetWs) send(targetWs, { type: 'toast', message: `You've been unmuted.` });
-      broadcast({ type: 'chat:message', username: 'System', text: `${targetName} was unmuted.`, timestamp: now, wagered: 0, system: true });
+      pushChatMessage({ username: 'System', text: `${targetName} was unmuted.`, timestamp: now, wagered: 0, system: true });
     }
     return;
   }
@@ -1924,7 +1942,7 @@ function handleChatSend(username, msg, ws) {
   }
 
   const wagered = u.stats.wagered || 0;
-  broadcast({ type: 'chat:message', username, text, timestamp: now, wagered, specialRole: u.specialRole || null });
+  pushChatMessage({ username, text, timestamp: now, wagered, specialRole: u.specialRole || null });
 }
 
 // ---------------------------------------------------------------------------
@@ -2018,7 +2036,7 @@ function handleTipSend(username, msg) {
   const parts = [];
   if (coins > 0) parts.push(`${coins.toLocaleString()} coins`);
   if (items.length) parts.push(`${items.length} item${items.length > 1 ? 's' : ''}`);
-  broadcast({ type: 'chat:message', username: 'System', text: `${username} tipped ${toUsername} ${parts.join(' + ')}`, timestamp: Date.now(), system: true });
+  pushChatMessage({ username: 'System', text: `${username} tipped ${toUsername} ${parts.join(' + ')}`, timestamp: Date.now(), system: true });
 }
 
 // ---------------------------------------------------------------------------
@@ -2184,6 +2202,7 @@ wss.on('connection', (ws) => {
       send(ws, { type: 'jackpot:state', ...jackpotPublicState() });
       send(ws, { type: 'rain:state', ...rainPublicState() });
       send(ws, { type: 'feed:recent', entries: liveFeed });
+      send(ws, { type: 'chat:history', messages: chatHistory });
       broadcastBattlesTo(ws);
       if (username === ADMIN_USERNAME) {
         send(ws, { type: 'admin:withdrawList', requests: withdrawRequests.filter((r) => r.status === 'pending') });
