@@ -76,6 +76,22 @@ async function initSchema() {
     );
   `);
 
+  // A waiting Coinflip lobby escrows the creator's items out of their
+  // inventory the instant it's created (see handleCoinflipCreate), well
+  // before anyone actually joins it. Without persisting the lobby itself,
+  // a server restart while it's still sitting there waiting would wipe it
+  // from memory with no record of who those escrowed items belong to -
+  // they'd just be gone, even though nobody ever joined and "won" them.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS coinflip_lobbies (
+      id            TEXT PRIMARY KEY,
+      creator       TEXT NOT NULL REFERENCES users(username),
+      side          TEXT NOT NULL,
+      items         JSONB NOT NULL,
+      created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+  `);
+
   await pool.query(`
     CREATE TABLE IF NOT EXISTS transactions (
       id               BIGSERIAL PRIMARY KEY,
@@ -161,6 +177,21 @@ async function loadPendingWithdrawRequests() {
     status: r.status,
     requestedAt: new Date(r.requested_at).getTime(),
     actuallyRemoved: r.actually_removed || undefined,
+  }));
+}
+
+// Returns still-waiting Coinflip lobbies in the exact shape server.js's
+// `cfLobbies` array already expects - every row here is a lobby that was
+// created but never joined/cancelled, so its items are still escrowed.
+async function loadPendingCoinflipLobbies() {
+  const res = await pool.query(
+    `SELECT id, creator, side, items FROM coinflip_lobbies ORDER BY created_at ASC`
+  );
+  return res.rows.map((r) => ({
+    id: r.id,
+    creator: r.creator,
+    side: r.side,
+    items: r.items,
   }));
 }
 
@@ -261,6 +292,21 @@ async function insertWithdrawRequest(req) {
     `INSERT INTO withdraw_requests (id, username, items, status, requested_at) VALUES ($1,$2,$3,$4, to_timestamp($5/1000.0))`,
     [req.id, req.username, JSON.stringify(req.items), req.status, req.requestedAt]
   );
+}
+
+async function insertCoinflipLobby(lobby) {
+  await pool.query(
+    `INSERT INTO coinflip_lobbies (id, creator, side, items) VALUES ($1,$2,$3,$4)`,
+    [lobby.id, lobby.creator, lobby.side, JSON.stringify(lobby.items)]
+  );
+}
+
+// Called once a lobby is joined, cancelled, or otherwise resolved - it's no
+// longer "waiting" at that point, so there's nothing left to protect against
+// a restart for. Safe to call even if the row's already gone (e.g. a race
+// between join and cancel) - just deletes 0 rows in that case.
+async function deleteCoinflipLobby(id) {
+  await pool.query(`DELETE FROM coinflip_lobbies WHERE id = $1`, [id]);
 }
 
 // Atomic status transition: only succeeds if the request is currently in
@@ -460,10 +506,13 @@ module.exports = {
   initSchema,
   loadAllUsers,
   loadPendingWithdrawRequests,
+  loadPendingCoinflipLobbies,
   insertNewUser,
   persistUserState,
   insertWithdrawRequest,
   resolveWithdrawRequest,
+  insertCoinflipLobby,
+  deleteCoinflipLobby,
   insertCoinflipHistory,
   loadCoinflipHistoryForUser,
   findDuplicateCaseClusters,

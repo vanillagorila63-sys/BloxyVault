@@ -537,7 +537,16 @@ function handleCoinflipCreate(username, msg) {
   trackWager(username, stakeValue(items));
   persistUser(username, { type: 'coinflip_create_escrow', amount: 0, itemsTouched: [...new Set(items)] });
   const id = 'cf_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
-  cfLobbies.push({ id, creator: username, side: msg.side, items });
+  const lobby = { id, creator: username, side: msg.side, items };
+  cfLobbies.push(lobby);
+  // Persisted so a server restart while this lobby is still waiting for an
+  // opponent doesn't lose track of it - the items were already escrowed out
+  // of the creator's inventory above (see removeItems), and without this
+  // the lobby (the only record of who those items belong to) would simply
+  // vanish from memory on restart with no way to ever return them.
+  db.insertCoinflipLobby(lobby).catch((err) => {
+    console.error(`[db] Failed to persist coinflip lobby ${id}:`, err.message);
+  });
   syncAccount(username);
   broadcastCfLobbies();
   // The lobby just sits here now, waiting for a real player to join via
@@ -562,6 +571,9 @@ function handleCoinflipJoin(username, msg) {
   trackWager(username, joinValue);
   persistUser(username, { type: 'coinflip_join_escrow', amount: 0, itemsTouched: [...new Set(items)] });
   cfLobbies = cfLobbies.filter((l) => l.id !== msg.lobbyId);
+  db.deleteCoinflipLobby(msg.lobbyId).catch((err) => {
+    console.error(`[db] Failed to delete resolved coinflip lobby ${msg.lobbyId}:`, err.message);
+  });
   broadcastCfLobbies();
   const joinerSide = lobby.side === 'H' ? 'T' : 'H';
   resolveCoinflip(lobby.creator, lobby.side, lobby.items, username, joinerSide, items);
@@ -574,6 +586,9 @@ function handleCoinflipCancel(username, msg) {
   untrackWager(username, stakeValue(lobby.items)); // never actually played - shouldn't count as "played"
   persistUser(username, { type: 'coinflip_cancel_refund', amount: 0, itemsTouched: [...new Set(lobby.items)] });
   cfLobbies = cfLobbies.filter((l) => l.id !== msg.lobbyId);
+  db.deleteCoinflipLobby(msg.lobbyId).catch((err) => {
+    console.error(`[db] Failed to delete cancelled coinflip lobby ${msg.lobbyId}:`, err.message);
+  });
   syncAccount(username);
   broadcastCfLobbies();
 }
@@ -2312,6 +2327,10 @@ const PORT = process.env.PORT || 8080;
     const loadedRequests = await db.loadPendingWithdrawRequests();
     withdrawRequests = loadedRequests;
     console.log(`[boot] Loaded ${loadedRequests.length} pending withdrawal request(s) from Postgres.`);
+
+    const loadedCfLobbies = await db.loadPendingCoinflipLobbies();
+    cfLobbies = loadedCfLobbies;
+    console.log(`[boot] Loaded ${loadedCfLobbies.length} pending coinflip lobby(ies) from Postgres.`);
 
     server.listen(PORT, () => console.log(`BloxyVault server listening on :${PORT}`));
   } catch (err) {
