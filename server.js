@@ -2221,8 +2221,16 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  res.writeHead(200, { 'Content-Type': 'text/plain' });
-  res.end('BloxyVault multiplayer server is running.\n');
+  const indexPath = path.join(__dirname, 'index.html');
+  fs.readFile(indexPath, (err, data) => {
+    if (err) {
+      res.writeHead(500, { 'Content-Type': 'text/plain' });
+      res.end('Could not load website.');
+      return;
+    }
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+    res.end(data);
+  });
 });
 
 const wss = new WebSocketServer({ server });
