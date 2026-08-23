@@ -2939,23 +2939,23 @@
   "caseData": [
     {
       "name": "Levithian Seas",
-      "price": 2000000
+      "price": 517696
     },
     {
       "name": "Factory",
-      "price": 1750000
+      "price": 583620
     },
     {
       "name": "Leprachauns Stash",
-      "price": 1500000
+      "price": 792118
     },
     {
       "name": "ThrowBack",
-      "price": 1000000
+      "price": 377226
     },
     {
       "name": "Sinister Strike",
-      "price": 3000000
+      "price": 854516
     },
     {
       "name": "Extraterrestrial",
@@ -2982,38 +2982,38 @@
     "0": [
       {
         "name": "Shiny Levithan",
-        "value": 40000000,
+        "value": 10000000,
         "chance": 0.3
       },
       {
         "name": "Mythic Peppermint Leviathan",
-        "value": 9000000,
-        "chance": 3
+        "value": 4200000,
+        "chance": 2
       },
       {
         "name": "Levithan",
-        "value": 20000000,
-        "chance": 1
+        "value": 1500000,
+        "chance": 5
       },
       {
         "name": "Mythic Plasma Wolflord",
-        "value": 7000000,
-        "chance": 3
+        "value": 1200000,
+        "chance": 5
       },
       {
         "name": "Shiny Peppermint Leviathan",
-        "value": 275000,
-        "chance": 4
+        "value": 650000,
+        "chance": 10
       },
       {
         "name": "Shiny Tophat (F)",
-        "value": 1200000,
-        "chance": 6
+        "value": 250000,
+        "chance": 12
       },
       {
         "name": "Peppermint Leviathan",
         "value": 137500,
-        "chance": 82.7
+        "chance": 65.7
       }
     ],
     "1": [
@@ -3024,18 +3024,18 @@
       },
       {
         "name": "Giant Robot",
-        "value": 15000000,
-        "chance": 1.4
+        "value": 13500000,
+        "chance": 0.5
       },
       {
         "name": "Shiny Mythic Christmas Robot",
-        "value": 5000000,
-        "chance": 2.4
+        "value": 2750000,
+        "chance": 2.3
       },
       {
         "name": "Shiny Robot 2.0",
-        "value": 3500000,
-        "chance": 4
+        "value": 1900000,
+        "chance": 5
       },
       {
         "name": "Robot 2.0",
@@ -3044,20 +3044,20 @@
       },
       {
         "name": "Patriotic Robot",
-        "value": 600000,
+        "value": 105000,
         "chance": 85
       }
     ],
     "2": [
       {
         "name": "Mythic Lucky Pyramidium",
-        "value": 8000000,
-        "chance": 2
+        "value": 10000000,
+        "chance": 1
       },
       {
         "name": "Shiny Mythic Dream Catcher",
-        "value": 15000000,
-        "chance": 1
+        "value": 8000000,
+        "chance": 2
       },
       {
         "name": "Mythic Godly Shamrock",
@@ -3072,28 +3072,28 @@
       {
         "name": "Mythic Pot O' Doggy",
         "value": 550000,
-        "chance": 45
+        "chance": 30
       },
       {
         "name": "Pot O' Gold",
-        "value": 340000,
-        "chance": 45
+        "value": 72500,
+        "chance": 60
       }
     ],
     "3": [
       {
         "name": "Levithan",
-        "value": 20000000,
+        "value": 5000000,
         "chance": 1
       },
       {
         "name": "Giant Robot",
-        "value": 15000000,
+        "value": 3500000,
         "chance": 1
       },
       {
         "name": "Dementor",
-        "value": 5000000,
+        "value": 2000000,
         "chance": 3
       },
       {
@@ -3103,72 +3103,72 @@
       },
       {
         "name": "Easter Basket",
-        "value": 375000,
+        "value": 300000,
         "chance": 20
       },
       {
         "name": "Soul Heart",
-        "value": 300000,
+        "value": 64000,
         "chance": 60
       }
     ],
     "4": [
       {
         "name": "Mythic Sinister Lord 2.0",
-        "value": 80000000,
-        "chance": 0.1
-      },
-      {
-        "name": "Mythic Almighty Pumpkin",
-        "value": 20000000,
+        "value": 35000000,
         "chance": 0.3
       },
       {
+        "name": "Mythic Almighty Pumpkin",
+        "value": 13750000,
+        "chance": 0.5
+      },
+      {
         "name": "Mythic Sinister Skull",
-        "value": 10000000,
+        "value": 7000000,
         "chance": 0.6
       },
       {
         "name": "Mythic King Skull",
-        "value": 15000000,
+        "value": 5500000,
         "chance": 1
       },
       {
         "name": "Mythic Wolf Skull",
-        "value": 8500000,
-        "chance": 1
+        "value": 3900000,
+        "chance": 2.5
       },
       {
         "name": "Mythic Angelic Skull",
-        "value": 8000000,
+        "value": 1900000,
         "chance": 2.5
       },
       {
         "name": "Mythic Guardian Skull",
-        "value": 8000000,
+        "value": 1700000,
         "chance": 2.5
       },
       {
         "name": "Mythic 1B Trophy",
-        "value": 2000000,
-        "chance": 22
+        "value": 900000,
+        "chance": 10
       },
       {
         "name": "Mythic Fire Basilisk",
-        "value": 2500000,
-        "chance": 15
+        "value": 450000,
+        "chance": 20
       },
       {
         "name": "Sinister Lord",
-        "value": 750000,
-        "chance": 55
+        "value": 35000,
+        "chance": 60.1
       }
     ],
     "5": [
       {
         "name": "Mythic Galactic Dementor",
         "value": 1200000,
-        "chance": 2.5,
+        "chance": 2,
         "goldSpin": true
       },
       {
@@ -3180,17 +3180,17 @@
       {
         "name": "Galactic Dementor",
         "value": 400000,
-        "chance": 5.75
+        "chance": 5
       },
       {
         "name": "UFO",
         "value": 225000,
-        "chance": 5.75
+        "chance": 5
       },
       {
         "name": "Alien Kraken",
         "value": 60000,
-        "chance": 15
+        "chance": 17
       },
       {
         "name": "Alien Overlord",
@@ -3262,7 +3262,7 @@
       },
       {
         "name": "Shattered Soul",
-        "value": 200000,
+        "value": 20000,
         "chance": 65
       }
     ],
