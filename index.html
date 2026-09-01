@@ -8394,6 +8394,17 @@ document.getElementById('minesPlayBtn').addEventListener('click', () => {
 // whenever a cashout actually happens, so nothing here can be trusted or
 // spoofed into a real payout.
 let sinkState = null; // last sink:state payload received
+// Correction for client/server clock drift: (server's Date.now() at the
+// moment a sink:state message was sent) - (this client's Date.now() at
+// receipt). Every elapsed-time calc below adds this before doing math
+// against a server timestamp (activeStartAt, joinEndsAt), so the client's
+// notion of "now" tracks the server's rather than its own raw system clock.
+// Without this, any clock drift gets amplified exponentially into the
+// displayed multiplier - this is the actual fix for "climbs way faster
+// server side than client side" (a client whose clock lags the server's
+// showed a slower-than-real climb, then the server would resolve/pay out
+// a noticeably higher multiplier than what was ever shown on screen).
+let sinkClockOffset = 0;
 let sinkTickHandle = null;
 let sinkResyncInFlight = false; // debounces sink:resync requests so a stuck stale-state situation doesn't spam the server every 100ms while waiting for a reply
 let sinkPrevPhase = null;
@@ -8534,7 +8545,7 @@ function sinkTick(){
   const ship = document.getElementById('sinkShip');
 
   if(sinkState.phase === 'joining'){
-    const remaining = Math.max(0, sinkState.joinEndsAt - Date.now());
+    const remaining = Math.max(0, sinkState.joinEndsAt - (Date.now() + sinkClockOffset));
     const secs = Math.ceil(remaining / 1000);
     phaseLabel.textContent = 'JOINING';
     timerEl.textContent = `Round starts in ${secs}s`;
@@ -8547,7 +8558,7 @@ function sinkTick(){
     const approachT = isApproaching ? 1 - (remaining / 5000) : 0;
     sinkApplyApproach(approachT); // continuous the whole 5s, not a class-toggle fade-in
   } else if(sinkState.phase === 'active'){
-    const elapsed = (Date.now() - sinkState.activeStartAt) / 1000;
+    const elapsed = (Date.now() + sinkClockOffset - sinkState.activeStartAt) / 1000;
     // A legitimate active round can realistically never run this long -
     // even the most extreme tail of the sink-point distribution resolves
     // in well under a minute. If elapsed is this large, sinkState itself
@@ -8626,6 +8637,17 @@ document.addEventListener('visibilitychange', () => {
 });
 
 mpOn('sink:state', (msg) => {
+  // Update our estimate of (server time - our time) from this message's
+  // `now` field. A raw one-shot reading is noisy (network jitter shifts it
+  // message to message), so blend new readings in gradually rather than
+  // snapping straight to the latest sample - smooths out jitter while still
+  // tracking real drift over time. The very first reading is taken as-is
+  // since there's nothing yet to blend it with.
+  if(typeof msg.now === 'number'){
+    const sample = msg.now - Date.now();
+    sinkClockOffset = (sinkState == null) ? sample : (sinkClockOffset * 0.7 + sample * 0.3);
+  }
+
   const isFreshRound = sinkPrevPhase !== 'joining' && msg.phase === 'joining';
   const mine = (msg.players || []).find(p => p.username === currentUser) || null;
 

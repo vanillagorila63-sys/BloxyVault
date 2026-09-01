@@ -1577,7 +1577,13 @@ function sinkPublicState(round) {
     cashedOutAt: p.cashedOutAt, // multiplier they cashed out at, or null if still in / didn't make it
     payout: p.payout, // null until they cash out
   }));
-  const base = { phase: round.phase, players };
+  // `now` lets clients measure their own clock offset against the server's,
+  // since elapsed-time-based multiplier math (see sinkMultiplierAt) is only
+  // correct if the client's Date.now() agrees with the server's - without
+  // this, any clock drift between the two gets amplified exponentially into
+  // the displayed multiplier (a client running behind the server's clock
+  // shows a slower climb than what's actually being computed server-side).
+  const base = { phase: round.phase, players, now: Date.now() };
   if (round.phase === 'joining') return { ...base, joinEndsAt: round.joinEndsAt };
   if (round.phase === 'active') return { ...base, activeStartAt: round.activeStartAt, growthRate: SINK_GROWTH_K };
   // 'sunk' - safe to reveal the actual sink point now that the round is fully over
