@@ -1,16 +1,17 @@
 {
-  "name": "bloxyvault-server",
+  "name": "bloxyvault",
   "version": "1.0.0",
-  "description": "Real-time multiplayer server for BloxyVault (Coinflip + Case Battles)",
+  "private": true,
+  "description": "BloxyVault multiplayer server",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=18.0.0"
   },
   "dependencies": {
-    "pg": "^8.13.0",
-    "ws": "^8.18.0"
+    "pg": "^8.11.0",
+    "ws": "^8.16.0"
   }
 }

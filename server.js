@@ -15,6 +15,7 @@ const { WebSocketServer } = require('ws');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const zlib = require('zlib');
 const db = require('./db');
 
 const gameData = JSON.parse(fs.readFileSync(path.join(__dirname, 'gameData.json'), 'utf8'));
@@ -56,6 +57,61 @@ const STOCK_USERNAME = 'BloxyVault_Stock';
 const ENABLE_DEV_BYPASS = process.env.ENABLE_DEV_BYPASS === 'true';
 if (ENABLE_DEV_BYPASS) {
   console.warn('[security] ENABLE_DEV_BYPASS is ON - /dev/skip-login and account:reset are reachable. Do not leave this on in production.');
+}
+
+// Roblox OAuth 2.0 ("Sign in with Roblox") - see the /roblox/oauth/login
+// and /roblox/oauth/callback routes below for the actual flow. All three
+// of these must be set in Railway's Variables tab for it to work; if any
+// are missing, those two routes fail cleanly instead of crashing.
+const ROBLOX_OAUTH_CLIENT_ID = process.env.ROBLOX_OAUTH_CLIENT_ID || '';
+const ROBLOX_OAUTH_CLIENT_SECRET = process.env.ROBLOX_OAUTH_CLIENT_SECRET || '';
+// This server's own real public URL, no trailing slash (e.g.
+// https://your-app.up.railway.app) - must exactly match (plus
+// '/roblox/oauth/callback') whatever Redirect URL is registered in
+// Roblox's OAuth app settings.
+const PUBLIC_BASE_URL = (process.env.PUBLIC_BASE_URL || '').replace(/\/$/, '');
+if (!ROBLOX_OAUTH_CLIENT_ID || !ROBLOX_OAUTH_CLIENT_SECRET || !PUBLIC_BASE_URL) {
+  console.warn('[roblox-oauth] Not fully configured (need ROBLOX_OAUTH_CLIENT_ID, ROBLOX_OAUTH_CLIENT_SECRET, PUBLIC_BASE_URL) - "Log in with Roblox" will not work until all three are set.');
+}
+// state -> expiry timestamp. One-time-use CSRF nonces for the OAuth
+// redirect flow - see /roblox/oauth/login and /roblox/oauth/callback.
+const pendingOAuthStates = new Map();
+
+// Successful Roblox avatar lookups are cached here for a while - avatars
+// don't change often, and without this, every single render of every
+// username anywhere on the site (Coinflip lobbies, Case Battle player
+// cards, etc.) across every connected browser was triggering its own
+// fresh outbound call to Roblox for the same handful of usernames, which
+// both wastes requests and raises the odds of tripping Roblox's own rate
+// limits - a likely contributor to the intermittent PFP failures this was
+// built to fix. Deliberately does NOT cache failures/nulls - a username
+// that briefly failed to resolve should be retried on the next request,
+// not permanently remembered as "no avatar" (see /roblox/avatar below).
+const AVATAR_CACHE_TTL_MS = 30 * 60 * 1000;
+const avatarCache = new Map(); // username(lowercase) -> {imageUrl, userId, cachedAt}
+
+const NOTIFICATION_LOAD_LIMIT = 50; // matches the client's own history cap
+
+// Creates a notification for one user - persists it (with a DB-level
+// unique-constraint safety net against duplicates, see db.js), and pushes
+// it straight to their active connection if they're online right now, so
+// the bell updates without needing a refresh. Every call site below is
+// already exactly-once on its own (an atomic pending->resolved DB
+// transition for withdrawals, a single-execution battle resolution for
+// Case Battles) - this never trusts anything client-supplied about who
+// the notification is for or what it says, since it's only ever called
+// from server-side logic with server-computed values.
+async function createNotification({ username, type, title, message, refId }) {
+  let notif;
+  try {
+    notif = await db.insertNotification({ username, type, title, message, refId });
+  } catch (err) {
+    console.error(`[notifications] Failed to persist notification for ${username}:`, err.message);
+    return;
+  }
+  if (!notif) return; // duplicate - already existed, nothing to push
+  const ws = usernameToSocket.get(username);
+  if (ws) send(ws, { type: 'notifications:new', notification: notif });
 }
 
 // ---------------------------------------------------------------------------
@@ -294,6 +350,29 @@ function itemValue(id) {
   const p = petCatalog[id];
   return p ? p.value : 0;
 }
+// Every duped pet's catalog id is exactly "dup_" + the original pet's id
+// (confirmed by inspecting gameData.json - 587 duped entries, every single
+// one has a real corresponding non-duped entry). This makes identifying
+// normal vs duped, and finding a pet's counterpart, a pure string check -
+// no name-matching or extra catalog lookups needed, and no way for a
+// client to lie about it since it's just the id itself.
+function isDupedItemId(id) { return typeof id === 'string' && id.startsWith('dup_'); }
+function normalizeItemId(id) { return isDupedItemId(id) ? id.slice(4) : id; }
+
+// Used by handleCoinflipJoin for a Locked/Unlocked lobby (see
+// handleCoinflipCreate). The ONLY thing Locked actually restricts is
+// whether a DUPED item can be staked - it is NOT a "must be the same pet
+// as the creator" rule (an earlier version of this wrongly required that;
+// any normal pet is fine, it doesn't need to relate to the creator's pet
+// at all). A lobby with `locked === undefined` was persisted from before
+// this feature existed - exempt entirely, so an in-flight lobby from
+// before a deploy doesn't suddenly become unjoinable under a restriction
+// it was never created with.
+function joinItemsMatchLockedLobby(lobby, joinItems) {
+  if (lobby.locked === undefined || !lobby.locked) return true; // Unlocked (or legacy): normal or duped, no restriction
+  return joinItems.every((id) => !isDupedItemId(id)); // Locked: normal pets only
+}
+
 function stakeValue(items) {
   return items.reduce((sum, id) => sum + itemValue(id), 0);
 }
@@ -465,7 +544,7 @@ function pickBotNames(n, pool) {
 let cfLobbies = []; // { id, creator, side, items }
 
 function broadcastCfLobbies() {
-  broadcast({ type: 'coinflip:lobbies', lobbies: cfLobbies.map((l) => ({ id: l.id, creator: l.creator, side: l.side, items: l.items })) });
+  broadcast({ type: 'coinflip:lobbies', lobbies: cfLobbies.map((l) => ({ id: l.id, creator: l.creator, side: l.side, items: l.items, locked: l.locked })) });
 }
 
 
@@ -551,11 +630,18 @@ function handleCoinflipCreate(username, msg) {
   if (!items.length || !ownsAll(username, items)) {
     return send(usernameToSocket.get(username), { type: 'error', message: "You don't own those items." });
   }
+  const locked = !!msg.locked;
+  // Duped pets are only disallowed as the creator's wager in Locked mode -
+  // Unlocked allows either, on both sides (see joinItemsMatchLockedLobby
+  // for the join-side equivalent of this same rule).
+  if (locked && items.some(isDupedItemId)) {
+    return send(usernameToSocket.get(username), { type: 'error', message: 'A Locked Coinflip can only be created with a normal (non-duped) pet.' });
+  }
   removeItems(username, items); // escrow
   trackWager(username, stakeValue(items));
   persistUser(username, { type: 'coinflip_create_escrow', amount: 0, itemsTouched: [...new Set(items)] });
   const id = 'cf_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
-  const lobby = { id, creator: username, side: msg.side, items };
+  const lobby = { id, creator: username, side: msg.side, items, locked };
   cfLobbies.push(lobby);
   // Persisted so a server restart while this lobby is still waiting for an
   // opponent doesn't lose track of it - the items were already escrowed out
@@ -584,6 +670,11 @@ function handleCoinflipJoin(username, msg) {
   const lo = lobbyValue * (1 - CF_MATCH_TOLERANCE), hi = lobbyValue * (1 + CF_MATCH_TOLERANCE);
   if (joinValue < lo || joinValue > hi) {
     return send(usernameToSocket.get(username), { type: 'error', message: 'Your stake is outside the allowed ±10% range.' });
+  }
+  if (!joinItemsMatchLockedLobby(lobby, items)) {
+    // Only Locked can actually land here now - Unlocked never fails this
+    // check (any normal or duped pet is fine there).
+    return send(usernameToSocket.get(username), { type: 'error', message: 'This lobby is Locked - you can only join with a normal (non-duped) pet.' });
   }
   removeItems(username, items); // escrow
   trackWager(username, joinValue);
@@ -1190,6 +1281,13 @@ async function runBattle(b) {
     trackWin(p.username, share);
     persistUser(p.username, { type: 'casebattle_win', amount: share, balanceBefore: before, balanceAfter: u.coins });
     syncAccount(p.username);
+    createNotification({
+      username: p.username,
+      type: 'casebattle_win',
+      title: '🏆 Case Battle won',
+      message: `You won ${share.toLocaleString()} from the Case Battle.`,
+      refId: b.id,
+    });
   });
   b.players.filter((p) => !winningMembers.includes(p) && !p.isBot).forEach((p) => {
     trackLoss(p.username, perPlayerCost);
@@ -1416,6 +1514,181 @@ function minesMultiplier(n, m, picks) {
 // above are effectively unused dead code now - left in place rather than
 // removed since touching them isn't necessary and isn't worth the risk.
 //
+// ---------------------------------------------------------------------------
+// SINK — a Crash-style rising-multiplier game (there's no pre-existing
+// "Crash" implementation in this file to reuse - this is a fresh build,
+// following the same server-authoritative model as everything else here:
+// the server alone determines the multiplier, the sink point, and every
+// payout; the client only ever renders what it's told).
+//
+// CF coins only - no pets/items accepted as wagers. Capped at
+// SINK_MAX_BET per player per round, enforced here server-side regardless
+// of what a client sends.
+//
+// Rounds loop continuously and are shared by everyone (unlike Mines, which
+// is one board per player): a 30s joining phase where anyone can place one
+// wager, then an active phase of unpredictable length where the multiplier
+// climbs from 1.00x until the server's secretly pre-chosen sink point is
+// reached, then a short pause showing the result before the next round's
+// joining phase begins automatically.
+//
+// Fairness: the sink point is generated fresh each round the moment the
+// active phase begins (generateSinkPoint), using the same "plain
+// server-side Math.random(), never revealed until it matters" approach the
+// rest of this file already uses for Mines' bomb layout, Dice Duel's
+// rolls, etc. - not a cryptographic commit-reveal scheme, consistent with
+// how every other game here already works.
+//
+// The multiplier is never pushed to clients on a timer. Instead, the
+// server sends one timestamp (activeStartAt) plus the fixed growth rate
+// when the active phase begins, and every client computes and animates
+// the climbing number locally from elapsed time - exactly like Jackpot's
+// countdown already works. The server independently recomputes the
+// multiplier from elapsed time whenever it actually matters (a cashout
+// request), so a client can never claim a multiplier it hasn't earned.
+// ---------------------------------------------------------------------------
+const SINK_MAX_BET = 500000;
+const SINK_JOIN_MS = 30000;
+const SINK_SUNK_PAUSE_MS = 6000; // how long the result stays up before the next round's joining phase starts
+const SINK_GROWTH_K = 0.13; // multiplier(t) = e^(SINK_GROWTH_K * t), t in seconds - reaches ~5x around t=12-13s
+const SINK_INSTANT_CHANCE = 0.03; // 3% of rounds sink immediately at 1.00x - this is where the house edge lives
+
+let sinkRound = null; // set by startSinkJoiningPhase() at boot - see server startup below
+let sinkTimer = null; // whichever timeout is currently driving the round forward
+
+function sinkMultiplierAt(elapsedSeconds) {
+  return Math.exp(SINK_GROWTH_K * elapsedSeconds);
+}
+
+// Standard "Crash"-style long-tail distribution: mostly low multipliers,
+// occasionally very high ones, with a flat instant-sink chance baked in on
+// top for the house edge. 0.99 (rather than 1.00) as the numerator is what
+// gives the game its edge on top of the instant-sink chance above.
+function generateSinkPoint() {
+  if (Math.random() < SINK_INSTANT_CHANCE) return 1.00;
+  const r = Math.random(); // (0, 1)
+  const raw = 0.99 / (1 - r);
+  return Math.max(1.00, Math.floor(raw * 100) / 100);
+}
+
+function sinkPublicState(round) {
+  const players = [...round.players.entries()].map(([username, p]) => ({
+    username, wager: p.wager,
+    cashedOutAt: p.cashedOutAt, // multiplier they cashed out at, or null if still in / didn't make it
+    payout: p.payout, // null until they cash out
+  }));
+  const base = { phase: round.phase, players };
+  if (round.phase === 'joining') return { ...base, joinEndsAt: round.joinEndsAt };
+  if (round.phase === 'active') return { ...base, activeStartAt: round.activeStartAt, growthRate: SINK_GROWTH_K };
+  // 'sunk' - safe to reveal the actual sink point now that the round is fully over
+  return { ...base, activeStartAt: round.activeStartAt, growthRate: SINK_GROWTH_K, sunkMultiplier: round.sinkPoint };
+}
+
+function broadcastSinkState() {
+  broadcast({ type: 'sink:state', ...sinkPublicState(sinkRound) });
+}
+
+function startSinkJoiningPhase() {
+  if (sinkTimer) clearTimeout(sinkTimer);
+  sinkRound = {
+    phase: 'joining',
+    joinEndsAt: Date.now() + SINK_JOIN_MS,
+    players: new Map(), // username -> { wager, cashedOutAt, payout }
+    activeStartAt: null,
+    sinkPoint: null, // chosen (and kept secret) once the active phase starts
+  };
+  broadcastSinkState();
+  sinkTimer = setTimeout(startSinkActivePhase, SINK_JOIN_MS);
+}
+
+function startSinkActivePhase() {
+  const round = sinkRound;
+  if (!round || round.phase !== 'joining') return;
+  round.phase = 'active';
+  round.activeStartAt = Date.now();
+  round.sinkPoint = generateSinkPoint();
+  broadcastSinkState();
+
+  const tSinkSeconds = Math.log(round.sinkPoint) / SINK_GROWTH_K;
+  sinkTimer = setTimeout(() => resolveSinkRound(round), Math.max(0, tSinkSeconds * 1000));
+}
+
+function resolveSinkRound(round) {
+  if (!round || round.phase !== 'active' || round !== sinkRound) return;
+  round.phase = 'sunk';
+
+  for (const [username, p] of round.players.entries()) {
+    if (p.cashedOutAt == null) {
+      // Didn't cash out in time - the wager was already deducted at join
+      // time, so this is purely recording the loss for stats/feed purposes.
+      trackLoss(username, p.wager);
+      persistUser(username, { type: 'sink_loss', amount: 0 });
+      pushFeedEvent({ game: 'sink', username, amount: p.wager, won: false });
+    }
+  }
+
+  broadcastSinkState();
+  sinkTimer = setTimeout(startSinkJoiningPhase, SINK_SUNK_PAUSE_MS);
+}
+
+function handleSinkJoin(username, msg) {
+  const errTo = usernameToSocket.get(username);
+  if (!sinkRound || sinkRound.phase !== 'joining') {
+    return send(errTo, { type: 'error', message: 'SINK is not accepting bets right now - wait for the next round.' });
+  }
+  if (sinkRound.players.has(username)) {
+    return send(errTo, { type: 'error', message: 'You already joined this round.' });
+  }
+
+  const amount = Math.floor(Number(msg.amount) || 0);
+  if (!amount || amount < 1) return send(errTo, { type: 'error', message: 'Enter a valid amount.' });
+  if (amount > SINK_MAX_BET) return send(errTo, { type: 'error', message: `SINK is capped at ${SINK_MAX_BET.toLocaleString()} coins per round.` });
+
+  const u = ensureUser(username);
+  if (amount > u.coins) return send(errTo, { type: 'error', message: 'Not enough coins.' });
+
+  const before = u.coins;
+  u.coins -= amount;
+  sinkRound.players.set(username, { wager: amount, cashedOutAt: null, payout: null });
+
+  trackWager(username, amount);
+  persistUser(username, { type: 'sink_wager', amount: -amount, balanceBefore: before, balanceAfter: u.coins });
+  syncAccount(username);
+  broadcastSinkState();
+}
+
+function handleSinkCashout(username) {
+  const errTo = usernameToSocket.get(username);
+  const round = sinkRound;
+  if (!round || round.phase !== 'active') {
+    return send(errTo, { type: 'error', message: 'There is no active SINK round to cash out of.' });
+  }
+  const p = round.players.get(username);
+  if (!p) return send(errTo, { type: 'error', message: "You didn't join this round." });
+  if (p.cashedOutAt != null) return send(errTo, { type: 'error', message: 'You already cashed out this round.' });
+
+  const elapsedSeconds = (Date.now() - round.activeStartAt) / 1000;
+  const currentMultiplier = sinkMultiplierAt(elapsedSeconds);
+  if (currentMultiplier >= round.sinkPoint) {
+    // It sank right as this request arrived - nothing to pay out. The
+    // resolve timer handles (or already handled) recording this as a loss.
+    return send(errTo, { type: 'error', message: 'Too late - the ship already sank.' });
+  }
+
+  const payout = Math.floor(p.wager * currentMultiplier);
+  p.cashedOutAt = currentMultiplier;
+  p.payout = payout;
+
+  const u = ensureUser(username);
+  const before = u.coins;
+  u.coins += payout;
+  trackWin(username, payout);
+  persistUser(username, { type: 'sink_cashout', amount: payout, balanceBefore: before, balanceAfter: u.coins });
+  syncAccount(username);
+  pushFeedEvent({ game: 'sink', username, amount: payout, multiplier: currentMultiplier, won: true });
+  broadcastSinkState();
+}
+
 // One active round per username at a time (matches how the client only
 // ever showed one board anyway). Kept in memory only, same as every other
 // live game state in this file - if the process restarts mid-round, that
@@ -1826,6 +2099,16 @@ async function handleAdminWithdrawFulfill(username, msg) {
   persistUser(req.username, { type: 'withdraw_fulfilled', amount: 0, itemsTouched: Object.keys(actuallyRemoved), reason: `Fulfilled by ${ADMIN_USERNAME}`, adminUsername: ADMIN_USERNAME });
   syncAccount(req.username);
   send(usernameToSocket.get(req.username), { type: 'chat:message', username: 'System', text: `Your withdrawal request was fulfilled by ${ADMIN_USERNAME}.`, timestamp: Date.now(), system: true });
+  const removedNames = Object.keys(actuallyRemoved)
+    .map((id) => (petCatalog[id] ? petCatalog[id].name : id))
+    .join(', ');
+  createNotification({
+    username: req.username,
+    type: 'withdraw_fulfilled',
+    title: '✅ Withdrawal fulfilled',
+    message: removedNames ? `Your withdrawal was fulfilled: ${removedNames}.` : 'Your withdrawal request was fulfilled.',
+    refId: req.id,
+  });
   broadcastPendingWithdrawalsToAdmin();
 }
 
@@ -1845,6 +2128,13 @@ async function handleAdminWithdrawReject(username, msg) {
   persistUser(req.username, { type: 'withdraw_rejected', amount: 0, reason: `Rejected by ${ADMIN_USERNAME}`, adminUsername: ADMIN_USERNAME });
   syncAccount(req.username); // unlocks the items back into their available inventory
   send(usernameToSocket.get(req.username), { type: 'error', message: 'Your withdrawal request was declined.' });
+  createNotification({
+    username: req.username,
+    type: 'withdraw_rejected',
+    title: '❌ Withdrawal rejected',
+    message: 'Your withdrawal request was rejected.',
+    refId: req.id,
+  });
   broadcastPendingWithdrawalsToAdmin();
 }
 
@@ -1890,6 +2180,14 @@ function parseMuteDuration(str) {
   if (totalMs <= 0) return null;
   return Math.min(totalMs, MAX_MUTE_MS);
 }
+function formatMuteDuration(ms) {
+  const totalMin = Math.round(ms / 60000);
+  const h = Math.floor(totalMin / 60), m = totalMin % 60;
+  if (h > 0 && m > 0) return `${h}h${m}m`;
+  if (h > 0) return `${h}h`;
+  return `${m}m`;
+}
+
 // ---------------------------------------------------------------------------
 // EMERGENCY LOCKDOWN — an instant, admin-toggleable kill switch (see the
 // /lockdown chat command in handleChatSend) for "something's badly wrong,
@@ -1917,15 +2215,8 @@ const LOCKDOWN_BLOCKED_TYPES = new Set([
   'mines:start', 'mines:reveal', 'mines:cashout',
   'withdraw:request', 'withdraw:cancel',
   'tip:send',
+  'sink:join', 'sink:cashout',
 ]);
-
-function formatMuteDuration(ms) {
-  const totalMin = Math.round(ms / 60000);
-  const h = Math.floor(totalMin / 60), m = totalMin % 60;
-  if (h > 0 && m > 0) return `${h}h${m}m`;
-  if (h > 0) return `${h}h`;
-  return `${m}m`;
-}
 
 function handleChatSend(username, msg, ws) {
   const now = Date.now();
@@ -2116,16 +2407,27 @@ function handleTipSend(username, msg) {
 // failed call here is a genuine transient network blip, not a
 // browser-security limitation, and the right fix is just to retry a couple
 // of times before giving up, not to hand verification off to the client.
-async function fetchWithRetry(url, attempts = 3) {
+async function fetchWithRetry(url, attempts = 3, options = {}) {
   let lastErr;
   for (let i = 0; i < attempts; i++) {
+    // Without a hard timeout here, a slow/unresponsive Roblox API can hang
+    // this call indefinitely - and with no response ever written, Railway's
+    // own edge eventually gives up waiting and substitutes its own generic
+    // error page (an empty 404 with no trace of anything this file ever
+    // wrote), which looks nothing like the actual 502 this function's own
+    // caller would otherwise send. Bounding each attempt means we always
+    // get the chance to respond with a real, informative error ourselves.
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
     try {
-      const r = await fetch(url);
+      const r = await fetch(url, { ...options, signal: controller.signal });
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       return r;
     } catch (err) {
       lastErr = err;
       if (i < attempts - 1) await new Promise((resolve) => setTimeout(resolve, 500 * (i + 1)));
+    } finally {
+      clearTimeout(timeoutId);
     }
   }
   throw lastErr;
@@ -2162,14 +2464,23 @@ const server = http.createServer(async (req, res) => {
 
   if(url.pathname === '/roblox/avatar'){
     const username = url.searchParams.get('username') || '';
+    const cacheKey = username.toLowerCase();
+    const cached = avatarCache.get(cacheKey);
+    if (cached && Date.now() - cached.cachedAt < AVATAR_CACHE_TTL_MS) {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ imageUrl: cached.imageUrl, userId: cached.userId }));
+      return;
+    }
     try{
       const match = await robloxResolveUsername(username);
       if(!match){ res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ imageUrl: null })); return; }
-      const thumbR = await fetch(`https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${match.id}&size=150x150&format=Png&isCircular=false`);
+      const thumbR = await fetchWithRetry(`https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${match.id}&size=150x150&format=Png&isCircular=false`);
       const thumbData = await thumbR.json();
       const entry = (thumbData.data || [])[0];
+      const imageUrl = entry && entry.imageUrl ? entry.imageUrl : null;
+      if (imageUrl) avatarCache.set(cacheKey, { imageUrl, userId: match.id, cachedAt: Date.now() });
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ imageUrl: entry && entry.imageUrl ? entry.imageUrl : null, userId: match.id }));
+      res.end(JSON.stringify({ imageUrl, userId: match.id }));
     } catch(e){
       res.writeHead(502, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ imageUrl: null, error: 'roblox_unreachable' }));
@@ -2208,6 +2519,103 @@ const server = http.createServer(async (req, res) => {
   // ENABLE_DEV_BYPASS (off by default) rather than reachable in production -
   // see the flag's definition near the top of this file. Still fully
   // removable later (Phase 3) once you're confident nothing depends on it.
+  // ---------------------------------------------------------------------
+  // Roblox OAuth 2.0 ("Sign in with Roblox") - an addition alongside the
+  // existing bio-verification flow above, not a replacement for it. Uses
+  // the standard authorization code flow WITHOUT PKCE, which Roblox's own
+  // official sample app does too - PKCE is only required for "public"
+  // clients that can't hold a secret safely (e.g. a mobile app or SPA);
+  // this server holds ROBLOX_OAUTH_CLIENT_SECRET itself and never exposes
+  // it to the browser, making it a "confidential" client, same as Roblox's
+  // own reference implementation.
+  //
+  // Requires three environment variables to actually work:
+  //   ROBLOX_OAUTH_CLIENT_ID, ROBLOX_OAUTH_CLIENT_SECRET - from Roblox's
+  //     Creator Dashboard -> OAuth 2.0 Apps (create an app, add the
+  //     'openid' and 'profile' scopes).
+  //   PUBLIC_BASE_URL - this server's own real public URL (e.g.
+  //     https://your-app.up.railway.app, no trailing slash) - used to
+  //     build the redirect_uri consistently. Register
+  //     PUBLIC_BASE_URL + '/roblox/oauth/callback' as the app's exact
+  //     Redirect URL in Roblox's dashboard. Keeping this in an env var
+  //     instead of hardcoded in the client means a Railway domain change
+  //     only ever needs this one variable updated, not a code change.
+  // If any of these aren't set, the routes below fail cleanly with a
+  // clear error redirect instead of crashing.
+  // ---------------------------------------------------------------------
+  if(url.pathname === '/roblox/oauth/login'){
+    if (!ROBLOX_OAUTH_CLIENT_ID || !PUBLIC_BASE_URL) {
+      res.writeHead(500, { 'Content-Type': 'text/plain' });
+      res.end('Roblox OAuth is not configured on this server yet (missing ROBLOX_OAUTH_CLIENT_ID / PUBLIC_BASE_URL).');
+      return;
+    }
+    // A one-time, short-lived nonce, checked again on callback - standard
+    // CSRF protection for the redirect-based OAuth flow, without needing
+    // any session/cookie system (this app doesn't have one).
+    const state = crypto.randomBytes(16).toString('hex');
+    pendingOAuthStates.set(state, Date.now() + 10 * 60 * 1000);
+    const redirectUri = `${PUBLIC_BASE_URL}/roblox/oauth/callback`;
+    const authorizeUrl = new URL('https://apis.roblox.com/oauth/v1/authorize');
+    authorizeUrl.searchParams.set('client_id', ROBLOX_OAUTH_CLIENT_ID);
+    authorizeUrl.searchParams.set('redirect_uri', redirectUri);
+    authorizeUrl.searchParams.set('scope', 'openid profile');
+    authorizeUrl.searchParams.set('response_type', 'code');
+    authorizeUrl.searchParams.set('state', state);
+    res.writeHead(302, { Location: authorizeUrl.toString() });
+    res.end();
+    return;
+  }
+
+  if(url.pathname === '/roblox/oauth/callback'){
+    const redirectHome = (params) => {
+      const dest = new URL(PUBLIC_BASE_URL || '/');
+      for (const [k, v] of Object.entries(params)) dest.searchParams.set(k, v);
+      res.writeHead(302, { Location: dest.toString() });
+      res.end();
+    };
+    const code = url.searchParams.get('code');
+    const state = url.searchParams.get('state');
+    const stateExpiry = state && pendingOAuthStates.get(state);
+    if (state) pendingOAuthStates.delete(state); // one-time use either way
+    if (!code || !stateExpiry || stateExpiry < Date.now()) {
+      return redirectHome({ oauth_error: 'state' });
+    }
+    if (!ROBLOX_OAUTH_CLIENT_ID || !ROBLOX_OAUTH_CLIENT_SECRET || !PUBLIC_BASE_URL) {
+      return redirectHome({ oauth_error: 'config' });
+    }
+    try {
+      const redirectUri = `${PUBLIC_BASE_URL}/roblox/oauth/callback`;
+      const tokenRes = await fetchWithRetry('https://apis.roblox.com/oauth/v1/token', 2, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          client_id: ROBLOX_OAUTH_CLIENT_ID,
+          client_secret: ROBLOX_OAUTH_CLIENT_SECRET,
+          grant_type: 'authorization_code',
+          code,
+          redirect_uri: redirectUri,
+        }).toString(),
+      });
+      const tokenData = await tokenRes.json();
+      if (!tokenData.access_token) return redirectHome({ oauth_error: 'token' });
+
+      const userRes = await fetchWithRetry('https://apis.roblox.com/oauth/v1/userinfo', 2, {
+        headers: { Authorization: `Bearer ${tokenData.access_token}` },
+      });
+      const userInfo = await userRes.json();
+      // Prefer the standard OIDC username claim, with reasonable fallbacks
+      // in case the exact claim name differs from what's documented.
+      const canonicalUsername = userInfo.preferred_username || userInfo.nickname || userInfo.name;
+      if (!canonicalUsername) return redirectHome({ oauth_error: 'userinfo' });
+
+      const token = issueSessionToken(canonicalUsername);
+      redirectHome({ oauth_token: token, oauth_username: canonicalUsername });
+    } catch (e) {
+      redirectHome({ oauth_error: 'network' });
+    }
+    return;
+  }
+
   if(url.pathname === '/dev/skip-login'){
     if (!ENABLE_DEV_BYPASS) {
       res.writeHead(404, { 'Content-Type': 'application/json' });
@@ -2221,21 +2629,184 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  const indexPath = path.join(__dirname, 'index.html');
-  fs.readFile(indexPath, (err, data) => {
+  // Public privacy policy page - no login/session required, works from a
+  // direct link, and survives a refresh since it's a real server route
+  // rather than client-side SPA state. Intentionally checked before the
+  // catch-all index.html fallback below.
+  if(url.pathname === '/privacy'){
+    return servePrivacyHtml(req, res);
+  }
+
+  if(url.pathname.startsWith('/assets/img/')){
+    return serveImageAsset(url.pathname, res);
+  }
+
+  serveIndexHtml(req, res);
+});
+
+// Images used to be base64-embedded directly in index.html (see the ~99%
+// of that file's size that used to be base64 image data before the egress
+// audit that led to this). They're now separate files on disk instead,
+// named by a hash of their own content - which means two things for free:
+// identical images naturally collapse onto the same filename (no explicit
+// dedup bookkeeping needed), and it's always safe to cache a given
+// filename forever, since the *only* way its content could ever change is
+// for it to get a new name.
+const ASSET_IMG_DIR = path.join(__dirname, 'assets', 'img');
+// Filenames are always exactly a hex hash + .png/.webp (see how they were
+// generated) - this is the only thing ever allowed to reach fs.readFile
+// below, so a request can never escape this directory via '..', absolute
+// paths, or anything else.
+const SAFE_ASSET_FILENAME = /^[a-f0-9]{16,64}\.(png|webp)$/;
+
+function serveImageAsset(pathname, res) {
+  const filename = decodeURIComponent(pathname.slice('/assets/img/'.length));
+  if (!SAFE_ASSET_FILENAME.test(filename)) {
+    res.writeHead(400, { 'Content-Type': 'text/plain' });
+    res.end('Bad asset request.');
+    return;
+  }
+  fs.readFile(path.join(ASSET_IMG_DIR, filename), (err, data) => {
     if (err) {
-      res.writeHead(500, { 'Content-Type': 'text/plain' });
-      res.end('Could not load website.');
+      res.writeHead(404, { 'Content-Type': 'text/plain' });
+      res.end('Not found.');
       return;
     }
-    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+    res.writeHead(200, {
+      'Content-Type': filename.endsWith('.webp') ? 'image/webp' : 'image/png',
+      // Safe to cache forever, unconditionally - see the comment above on
+      // why a given filename's content can never change.
+      'Cache-Control': 'public, max-age=31536000, immutable',
+    });
     res.end(data);
   });
-});
+}
+
+// index.html used to be tens of MB (every pet's artwork was base64-embedded
+// directly in it - see the egress audit that led to both this and the
+// separate /assets/img/ static files above). It's now a normal-sized file,
+// but this caching/compression setup is still worth keeping: it costs
+// nothing, and it means a refresh can come back as a ~0-byte 304 instead
+// of re-sending the file at all.
+//   - gzip further shrinks what's left (plain HTML/JS/CSS text now,
+//     instead of mostly-incompressible base64 image data).
+//   - An ETag (a hash of the file's own bytes) lets a browser that already
+//     has this exact version just get back a 304 Not Modified with no body
+//     at all, instead of re-downloading anything, on every refresh.
+// Restarting the server (e.g. after deploying an updated index.html)
+// naturally invalidates this cache and recomputes it fresh, so this can
+// never serve stale content after a real deploy.
+let cachedIndexGzip = null;
+let cachedIndexRaw = null;
+let cachedIndexEtag = null;
+
+function loadIndexHtmlCache() {
+  const indexPath = path.join(__dirname, 'index.html');
+  const raw = fs.readFileSync(indexPath);
+  cachedIndexRaw = raw;
+  cachedIndexGzip = zlib.gzipSync(raw, { level: zlib.constants.Z_BEST_COMPRESSION });
+  cachedIndexEtag = '"' + crypto.createHash('sha1').update(raw).digest('hex') + '"';
+  console.log(`[boot] Cached index.html: ${raw.length.toLocaleString()} bytes raw -> ${cachedIndexGzip.length.toLocaleString()} bytes gzipped.`);
+}
+
+function serveIndexHtml(req, res) {
+  try {
+    if (!cachedIndexGzip) loadIndexHtmlCache(); // lazy fallback if boot-time load somehow didn't run yet
+  } catch (err) {
+    res.writeHead(500, { 'Content-Type': 'text/plain' });
+    res.end('Could not load website.');
+    return;
+  }
+
+  if (req.headers['if-none-match'] === cachedIndexEtag) {
+    res.writeHead(304);
+    res.end();
+    return;
+  }
+
+  const acceptEncoding = req.headers['accept-encoding'] || '';
+  const canGzip = acceptEncoding.includes('gzip');
+  res.writeHead(200, {
+    'Content-Type': 'text/html; charset=utf-8',
+    'ETag': cachedIndexEtag,
+    // max-age=0 + must-revalidate: the browser always checks back in with
+    // the server (a cheap ETag check, see above) rather than assuming an
+    // old copy is still fine - important since this file does change
+    // across deploys, and we never want someone stuck looking at a stale
+    // version just because a longer cache time hadn't expired yet.
+    'Cache-Control': 'public, max-age=0, must-revalidate',
+    ...(canGzip ? { 'Content-Encoding': 'gzip' } : {}),
+  });
+  res.end(canGzip ? cachedIndexGzip : cachedIndexRaw);
+}
+
+// Same idea as index.html's cache above, for the standalone public privacy
+// policy page. Kept as its own separate static file (not part of the SPA)
+// so it works from a direct URL, survives a refresh, and needs no login or
+// client-side routing to render - a plain GET that always returns the same
+// self-contained HTML page.
+let cachedPrivacyGzip = null;
+let cachedPrivacyRaw = null;
+let cachedPrivacyEtag = null;
+
+function loadPrivacyHtmlCache() {
+  const privacyPath = path.join(__dirname, 'privacy.html');
+  const raw = fs.readFileSync(privacyPath);
+  cachedPrivacyRaw = raw;
+  cachedPrivacyGzip = zlib.gzipSync(raw, { level: zlib.constants.Z_BEST_COMPRESSION });
+  cachedPrivacyEtag = '"' + crypto.createHash('sha1').update(raw).digest('hex') + '"';
+  console.log(`[boot] Cached privacy.html: ${raw.length.toLocaleString()} bytes raw -> ${cachedPrivacyGzip.length.toLocaleString()} bytes gzipped.`);
+}
+
+function servePrivacyHtml(req, res) {
+  try {
+    if (!cachedPrivacyGzip) loadPrivacyHtmlCache(); // lazy fallback if boot-time load somehow didn't run yet
+  } catch (err) {
+    res.writeHead(500, { 'Content-Type': 'text/plain' });
+    res.end('Could not load privacy policy.');
+    return;
+  }
+
+  if (req.headers['if-none-match'] === cachedPrivacyEtag) {
+    res.writeHead(304);
+    res.end();
+    return;
+  }
+
+  const acceptEncoding = req.headers['accept-encoding'] || '';
+  const canGzip = acceptEncoding.includes('gzip');
+  res.writeHead(200, {
+    'Content-Type': 'text/html; charset=utf-8',
+    'ETag': cachedPrivacyEtag,
+    'Cache-Control': 'public, max-age=0, must-revalidate',
+    ...(canGzip ? { 'Content-Encoding': 'gzip' } : {}),
+  });
+  res.end(canGzip ? cachedPrivacyGzip : cachedPrivacyRaw);
+}
 
 const wss = new WebSocketServer({ server });
 
+const HEARTBEAT_INTERVAL_MS = 30000;
+setInterval(() => {
+  for (const ws of wss.clients) {
+    if (ws.isAlive === false) {
+      // Didn't respond to the last ping - it's dead, but nothing would
+      // otherwise have noticed (no clean close handshake ever arrives from
+      // a connection that just silently dropped). terminate() forces the
+      // 'close' event to fire, which runs the existing username/socket
+      // cleanup below exactly the same as a normal disconnect would.
+      ws.terminate();
+      continue;
+    }
+    ws.isAlive = false;
+    ws.ping();
+  }
+}, HEARTBEAT_INTERVAL_MS);
+
 wss.on('connection', (ws) => {
+  ws.isAlive = true;
+  ws.on('pong', () => { ws.isAlive = true; });
+
   ws.on('message', (raw) => {
     let msg;
     try { msg = JSON.parse(raw); } catch (e) { return; }
@@ -2273,9 +2844,33 @@ wss.on('connection', (ws) => {
       send(ws, { type: 'coinflip:lobbies', lobbies: cfLobbies.map((l) => ({ id: l.id, creator: l.creator, side: l.side, items: l.items })) });
       send(ws, { type: 'diceduel:list', duels: diceDuelPublicList() });
       send(ws, { type: 'jackpot:state', ...jackpotPublicState() });
+      send(ws, { type: 'sink:state', ...sinkPublicState(sinkRound) });
+      db.loadNotificationsForUser(username, NOTIFICATION_LOAD_LIMIT)
+        .then((notifications) => send(ws, { type: 'notifications:list', notifications }))
+        .catch((err) => console.error(`[notifications] Failed to load for ${username}:`, err.message));
       send(ws, { type: 'rain:state', ...rainPublicState() });
       send(ws, { type: 'feed:recent', entries: liveFeed });
       send(ws, { type: 'chat:history', messages: chatHistory });
+      const myMinesRound = activeMinesRounds.get(username);
+      if (myMinesRound) {
+        // Rebuilds the board on the client exactly where it left off -
+        // the round itself already survives a refresh fine (it's keyed by
+        // username in server memory, not tied to the socket), but without
+        // this the client has no way to know it exists, tries to start a
+        // fresh one, and just gets stuck on "you already have an active
+        // round" with nothing to actually click. Bomb positions are never
+        // sent, same as at every other point in a live round - only which
+        // tiles are already safely revealed.
+        const resumeMultiplier = minesMultiplier(myMinesRound.n, myMinesRound.mCount, myMinesRound.picks);
+        send(ws, {
+          type: 'mines:resume',
+          n: myMinesRound.n, mCount: myMinesRound.mCount, gridSize: myMinesRound.gridSize,
+          amount: myMinesRound.amount, picks: myMinesRound.picks,
+          revealed: [...myMinesRound.revealed],
+          multiplier: resumeMultiplier,
+          payout: Math.floor(myMinesRound.amount * resumeMultiplier),
+        });
+      }
       broadcastBattlesTo(ws);
       if (username === ADMIN_USERNAME) {
         send(ws, { type: 'admin:withdrawList', requests: withdrawRequests.filter((r) => r.status === 'pending') });
@@ -2317,6 +2912,26 @@ wss.on('connection', (ws) => {
       case 'mines:start': return handleMinesStart(username, msg);
       case 'mines:reveal': return handleMinesReveal(username, msg);
       case 'mines:cashout': return handleMinesCashout(username);
+      case 'sink:join': return handleSinkJoin(username, msg);
+      case 'sink:cashout': return handleSinkCashout(username);
+      // The client requests this whenever its tab becomes visible again
+      // after being backgrounded - without an explicit resync, a client
+      // that missed a broadcast while backgrounded had no way to recover
+      // other than waiting for the next unrelated state change, which
+      // could leave it computing the multiplier from a very stale
+      // activeStartAt in the meantime. This just re-sends the exact same
+      // payload login already sends, so it's always safe to call.
+      case 'sink:resync': return send(ws, { type: 'sink:state', ...sinkPublicState(sinkRound) });
+      // Both of these use `username` - the identity this connection
+      // authenticated as via login/checkSessionToken earlier, never
+      // anything read from `msg` - so there's no way for a client to mark
+      // (or even address) another user's notifications.
+      case 'notifications:markRead':
+        if (msg.id != null) db.markNotificationRead(username, msg.id).catch((err) => console.error('[notifications] markRead failed:', err.message));
+        return;
+      case 'notifications:markAllRead':
+        db.markAllNotificationsRead(username).catch((err) => console.error('[notifications] markAllRead failed:', err.message));
+        return;
       case 'leaderboard:request': return handleLeaderboardRequest(username);
       case 'withdraw:request': return handleWithdrawRequest(username, msg);
       case 'withdraw:cancel': return handleWithdrawCancel(username, msg);
@@ -2428,6 +3043,9 @@ const PORT = process.env.PORT || 8080;
     cfLobbies = loadedCfLobbies;
     console.log(`[boot] Loaded ${loadedCfLobbies.length} pending coinflip lobby(ies) from Postgres.`);
 
+    loadIndexHtmlCache();
+    loadPrivacyHtmlCache();
+    startSinkJoiningPhase();
     server.listen(PORT, () => console.log(`BloxyVault server listening on :${PORT}`));
   } catch (err) {
     console.error('[boot] Failed to start - could not initialize/load from Postgres:', err);

@@ -88,9 +88,35 @@ async function initSchema() {
       creator       TEXT NOT NULL REFERENCES users(username),
       side          TEXT NOT NULL,
       items         JSONB NOT NULL,
+      locked        BOOLEAN,
       created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
     );
   `);
+  // Migration for any database that already had this table from before the
+  // normal/duped pet-lock feature existed - CREATE TABLE IF NOT EXISTS
+  // alone won't add a missing column to an already-existing table.
+  await pool.query(`ALTER TABLE coinflip_lobbies ADD COLUMN IF NOT EXISTS locked BOOLEAN;`);
+
+  // Notifications - withdrawal fulfilled/rejected, Case Battle wins. Server-
+  // created only (see createNotification in server.js); a user can only
+  // ever read/mark-read their OWN rows, enforced by every query below
+  // always filtering on the requesting connection's own username, never a
+  // client-supplied one.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS notifications (
+      id            BIGSERIAL PRIMARY KEY,
+      username      TEXT NOT NULL REFERENCES users(username),
+      type          TEXT NOT NULL CHECK (type IN ('withdraw_fulfilled','withdraw_rejected','casebattle_win')),
+      title         TEXT NOT NULL,
+      message       TEXT NOT NULL,
+      ref_id        TEXT,
+      is_read       BOOLEAN NOT NULL DEFAULT false,
+      created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+      UNIQUE(username, type, ref_id)
+    );
+  `);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_notifications_username_created ON notifications(username, created_at DESC);`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_notifications_unread ON notifications(username) WHERE is_read = false;`);
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS transactions (
@@ -185,13 +211,18 @@ async function loadPendingWithdrawRequests() {
 // created but never joined/cancelled, so its items are still escrowed.
 async function loadPendingCoinflipLobbies() {
   const res = await pool.query(
-    `SELECT id, creator, side, items FROM coinflip_lobbies ORDER BY created_at ASC`
+    `SELECT id, creator, side, items, locked FROM coinflip_lobbies ORDER BY created_at ASC`
   );
   return res.rows.map((r) => ({
     id: r.id,
     creator: r.creator,
     side: r.side,
     items: r.items,
+    // null (a lobby persisted from before this feature existed) is
+    // deliberately left as undefined here, not coerced to false - see
+    // joinItemsMatchLockedLobby in server.js, which treats undefined as
+    // "legacy lobby, no pet-identity restriction" rather than "unlocked".
+    locked: r.locked == null ? undefined : r.locked,
   }));
 }
 
@@ -296,8 +327,8 @@ async function insertWithdrawRequest(req) {
 
 async function insertCoinflipLobby(lobby) {
   await pool.query(
-    `INSERT INTO coinflip_lobbies (id, creator, side, items) VALUES ($1,$2,$3,$4)`,
-    [lobby.id, lobby.creator, lobby.side, JSON.stringify(lobby.items)]
+    `INSERT INTO coinflip_lobbies (id, creator, side, items, locked) VALUES ($1,$2,$3,$4,$5)`,
+    [lobby.id, lobby.creator, lobby.side, JSON.stringify(lobby.items), !!lobby.locked]
   );
 }
 
@@ -501,6 +532,62 @@ async function loadCoinflipHistoryForUser(username, limit) {
   });
 }
 
+// Creates a notification, silently doing nothing if one already exists for
+// this exact (username, type, ref_id) combo - see the UNIQUE constraint on
+// the table. This is a safety net; the actual call sites in server.js are
+// already exactly-once on their own (an atomic pending->resolved DB
+// transition for withdrawals, a single-execution battle resolution for
+// Case Battles), so this should never actually need to catch anything in
+// practice, but costs nothing to have.
+async function insertNotification({ username, type, title, message, refId }) {
+  const res = await pool.query(
+    `INSERT INTO notifications (username, type, title, message, ref_id)
+     VALUES ($1,$2,$3,$4,$5)
+     ON CONFLICT (username, type, ref_id) DO NOTHING
+     RETURNING id, username, type, title, message, ref_id, is_read, created_at`,
+    [username, type, title, message, refId || null]
+  );
+  if (res.rows.length === 0) return null; // was a duplicate - nothing created
+  const r = res.rows[0];
+  return {
+    id: r.id, username: r.username, type: r.type, title: r.title, message: r.message,
+    refId: r.ref_id, read: r.is_read, createdAt: new Date(r.created_at).getTime(),
+  };
+}
+
+// Recent notifications for one user, most recent first, capped at `limit` -
+// see NOTIFICATION_LOAD_LIMIT in server.js. Always scoped to exactly the
+// username passed in; there's no way to request another user's rows
+// through this function.
+async function loadNotificationsForUser(username, limit) {
+  const res = await pool.query(
+    `SELECT id, type, title, message, ref_id, is_read, created_at
+     FROM notifications WHERE username = $1 ORDER BY created_at DESC LIMIT $2`,
+    [username, limit]
+  );
+  return res.rows.map((r) => ({
+    id: r.id, type: r.type, title: r.title, message: r.message,
+    refId: r.ref_id, read: r.is_read, createdAt: new Date(r.created_at).getTime(),
+  }));
+}
+
+// Marks exactly one notification read - the WHERE clause requires it to
+// belong to `username`, so this can never touch another user's row no
+// matter what id is passed in.
+async function markNotificationRead(username, notificationId) {
+  await pool.query(
+    `UPDATE notifications SET is_read = true WHERE id = $1 AND username = $2`,
+    [notificationId, username]
+  );
+}
+
+async function markAllNotificationsRead(username) {
+  await pool.query(
+    `UPDATE notifications SET is_read = true WHERE username = $1 AND is_read = false`,
+    [username]
+  );
+}
+
 module.exports = {
   pool,
   initSchema,
@@ -515,6 +602,10 @@ module.exports = {
   deleteCoinflipLobby,
   insertCoinflipHistory,
   loadCoinflipHistoryForUser,
+  insertNotification,
+  loadNotificationsForUser,
+  markNotificationRead,
+  markAllNotificationsRead,
   findDuplicateCaseClusters,
   mergeCasedDuplicates,
   loadRecentTransactionsForUser,
