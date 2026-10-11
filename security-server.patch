@@ -1,0 +1,105 @@
+--- server.orig.js	2026-10-11 13:35:57.111761327 +0200
++++ server.js	2026-10-11 13:35:57.184883651 +0200
+@@ -160,6 +160,15 @@
+   }
+ }, 60 * 60 * 1000);
+ 
++// Roblox usernames: 3-20 chars, letters/digits/underscore. Anything a client
++// types as a *target* name (tips, /mute, profile lookups, role grants) must
++// pass this before it can create a DB row or be echoed into chat - stops
++// both phantom-account spam and HTML/script injection via usernames.
++const ROBLOX_USERNAME_RE = /^[A-Za-z0-9_]{3,20}$/;
++function isValidUsername(name) {
++  return typeof name === 'string' && ROBLOX_USERNAME_RE.test(name);
++}
++
+ function ensureUser(username) {
+   const isNewAccount = !users.has(username);
+   const isGiveaway = username.toLowerCase() === GIVEAWAY_USERNAME.toLowerCase();
+@@ -1064,8 +1073,20 @@
+   });
+ }
+ 
++const CASEBATTLE_MAX_CASES = 25;
++function isValidCaseQueue(q) {
++  return Array.isArray(q)
++    && q.length >= 1
++    && q.length <= CASEBATTLE_MAX_CASES
++    && q.every((i) => Number.isInteger(i) && i >= 0 && i < caseData.length && caseData[i] && caseData[i].price > 0);
++}
++
+ function handleCaseBattleCreate(username, msg) {
+-  const cfg = modeConfigs[msg.mode] || modeConfigs['ffa-2'];
++  if (!isValidCaseQueue(msg.caseQueue)) {
++    return send(usernameToSocket.get(username), { type: 'error', message: 'Invalid case selection (1-' + CASEBATTLE_MAX_CASES + ' cases).' });
++  }
++  if (!modeConfigs[msg.mode]) msg.mode = 'ffa-2';
++  const cfg = modeConfigs[msg.mode];
+   const winMode = WIN_MODES.has(msg.winMode) ? msg.winMode : 'normal';
+   const cost = battleCost(msg.caseQueue);
+   const u = ensureUser(username);
+@@ -2266,7 +2287,8 @@
+       return send(usernameToSocket.get(username), { type: 'error', message: "You don't have permission to do that." });
+     }
+     if (muteMatch) {
+-      const targetName = muteMatch[1];
++      const targetName = resolveExistingUsername(muteMatch[1]);
++      if (!targetName) return send(usernameToSocket.get(username), { type: 'error', message: 'No user with that name.' });
+       const durationMs = parseMuteDuration(muteMatch[2]);
+       if (!durationMs) {
+         return send(usernameToSocket.get(username), { type: 'error', message: 'Usage: /mute username 30m (or 1h, 1h30m, etc. - max 24h).' });
+@@ -2282,7 +2304,8 @@
+       if (targetWs) send(targetWs, { type: 'toast', message: `You've been muted for ${label} by a moderator.`, isError: true });
+       pushChatMessage({ username: 'System', text: `${targetName} was muted for ${label}.`, timestamp: now, wagered: 0, system: true });
+     } else {
+-      const targetName = unmuteMatch[1];
++      const targetName = resolveExistingUsername(unmuteMatch[1]);
++      if (!targetName) return send(usernameToSocket.get(username), { type: 'error', message: 'No user with that name.' });
+       const targetUser = ensureUser(targetName);
+       targetUser.mutedUntil = 0;
+       send(usernameToSocket.get(username), { type: 'toast', message: `Unmuted ${targetName}.` });
+@@ -2312,9 +2335,11 @@
+ // anything the client already thinks it knows about that user.
+ // ---------------------------------------------------------------------------
+ function handleProfileRequest(username, msg) {
+-  const targetName = String(msg.username || '').trim();
+-  if (!targetName) return;
+-  const u = ensureUser(targetName);
++  const rawName = String(msg.username || '').trim();
++  if (!isValidUsername(rawName)) return;
++  const targetName = resolveExistingUsername(rawName) || rawName;
++  // Read-only: don't create a DB row just because someone clicked/typed a name.
++  const u = users.get(targetName) || { stats: { wagered: 0, won: 0, lost: 0 }, specialRole: null };
+   send(usernameToSocket.get(username), {
+     type: 'profile:data',
+     username: targetName,
+@@ -2337,7 +2362,7 @@
+ function handleAdminSetRole(username, msg) {
+   if (username !== ADMIN_USERNAME) return; // never trust a client claiming to be the admin
+   const targetName = String(msg.targetUsername || '').trim();
+-  if (!targetName) return;
++  if (!isValidUsername(targetName)) return;
+   const role = msg.role === null ? null : String(msg.role || '');
+   if (role !== null && !GRANTABLE_ROLES.has(role)) return;
+   const u = ensureUser(targetName);
+@@ -2358,6 +2383,7 @@
+   const errTo = usernameToSocket.get(username);
+ 
+   if (!rawTo) return send(errTo, { type: 'error', message: 'Pick someone else to tip.' });
++  if (!isValidUsername(rawTo)) return send(errTo, { type: 'error', message: "That isn't a valid Roblox username." });
+   // Route to a real, already-known account if one matches case-insensitively
+   // (e.g. typing "alice" when the real account is "Alice") - otherwise this
+   // silently creates a brand-new phantom account under whatever casing was
+@@ -2912,8 +2938,10 @@
+       case 'admin:lookup': return handleAdminLookup(username, msg);
+       case 'admin:addCoins': return handleAdminAdjustCoins(username, msg, 1);
+       case 'admin:removeCoins': return handleAdminAdjustCoins(username, msg, -1);
+-      case 'game:wager': return handleGameWager(username, msg);
+-      case 'game:resolve': return handleGameResolve(username, msg);
++      // SECURITY: game:wager / game:resolve are intentionally NOT routed.
++      // Mines is fully server-authoritative via mines:start/reveal/cashout,
++      // and these legacy endpoints trusted client-reported payouts/wagers
++      // (free-coin exploit). Do not re-add them.
+       case 'case:open': return handleCaseOpen(username, msg);
+       case 'mines:start': return handleMinesStart(username, msg);
+       case 'mines:reveal': return handleMinesReveal(username, msg);
