@@ -314,6 +314,7 @@ function payoutRain() {
     }
   }
   rainPool = RAIN_BASE;
+  persistRainPool();
   rainPhase = 'counting';
   rainPhaseEndsAt = Date.now() + RAIN_COUNTDOWN_MS;
   rainClaimants = new Set();
@@ -331,6 +332,7 @@ function handleRainDeposit(username, msg) {
   u.coins -= amount;
   rainPool += amount;
   persistUser(username, { type: 'rain_deposit', amount: -amount, balanceBefore: before, balanceAfter: u.coins });
+  persistRainPool();
   syncAccount(username);
   broadcastRainState();
 }
@@ -516,12 +518,49 @@ function syncAccount(username) {
 //
 // `txn` (optional) - see db.js's persistUserState doc comment for shape.
 // Pass it whenever coins or stats changed, so a real audit row gets written.
-function persistUser(username, txn) {
+const PERSIST_MAX_ATTEMPTS = 4;
+function persistUser(username, txn, attempt = 1) {
   const u = users.get(username);
   if (!u) return;
   db.persistUserState(username, u, txn).catch((err) => {
-    console.error(`[db] persistUser failed for ${username} (${txn ? txn.type : 'no-txn'}):`, err.message);
+    console.error(`[db] persistUser failed for ${username} (${txn ? txn.type : 'no-txn'}) attempt ${attempt}/${PERSIST_MAX_ATTEMPTS}:`, err.message);
+    // Retry instead of silently leaving Postgres behind memory - a single
+    // dropped write used to mean pets quietly reverting/vanishing on the
+    // next restart. Each retry re-reads the CURRENT in-memory state, so a
+    // late retry can never write stale numbers over newer ones.
+    if (attempt < PERSIST_MAX_ATTEMPTS) {
+      setTimeout(() => persistUser(username, txn, attempt + 1), 750 * attempt);
+    } else {
+      console.error(`[db] GAVE UP persisting ${username} - memory and DB may disagree. txn=${JSON.stringify(txn)}`);
+    }
   });
+}
+
+function newEscrowId(kind) {
+  return `${kind}_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+}
+
+// Every client-supplied item list goes through this: must be a real array of
+// real catalog ids, with a sane length. Anything else is rejected outright
+// (previously a malformed list could throw inside a handler and crash the
+// whole server - taking every in-progress game's escrowed pets with it).
+function sanitizeItems(raw, max = 100) {
+  if (!Array.isArray(raw) || raw.length > max) return null;
+  for (const id of raw) {
+    if (typeof id !== 'string' || !Object.prototype.hasOwnProperty.call(petCatalog, id)) return null;
+  }
+  return raw.slice();
+}
+
+// Exchange stock + rain pool used to live only in memory (wiped by every
+// restart). These mirror changes to Postgres.
+function persistShopStock(ids) {
+  const entries = {};
+  for (const id of ids) entries[id] = shopStock[id] || 0;
+  db.saveShopStock(entries).catch((err) => console.error('[db] Failed to persist shop stock:', err.message));
+}
+function persistRainPool() {
+  db.saveServerState('rainPool', { pool: rainPool }).catch((err) => console.error('[db] Failed to persist rain pool:', err.message));
 }
 
 // ---------------------------------------------------------------------------
@@ -635,7 +674,7 @@ function resolveCoinflip(creator, creatorSide, creatorItems, joiner, joinerSide,
 }
 
 function handleCoinflipCreate(username, msg) {
-  const items = msg.items || [];
+  const items = sanitizeItems(msg.items, 50) || [];
   if (!items.length || !ownsAll(username, items)) {
     return send(usernameToSocket.get(username), { type: 'error', message: "You don't own those items." });
   }
@@ -650,7 +689,7 @@ function handleCoinflipCreate(username, msg) {
   trackWager(username, stakeValue(items));
   persistUser(username, { type: 'coinflip_create_escrow', amount: 0, itemsTouched: [...new Set(items)] });
   const id = 'cf_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
-  const lobby = { id, creator: username, side: msg.side, items, locked };
+  const lobby = { id, creator: username, side: msg.side === 'T' ? 'T' : 'H', items, locked };
   cfLobbies.push(lobby);
   // Persisted so a server restart while this lobby is still waiting for an
   // opponent doesn't lose track of it - the items were already escrowed out
@@ -670,7 +709,10 @@ function handleCoinflipCreate(username, msg) {
 function handleCoinflipJoin(username, msg) {
   const lobby = cfLobbies.find((l) => l.id === msg.lobbyId);
   if (!lobby) return send(usernameToSocket.get(username), { type: 'error', message: 'That lobby is no longer available.' });
-  const items = msg.items || [];
+  // Joining your own lobby used to be allowed: you'd flip against yourself
+  // and the house rake would silently take some of your pets.
+  if (lobby.creator === username) return send(usernameToSocket.get(username), { type: 'error', message: "You can't join your own lobby." });
+  const items = sanitizeItems(msg.items, 50) || [];
   if (!items.length || !ownsAll(username, items)) {
     return send(usernameToSocket.get(username), { type: 'error', message: "You don't own those items." });
   }
@@ -746,7 +788,7 @@ function isValidDiceNumber(n) {
 }
 
 function handleDiceDuelCreate(username, msg) {
-  const items = msg.items || [];
+  const items = sanitizeItems(msg.items, 50) || [];
   const number = Number(msg.number);
   if (!items.length || !ownsAll(username, items)) {
     return send(usernameToSocket.get(username), { type: 'error', message: "You don't own those items." });
@@ -757,10 +799,11 @@ function handleDiceDuelCreate(username, msg) {
   removeItems(username, items); // escrow
   const creatorValue = stakeValue(items);
   trackWager(username, creatorValue);
-  persistUser(username, { type: 'diceduel_create_escrow', amount: 0, itemsTouched: [...new Set(items)] });
+  const creatorEscrowId = newEscrowId('dd');
+  persistUser(username, { type: 'diceduel_create_escrow', amount: 0, itemsTouched: [...new Set(items)], escrowAdd: [{ id: creatorEscrowId, kind: 'diceduel', items, coins: 0 }] });
   const id = 'dd_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
   diceDuels.set(id, {
-    id, status: 'waiting',
+    id, status: 'waiting', creatorEscrowId, joinerEscrowId: null,
     creator: username, creatorItems: items, creatorValue, creatorNumber: number,
     joiner: null, joinerItems: [], joinerValue: 0, joinerNumber: null,
     rolls: [], winner: null, winnerValue: 0,
@@ -775,7 +818,7 @@ function handleDiceDuelJoin(username, msg) {
     return send(usernameToSocket.get(username), { type: 'error', message: 'That duel is no longer available.' });
   }
   if (duel.creator === username) return; // can't join your own duel
-  const items = msg.items || [];
+  const items = sanitizeItems(msg.items, 50) || [];
   const number = Number(msg.number);
   if (!items.length || !ownsAll(username, items)) {
     return send(usernameToSocket.get(username), { type: 'error', message: "You don't own those items." });
@@ -796,7 +839,9 @@ function handleDiceDuelJoin(username, msg) {
 
   removeItems(username, items); // escrow
   trackWager(username, joinValue);
-  persistUser(username, { type: 'diceduel_join_escrow', amount: 0, itemsTouched: [...new Set(items)] });
+  const joinerEscrowId = newEscrowId('dd');
+  persistUser(username, { type: 'diceduel_join_escrow', amount: 0, itemsTouched: [...new Set(items)], escrowAdd: [{ id: joinerEscrowId, kind: 'diceduel', items, coins: 0 }] });
+  duel.joinerEscrowId = joinerEscrowId;
 
   duel.status = 'running';
   duel.joiner = username;
@@ -820,7 +865,7 @@ function handleDiceDuelCancel(username, msg) {
 function cancelDiceDuelInternal(duel) {
   addItems(duel.creator, duel.creatorItems); // return escrow
   untrackWager(duel.creator, duel.creatorValue); // never actually played - shouldn't count as "played"
-  persistUser(duel.creator, { type: 'diceduel_cancel_refund', amount: 0, itemsTouched: [...new Set(duel.creatorItems)] });
+  persistUser(duel.creator, { type: 'diceduel_cancel_refund', amount: 0, itemsTouched: [...new Set(duel.creatorItems)], escrowRelease: [duel.creatorEscrowId].filter(Boolean) });
   diceDuels.delete(duel.id);
   syncAccount(duel.creator);
   broadcastDiceDuels();
@@ -868,7 +913,7 @@ function resolveDiceDuel(duel, finalRoll) {
   const wonAmount = stakeValue(loserItems);
   addItems(winner, winnerFinalItems);
   trackWin(winner, wonAmount);
-  persistUser(winner, { type: 'diceduel_win', amount: 0, itemsTouched: [...new Set(winnerFinalItems)] });
+  persistUser(winner, { type: 'diceduel_win', amount: 0, itemsTouched: [...new Set(winnerFinalItems)], escrowRelease: [duel.creatorEscrowId, duel.joinerEscrowId].filter(Boolean) });
   trackLoss(loser, wonAmount);
   persistUser(loser, { type: 'diceduel_loss', amount: 0 });
   if (rakeItems.length) {
@@ -919,6 +964,24 @@ function resolveDiceDuel(duel, finalRoll) {
 // ---------------------------------------------------------------------------
 const JACKPOT_ROUND_MS = 60 * 1000;
 const JACKPOT_MIN_ENTRANTS = 2; // a round must not resolve/pay out with only one participant
+// A lone entrant used to wait FOREVER with their pets locked in the pot if
+// nobody else joined. After this long alone, their stake is handed back.
+const JACKPOT_SOLO_REFUND_MS = 10 * 60 * 1000;
+function refundSoloJackpot() {
+  const round = jackpotRound;
+  if (!round || round.timer || round.entrants.length !== 1) return;
+  const e = round.entrants[0];
+  const u = ensureUser(e.username);
+  const before = u.coins;
+  if (e.coinsStaked > 0) u.coins += e.coinsStaked;
+  if (e.items.length) addItems(e.username, e.items);
+  untrackWager(e.username, e.value);
+  persistUser(e.username, { type: 'jackpot_solo_refund', amount: e.coinsStaked, balanceBefore: before, balanceAfter: u.coins, itemsTouched: [...new Set(e.items)], escrowRelease: [e.escrowId].filter(Boolean) });
+  jackpotRound = null;
+  syncAccount(e.username);
+  send(usernameToSocket.get(e.username), { type: 'toast', message: 'Nobody else joined the Jackpot in time - your entry was returned.' });
+  broadcastJackpot();
+}
 let jackpotRound = null; // { entrants: [{username, value, items, coinsStaked}], endsAt, timer }
 
 function jackpotPublicState() {
@@ -935,7 +998,8 @@ function broadcastJackpot() {
 
 function handleJackpotEnter(username, msg) {
   const amount = Math.max(0, Math.floor(Number(msg.amount) || 0));
-  const items = Array.isArray(msg.items) ? msg.items.filter((id) => typeof id === 'string') : [];
+  const items = msg.items == null ? [] : sanitizeItems(msg.items, 50);
+  if (!items) return send(usernameToSocket.get(username), { type: 'error', message: 'Invalid items.' });
   if (amount <= 0 && items.length === 0) return;
 
   if (jackpotRound && jackpotRound.entrants.some((e) => e.username === username)) {
@@ -954,7 +1018,8 @@ function handleJackpotEnter(username, msg) {
   if (items.length) removeItems(username, items); // escrow
   const value = amount + stakeValue(items);
   trackWager(username, value);
-  persistUser(username, { type: 'jackpot_enter', amount: -amount, itemsTouched: [...new Set(items)] });
+  const escrowId = newEscrowId('jp');
+  persistUser(username, { type: 'jackpot_enter', amount: -amount, itemsTouched: [...new Set(items)], escrowAdd: [{ id: escrowId, kind: 'jackpot', items, coins: amount }] });
   syncAccount(username);
 
   if (!jackpotRound) {
@@ -963,11 +1028,12 @@ function handleJackpotEnter(username, msg) {
     // scheduled) - a lone entrant just waits indefinitely with the clock
     // frozen instead of watching a countdown tick toward a resolution that
     // can't actually happen yet with only one participant.
-    jackpotRound = { entrants: [], endsAt: 0, timer: null };
+    jackpotRound = { entrants: [], endsAt: 0, timer: null, soloTimer: setTimeout(refundSoloJackpot, JACKPOT_SOLO_REFUND_MS) };
   }
-  jackpotRound.entrants.push({ username, value, items, coinsStaked: amount });
+  jackpotRound.entrants.push({ username, value, items, coinsStaked: amount, escrowId });
 
   if (jackpotRound.entrants.length >= JACKPOT_MIN_ENTRANTS && !jackpotRound.timer) {
+    if (jackpotRound.soloTimer) { clearTimeout(jackpotRound.soloTimer); jackpotRound.soloTimer = null; }
     // The 2nd entrant just joined - only now does the real countdown begin,
     // and it's the same endsAt broadcast to every client, so everyone sees
     // an identical clock rather than each client running its own timer.
@@ -1005,7 +1071,7 @@ function resolveJackpot() {
   if (coinsPortion > 0) u.coins += coinsPortion;
   if (allItems.length) addItems(winner.username, allItems);
   trackWin(winner.username, total);
-  persistUser(winner.username, { type: 'jackpot_win', amount: coinsPortion, balanceBefore: before, balanceAfter: u.coins, itemsTouched: [...new Set(allItems)] });
+  persistUser(winner.username, { type: 'jackpot_win', amount: coinsPortion, balanceBefore: before, balanceAfter: u.coins, itemsTouched: [...new Set(allItems)], escrowRelease: round.entrants.map((e) => e.escrowId).filter(Boolean) });
   for (const e of round.entrants) {
     if (e.username !== winner.username) {
       trackLoss(e.username, e.value);
@@ -1094,7 +1160,8 @@ function handleCaseBattleCreate(username, msg) {
   const before = u.coins;
   u.coins -= cost;
   trackWager(username, cost);
-  persistUser(username, { type: 'casebattle_create_wager', amount: -cost, balanceBefore: before, balanceAfter: u.coins });
+  const creatorEscrowId = newEscrowId('cb');
+  persistUser(username, { type: 'casebattle_create_wager', amount: -cost, balanceBefore: before, balanceAfter: u.coins, escrowAdd: [{ id: creatorEscrowId, kind: 'casebattle', items: [], coins: cost }] });
   syncAccount(username);
 
   const id = 'battle_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
@@ -1102,7 +1169,7 @@ function handleCaseBattleCreate(username, msg) {
   battles.set(id, {
     id, creator: username, status: 'waiting', mode: msg.mode, winMode,
     caseQueue: msg.caseQueue, caseNames, cfg,
-    players: [{ username, isBot: false, team: 0, total: 0, lastPull: 0 }],
+    players: [{ username, isBot: false, team: 0, total: 0, lastPull: 0, escrowId: creatorEscrowId }],
   });
   broadcastBattles();
 
@@ -1120,6 +1187,9 @@ function handleCaseBattleJoin(username, msg) {
   const b = battles.get(msg.battleId);
   if (!b || b.status !== 'waiting' || b.players.length >= b.cfg.count) {
     return send(usernameToSocket.get(username), { type: 'error', message: 'That battle already started or is full.' });
+  }
+  if (b.players.some((p) => p.username === username)) {
+    return send(usernameToSocket.get(username), { type: 'error', message: "You're already in this battle." });
   }
   const cost = battleCost(b.caseQueue);
   const u = ensureUser(username);
@@ -1149,10 +1219,11 @@ function handleCaseBattleJoin(username, msg) {
   const before = u.coins;
   u.coins -= cost;
   trackWager(username, cost);
-  persistUser(username, { type: 'casebattle_join_wager', amount: -cost, balanceBefore: before, balanceAfter: u.coins });
+  const escrowId = newEscrowId('cb');
+  persistUser(username, { type: 'casebattle_join_wager', amount: -cost, balanceBefore: before, balanceAfter: u.coins, escrowAdd: [{ id: escrowId, kind: 'casebattle', items: [], coins: cost }] });
   syncAccount(username);
 
-  b.players.push({ username, isBot: false, team, total: 0, lastPull: 0 });
+  b.players.push({ username, isBot: false, team, total: 0, lastPull: 0, escrowId });
   broadcastBattles();
 
   if (b.players.length >= b.cfg.count) startBattle(b); // filled up early - start right away
@@ -1198,7 +1269,7 @@ function handleCaseBattleCancel(username, msg) {
   const before = u.coins;
   u.coins += cost;
   untrackWager(username, cost);
-  persistUser(username, { type: 'casebattle_cancel_refund', amount: cost, balanceBefore: before, balanceAfter: u.coins });
+  persistUser(username, { type: 'casebattle_cancel_refund', amount: cost, balanceBefore: before, balanceAfter: u.coins, escrowRelease: b.players.map((p) => p.escrowId).filter(Boolean) });
   syncAccount(username);
   battles.delete(b.id);
   broadcastBattles();
@@ -1294,13 +1365,17 @@ async function runBattle(b) {
   const winnerValue = battleTotal; // winning side(s) take the full combined pot, same as before
   const winningMembers = winningGroups.flatMap((g) => g.members);
   const share = Math.floor(battleTotal / Math.max(1, winningMembers.length));
+  // Every real player's stake is released atomically with the FIRST payout
+  // write below (or the first loss record if only bots won).
+  let pendingEscrowRelease = b.players.filter((p) => !p.isBot && p.escrowId).map((p) => p.escrowId);
+  const takeEscrowRelease = () => { const ids = pendingEscrowRelease; pendingEscrowRelease = []; return ids; };
 
   winningMembers.filter((p) => !p.isBot).forEach((p) => {
     const u = ensureUser(p.username);
     const before = u.coins;
     u.coins += share;
     trackWin(p.username, share);
-    persistUser(p.username, { type: 'casebattle_win', amount: share, balanceBefore: before, balanceAfter: u.coins });
+    persistUser(p.username, { type: 'casebattle_win', amount: share, balanceBefore: before, balanceAfter: u.coins, escrowRelease: takeEscrowRelease() });
     syncAccount(p.username);
     createNotification({
       username: p.username,
@@ -1312,7 +1387,7 @@ async function runBattle(b) {
   });
   b.players.filter((p) => !winningMembers.includes(p) && !p.isBot).forEach((p) => {
     trackLoss(p.username, perPlayerCost);
-    persistUser(p.username, { type: 'casebattle_loss', amount: 0 });
+    persistUser(p.username, { type: 'casebattle_loss', amount: 0, escrowRelease: takeEscrowRelease() });
   });
 
   b.status = 'finished';
@@ -1355,15 +1430,21 @@ function handleExchangeSell(username, msg) {
   // Sells exactly the requested quantity of each item (how many times its id
   // appears in the array), capped by what's actually owned - not the whole
   // stack regardless of selection, so partial sells work as expected.
+  const sellIds = sanitizeItems(msg.items, 500);
+  if (!sellIds) return send(usernameToSocket.get(username), { type: 'error', message: 'Invalid items.' });
   const requested = {};
-  for (const id of (msg.items || [])) requested[id] = (requested[id] || 0) + 1;
+  for (const id of sellIds) requested[id] = (requested[id] || 0) + 1;
   const u = ensureUser(username);
+  // Pets in a pending withdrawal must not be sellable - otherwise they could
+  // be sold for coins AND still be handed over in Roblox by the admin.
+  const lockedForSell = lockedItemsForUser(username);
   let rawTotal = 0;
   let stockChanged = false;
   const itemsTouched = [];
   for (const [id, reqQty] of Object.entries(requested)) {
     const owned = u.inventory[id] || 0;
-    const sellQty = Math.min(reqQty, owned);
+    const sellable = Math.max(0, owned - (lockedForSell[id] || 0));
+    const sellQty = Math.min(reqQty, sellable);
     if (sellQty <= 0) continue;
     rawTotal += sellQty * itemValue(id);
     u.inventory[id] = owned - sellQty;
@@ -1378,11 +1459,12 @@ function handleExchangeSell(username, msg) {
   u.coins += payout;
   persistUser(username, { type: 'exchange_sell', amount: payout, balanceBefore: before, balanceAfter: u.coins, itemsTouched });
   syncAccount(username);
-  if (stockChanged) broadcast({ type: 'exchange:stock', stock: shopStock });
+  if (stockChanged) { persistShopStock(itemsTouched); broadcast({ type: 'exchange:stock', stock: shopStock }); }
 }
 
 function handleExchangeBuy(username, msg) {
-  const ids = msg.items || [];
+  const ids = sanitizeItems(msg.items, 500);
+  if (!ids || !ids.length) return send(usernameToSocket.get(username), { type: 'error', message: 'Invalid items.' });
   const requested = {};
   for (const id of ids) requested[id] = (requested[id] || 0) + 1;
   // Every requested pet has to actually be in stock - no more minting pets
@@ -1401,6 +1483,7 @@ function handleExchangeBuy(username, msg) {
   addItems(username, ids);
   persistUser(username, { type: 'exchange_buy', amount: -cost, balanceBefore: before, balanceAfter: u.coins, itemsTouched: [...new Set(ids)] });
   syncAccount(username);
+  persistShopStock(Object.keys(requested));
   broadcast({ type: 'exchange:stock', stock: shopStock });
 }
 
@@ -1649,7 +1732,7 @@ function resolveSinkRound(round) {
       // Didn't cash out in time - the wager was already deducted at join
       // time, so this is purely recording the loss for stats/feed purposes.
       trackLoss(username, p.wager);
-      persistUser(username, { type: 'sink_loss', amount: 0 });
+      persistUser(username, { type: 'sink_loss', amount: 0, escrowRelease: [p.escrowId].filter(Boolean) });
       pushFeedEvent({ game: 'sink', username, amount: p.wager, won: false });
     }
   }
@@ -1676,10 +1759,11 @@ function handleSinkJoin(username, msg) {
 
   const before = u.coins;
   u.coins -= amount;
-  sinkRound.players.set(username, { wager: amount, cashedOutAt: null, payout: null });
+  const sinkEscrowId = newEscrowId('sink');
+  sinkRound.players.set(username, { wager: amount, cashedOutAt: null, payout: null, escrowId: sinkEscrowId });
 
   trackWager(username, amount);
-  persistUser(username, { type: 'sink_wager', amount: -amount, balanceBefore: before, balanceAfter: u.coins });
+  persistUser(username, { type: 'sink_wager', amount: -amount, balanceBefore: before, balanceAfter: u.coins, escrowAdd: [{ id: sinkEscrowId, kind: 'sink', items: [], coins: amount }] });
   syncAccount(username);
   broadcastSinkState();
 }
@@ -1710,7 +1794,7 @@ function handleSinkCashout(username) {
   const before = u.coins;
   u.coins += payout;
   trackWin(username, payout);
-  persistUser(username, { type: 'sink_cashout', amount: payout, balanceBefore: before, balanceAfter: u.coins });
+  persistUser(username, { type: 'sink_cashout', amount: payout, balanceBefore: before, balanceAfter: u.coins, escrowRelease: [p.escrowId].filter(Boolean) });
   syncAccount(username);
   pushFeedEvent({ game: 'sink', username, amount: payout, multiplier: currentMultiplier, won: true });
   broadcastSinkState();
@@ -1753,10 +1837,11 @@ function handleMinesStart(username, msg) {
   }
   const bombs = new Set(positions.slice(0, mCount));
 
-  activeMinesRounds.set(username, { n, mCount, gridSize, amount, bombs, revealed: new Set(), picks: 0, active: true });
+  const minesEscrowId = newEscrowId('mines');
+  activeMinesRounds.set(username, { n, mCount, gridSize, amount, bombs, revealed: new Set(), picks: 0, active: true, escrowId: minesEscrowId });
 
   trackWager(username, amount);
-  persistUser(username, { type: 'mines_wager', amount: -amount, balanceBefore: before, balanceAfter: u.coins });
+  persistUser(username, { type: 'mines_wager', amount: -amount, balanceBefore: before, balanceAfter: u.coins, escrowAdd: [{ id: minesEscrowId, kind: 'mines', items: [], coins: amount }] });
   syncAccount(username);
   send(errTo, { type: 'mines:started', n, mCount, gridSize, amount });
 }
@@ -1779,7 +1864,7 @@ function handleMinesReveal(username, msg) {
     round.active = false;
     activeMinesRounds.delete(username);
     trackLoss(username, round.amount);
-    persistUser(username, { type: 'mines_loss', amount: 0 });
+    persistUser(username, { type: 'mines_loss', amount: 0, escrowRelease: [round.escrowId].filter(Boolean) });
     // The round is over - safe to reveal every bomb now for the board
     // animation, since none of these positions were ever sent before this.
     send(errTo, { type: 'mines:hit', tileIndex, bombs: [...round.bombs] });
@@ -1800,7 +1885,7 @@ function handleMinesReveal(username, msg) {
     trackWin(username, currentPayout);
     round.active = false;
     activeMinesRounds.delete(username);
-    persistUser(username, { type: 'mines_resolve', amount: currentPayout, balanceBefore: before, balanceAfter: u.coins });
+    persistUser(username, { type: 'mines_resolve', amount: currentPayout, balanceBefore: before, balanceAfter: u.coins, escrowRelease: [round.escrowId].filter(Boolean) });
     syncAccount(username);
     send(errTo, { type: 'mines:revealed', tileIndex, multiplier, payout: currentPayout, picks: round.picks, fullClear: true });
     pushFeedEvent({ game: 'mines', username, amount: currentPayout, multiplier, won: true });
@@ -1826,7 +1911,7 @@ function handleMinesCashout(username) {
   const before = u.coins;
   u.coins += payout;
   trackWin(username, payout);
-  persistUser(username, { type: 'mines_resolve', amount: payout, balanceBefore: before, balanceAfter: u.coins });
+  persistUser(username, { type: 'mines_resolve', amount: payout, balanceBefore: before, balanceAfter: u.coins, escrowRelease: [round.escrowId].filter(Boolean) });
   syncAccount(username);
   send(errTo, { type: 'mines:cashedOut', payout, multiplier });
   pushFeedEvent({ game: 'mines', username, amount: payout, multiplier, won: true });
@@ -2055,8 +2140,9 @@ let withdrawRequests = []; // { id, username, items, requestedAt, status, actual
 const MAX_WITHDRAW_ITEMS = 8;
 
 async function handleWithdrawRequest(username, msg) {
-  const items = msg.items || [];
   const errTo = usernameToSocket.get(username);
+  const items = sanitizeItems(msg.items, MAX_WITHDRAW_ITEMS * 2);
+  if (!items) return send(errTo, { type: 'error', message: 'Invalid items.' });
   if (!items.length) return send(errTo, { type: 'error', message: 'Select at least one item to withdraw.' });
   if (items.length > MAX_WITHDRAW_ITEMS) return send(errTo, { type: 'error', message: `You can withdraw at most ${MAX_WITHDRAW_ITEMS} pets at a time.` });
   if (!ownsAll(username, items)) return send(errTo, { type: 'error', message: "You don't own all of those items." });
@@ -2092,35 +2178,40 @@ function handleAdminWithdrawList(username) {
 async function handleAdminWithdrawFulfill(username, msg) {
   if (username !== ADMIN_USERNAME) return;
   const req = withdrawRequests.find(r => r.id === msg.requestId && r.status === 'pending');
-  if (!req) return;
+  if (!req || req.resolving) return;
+  req.resolving = true; // blocks a double-click from running this twice while we wait on the DB
 
-  // Remove exactly what's requested, capped by whatever they still actually
-  // own right now (they may have sold/lost/traded something since asking) -
-  // and report back precisely what was removed, so any mismatch is visible
-  // rather than silently over- or under-removing.
+  // Work out what will be removed (capped by what they still own), but DON'T
+  // touch the inventory until the DB has confirmed the pending->fulfilled
+  // transition. The old order removed pets from memory first, so if the DB
+  // call failed (or lost a race) the pets were gone from the player's
+  // inventory without the request ever being marked fulfilled.
   const target = ensureUser(req.username);
   const requested = {};
   for (const id of req.items) requested[id] = (requested[id] || 0) + 1;
-  const actuallyRemoved = {};
+  const plannedRemoval = {};
   for (const [id, reqQty] of Object.entries(requested)) {
-    const owned = target.inventory[id] || 0;
-    const removeQty = Math.min(reqQty, owned);
-    if (removeQty > 0) { target.inventory[id] = owned - removeQty; actuallyRemoved[id] = removeQty; }
+    const removeQty = Math.min(reqQty, target.inventory[id] || 0);
+    if (removeQty > 0) plannedRemoval[id] = removeQty;
   }
 
-  // The DB row is the actual source of truth for "has this already been
-  // actioned" - this only succeeds if it's still 'pending' there right now,
-  // so two admin clicks (or a retry) can never both go through and remove
-  // items twice, even if the in-memory array briefly disagreed.
   let ok;
   try {
-    ok = await db.resolveWithdrawRequest(req.id, 'pending', 'fulfilled', actuallyRemoved);
+    ok = await db.resolveWithdrawRequest(req.id, 'pending', 'fulfilled', plannedRemoval);
   } catch (err) {
+    req.resolving = false;
     console.error(`[db] Failed to resolve withdraw request ${req.id}:`, err.message);
-    return;
+    return send(usernameToSocket.get(username), { type: 'error', message: 'Database error - nothing was removed. Try again.' });
   }
-  if (!ok) return; // someone/something else already resolved this request
+  if (!ok) { req.resolving = false; return; } // someone/something else already resolved this request
 
+  // Apply now (items were locked the whole time, so they're still there).
+  const actuallyRemoved = {};
+  for (const [id, qty] of Object.entries(plannedRemoval)) {
+    const owned = target.inventory[id] || 0;
+    const removeQty = Math.min(qty, owned);
+    if (removeQty > 0) { target.inventory[id] = owned - removeQty; actuallyRemoved[id] = removeQty; }
+  }
   req.status = 'fulfilled';
   req.actuallyRemoved = actuallyRemoved;
   persistUser(req.username, { type: 'withdraw_fulfilled', amount: 0, itemsTouched: Object.keys(actuallyRemoved), reason: `Fulfilled by ${ADMIN_USERNAME}`, adminUsername: ADMIN_USERNAME });
@@ -2142,15 +2233,17 @@ async function handleAdminWithdrawFulfill(username, msg) {
 async function handleAdminWithdrawReject(username, msg) {
   if (username !== ADMIN_USERNAME) return;
   const req = withdrawRequests.find(r => r.id === msg.requestId && r.status === 'pending');
-  if (!req) return;
+  if (!req || req.resolving) return;
+  req.resolving = true;
   let ok;
   try {
     ok = await db.resolveWithdrawRequest(req.id, 'pending', 'rejected', null);
   } catch (err) {
+    req.resolving = false;
     console.error(`[db] Failed to resolve withdraw request ${req.id}:`, err.message);
     return;
   }
-  if (!ok) return; // already resolved
+  if (!ok) { req.resolving = false; return; } // already resolved
   req.status = 'rejected';
   persistUser(req.username, { type: 'withdraw_rejected', amount: 0, reason: `Rejected by ${ADMIN_USERNAME}`, adminUsername: ADMIN_USERNAME });
   syncAccount(req.username); // unlocks the items back into their available inventory
@@ -2379,8 +2472,9 @@ function handleAdminSetRole(username, msg) {
 function handleTipSend(username, msg) {
   const rawTo = String(msg.toUsername || '').trim();
   const coins = Math.max(0, Math.floor(Number(msg.coins) || 0));
-  const items = Array.isArray(msg.items) ? msg.items : [];
   const errTo = usernameToSocket.get(username);
+  const items = msg.items == null ? [] : sanitizeItems(msg.items, 100);
+  if (!items) return send(errTo, { type: 'error', message: 'Invalid items.' });
 
   if (!rawTo) return send(errTo, { type: 'error', message: 'Pick someone else to tip.' });
   if (!isValidUsername(rawTo)) return send(errTo, { type: 'error', message: "That isn't a valid Roblox username." });
@@ -2465,10 +2559,85 @@ async function fetchWithRetry(url, attempts = 3, options = {}) {
   throw lastErr;
 }
 
-async function robloxResolveUsername(username){
-  const r = await fetchWithRetry(`https://users.roblox.com/v1/users/search?keyword=${encodeURIComponent(username)}&limit=10`);
+// Exact username -> {id, name} lookup. Uses Roblox's dedicated exact-match
+// endpoint instead of the fuzzy /users/search endpoint, which is heavily
+// rate-limited and was the main reason profile pictures sometimes never
+// loaded (and why short names could fail to resolve at all).
+async function robloxLookupUsernames(usernames){
+  const names = [...new Set(usernames.map((n) => String(n || '').trim()).filter(Boolean))].slice(0, 100);
+  if (!names.length) return new Map();
+  const r = await fetchWithRetry('https://users.roblox.com/v1/usernames/users', 3, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+    body: JSON.stringify({ usernames: names, excludeBannedUsers: false }),
+  });
   const data = await r.json();
-  return (data.data || []).find((u) => (u.name || '').toLowerCase() === username.toLowerCase()) || null;
+  const out = new Map(); // lowercase requested name -> {id, name}
+  for (const u of (data.data || [])) {
+    const key = String(u.requestedUsername || u.name || '').toLowerCase();
+    if (key && u.id) out.set(key, { id: u.id, name: u.name });
+  }
+  return out;
+}
+async function robloxResolveUsername(username){
+  const map = await robloxLookupUsernames([username]);
+  return map.get(String(username || '').trim().toLowerCase()) || null;
+}
+
+// Headshots for many user ids at once. Roblox sometimes answers "Pending"
+// (picture still being generated) with no URL - those get one retry
+// instead of being treated as "no avatar".
+async function robloxHeadshots(userIds){
+  const out = new Map();
+  let todo = [...new Set(userIds)].slice(0, 100);
+  for (let attempt = 0; attempt < 2 && todo.length; attempt++) {
+    if (attempt > 0) await new Promise((r) => setTimeout(r, 1500));
+    const r = await fetchWithRetry(`https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${todo.join(',')}&size=150x150&format=Png&isCircular=false`);
+    const data = await r.json();
+    const pending = [];
+    for (const entry of (data.data || [])) {
+      if (entry.imageUrl && entry.state === 'Completed') out.set(entry.targetId, entry.imageUrl);
+      else if (entry.state === 'Pending') pending.push(entry.targetId);
+    }
+    todo = pending;
+  }
+  return out;
+}
+
+// Avatar requests from every browser are coalesced into small batches, so a
+// page showing 30 names makes 2 Roblox calls instead of 60.
+const AVATAR_NOTFOUND_TTL_MS = 10 * 60 * 1000;
+const avatarQueue = new Map(); // lowercase -> { name, waiters: [] }
+let avatarQueueTimer = null;
+function requestAvatar(username){
+  return new Promise((resolve, reject) => {
+    const key = username.toLowerCase();
+    let entry = avatarQueue.get(key);
+    if (!entry) { entry = { name: username, waiters: [] }; avatarQueue.set(key, entry); }
+    entry.waiters.push({ resolve, reject });
+    if (!avatarQueueTimer) avatarQueueTimer = setTimeout(flushAvatarQueue, 40);
+  });
+}
+async function flushAvatarQueue(){
+  avatarQueueTimer = null;
+  const batch = [...avatarQueue.values()].slice(0, 100);
+  for (const e of batch) avatarQueue.delete(e.name.toLowerCase());
+  if (avatarQueue.size) avatarQueueTimer = setTimeout(flushAvatarQueue, 40);
+  try {
+    const idsByName = await robloxLookupUsernames(batch.map((e) => e.name));
+    const ids = [...idsByName.values()].map((m) => m.id);
+    const urls = ids.length ? await robloxHeadshots(ids) : new Map();
+    for (const e of batch) {
+      const match = idsByName.get(e.name.toLowerCase());
+      const result = { userId: match ? match.id : null, imageUrl: match ? (urls.get(match.id) || null) : null, found: !!match };
+      if (result.imageUrl || !result.found) {
+        avatarCache.set(e.name.toLowerCase(), { ...result, cachedAt: Date.now(), ttl: result.found ? AVATAR_CACHE_TTL_MS : AVATAR_NOTFOUND_TTL_MS });
+      }
+      e.waiters.forEach((w) => w.resolve(result));
+    }
+  } catch (err) {
+    for (const e of batch) e.waiters.forEach((w) => w.reject(err));
+  }
 }
 
 const server = http.createServer(async (req, res) => {
@@ -2497,22 +2666,21 @@ const server = http.createServer(async (req, res) => {
   if(url.pathname === '/roblox/avatar'){
     const username = url.searchParams.get('username') || '';
     const cacheKey = username.toLowerCase();
-    const cached = avatarCache.get(cacheKey);
-    if (cached && Date.now() - cached.cachedAt < AVATAR_CACHE_TTL_MS) {
+    if (!/^[A-Za-z0-9_ ]{1,40}$/.test(username)) {
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ imageUrl: cached.imageUrl, userId: cached.userId }));
+      res.end(JSON.stringify({ imageUrl: null, found: false }));
+      return;
+    }
+    const cached = avatarCache.get(cacheKey);
+    if (cached && Date.now() - cached.cachedAt < (cached.ttl || AVATAR_CACHE_TTL_MS)) {
+      res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=600' });
+      res.end(JSON.stringify({ imageUrl: cached.imageUrl, userId: cached.userId, found: cached.found !== false }));
       return;
     }
     try{
-      const match = await robloxResolveUsername(username);
-      if(!match){ res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ imageUrl: null })); return; }
-      const thumbR = await fetchWithRetry(`https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${match.id}&size=150x150&format=Png&isCircular=false`);
-      const thumbData = await thumbR.json();
-      const entry = (thumbData.data || [])[0];
-      const imageUrl = entry && entry.imageUrl ? entry.imageUrl : null;
-      if (imageUrl) avatarCache.set(cacheKey, { imageUrl, userId: match.id, cachedAt: Date.now() });
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ imageUrl, userId: match.id }));
+      const result = await requestAvatar(username);
+      res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': result.imageUrl ? 'public, max-age=600' : 'no-store' });
+      res.end(JSON.stringify(result));
     } catch(e){
       res.writeHead(502, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ imageUrl: null, error: 'roblox_unreachable' }));
@@ -2917,7 +3085,25 @@ wss.on('connection', (ws) => {
       return send(ws, { type: 'error', message: '🔒 The site is temporarily locked down for maintenance. Please try again later.' });
     }
 
-    switch (msg.type) {
+    // Any error inside a handler used to escape this callback and crash the
+    // whole process (dropping every in-progress game). Now it's contained to
+    // the one request, logged, and the player gets a message.
+    try {
+      const result = dispatchMessage(ws, username, msg);
+      if (result && typeof result.catch === 'function') {
+        result.catch((err) => {
+          console.error(`[ws] async handler for ${msg.type} (${username}) failed:`, err);
+          send(ws, { type: 'error', message: 'Something went wrong - please try again.' });
+        });
+      }
+    } catch (err) {
+      console.error(`[ws] handler for ${msg.type} (${username}) threw:`, err);
+      send(ws, { type: 'error', message: 'Something went wrong - please try again.' });
+    }
+  });
+
+  function dispatchMessage(ws, username, msg) {
+    switch (msg && msg.type) {
       case 'rain:deposit': return handleRainDeposit(username, msg);
       case 'rain:claim': return handleRainClaim(username);
       case 'coinflip:create': return handleCoinflipCreate(username, msg);
@@ -2977,7 +3163,7 @@ wss.on('connection', (ws) => {
       case 'profile:request': return handleProfileRequest(username, msg);
       case 'admin:setRole': return handleAdminSetRole(username, msg);
     }
-  });
+  }
 
   ws.on('close', () => {
     const username = socketToUsername.get(ws);
@@ -3015,6 +3201,12 @@ function broadcastBattlesTo(ws) {
 }
 
 const PORT = process.env.PORT || 8080;
+
+// Last-resort safety net: a stray promise rejection must never take the
+// whole server down (Node exits on unhandled rejections by default).
+process.on('unhandledRejection', (err) => {
+  console.error('[process] Unhandled promise rejection (kept running):', err);
+});
 
 // Boot sequence: schema first, then load every persisted user + their
 // inventory into the in-memory `users` Map (same shape it's always had -
@@ -3068,6 +3260,28 @@ const PORT = process.env.PORT || 8080;
     const loadedUsers = await db.loadAllUsers();
     for (const [uname, u] of loadedUsers) users.set(uname, u);
     console.log(`[boot] Loaded ${loadedUsers.size} user account(s) from Postgres.`);
+
+    // Refund anything a game was holding when the server last stopped
+    // (crash, deploy, restart). Each refund + escrow release is one DB
+    // transaction, so it can never be paid back twice.
+    const leftoverEscrows = await db.loadEscrows();
+    for (const e of leftoverEscrows) {
+      const u = ensureUser(e.username);
+      const before = u.coins;
+      if (e.coins > 0) u.coins += e.coins;
+      if (e.items.length) addItems(e.username, e.items);
+      await db.persistUserState(e.username, u, {
+        type: 'escrow_refund', amount: e.coins, balanceBefore: before, balanceAfter: u.coins,
+        itemsTouched: [...new Set(e.items)], reason: `Refund: ${e.kind} was interrupted by a server restart`,
+        escrowRelease: [e.id],
+      });
+    }
+    if (leftoverEscrows.length) console.log(`[boot] Refunded ${leftoverEscrows.length} interrupted game stake(s).`);
+
+    Object.assign(shopStock, await db.loadShopStock());
+    console.log(`[boot] Loaded exchange stock (${Object.keys(shopStock).length} pet type(s)).`);
+    const savedRain = await db.loadServerState('rainPool');
+    if (savedRain && Number.isFinite(Number(savedRain.pool))) rainPool = Math.max(RAIN_BASE, Math.floor(Number(savedRain.pool)));
 
     const loadedRequests = await db.loadPendingWithdrawRequests();
     withdrawRequests = loadedRequests;

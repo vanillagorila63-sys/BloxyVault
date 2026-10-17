@@ -160,6 +160,39 @@ async function initSchema() {
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_cf_history_creator ON coinflip_history(creator, resolved_at DESC);`);
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_cf_history_joiner ON coinflip_history(joiner, resolved_at DESC);`);
 
+  // Escrow ledger: every coin/pet that is temporarily held by a running game
+  // (dice duel, jackpot, case battle, sink, mines) gets a row here in the
+  // SAME transaction that takes it from the player, and the row is deleted
+  // in the SAME transaction that pays the game out. Anything still here on
+  // boot belonged to a game that was interrupted (crash / redeploy) and is
+  // refunded automatically - so a restart can never eat anyone's pets.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS escrows (
+      id          TEXT PRIMARY KEY,
+      username    TEXT NOT NULL,
+      kind        TEXT NOT NULL,
+      items       JSONB NOT NULL DEFAULT '[]'::jsonb,
+      coins       BIGINT NOT NULL DEFAULT 0,
+      created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+  `);
+  // Exchange stock (pets sold to the shop) - used to live only in memory,
+  // so every restart wiped every pet anyone had sold.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS shop_stock (
+      catalog_id  TEXT PRIMARY KEY,
+      qty         INTEGER NOT NULL DEFAULT 0 CHECK (qty >= 0)
+    );
+  `);
+  // Small key/value store for other global state that must survive restarts
+  // (currently: the rain pool).
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS server_state (
+      key    TEXT PRIMARY KEY,
+      value  JSONB NOT NULL
+    );
+  `);
+
   console.log('[db] Schema ready.');
 }
 
@@ -268,17 +301,17 @@ async function persistUserState(username, user, txn) {
   try {
     await client.query('BEGIN');
 
-    const upd = await client.query(
-      `UPDATE users SET coins = $2, stats_wagered = $3, stats_won = $4, stats_lost = $5, updated_at = now()
-       WHERE username = $1`,
-      [username, user.coins, user.stats.wagered, user.stats.won, user.stats.lost]
+    // Single atomic upsert. The old UPDATE-then-INSERT could collide with the
+    // fire-and-forget insertNewUser() for a brand-new account (e.g. someone
+    // tipped pets to a player who'd never logged in): the INSERT hit a
+    // unique-key error, the whole transaction rolled back, and the tipped
+    // pets were never saved - they vanished on the next restart.
+    await client.query(
+      `INSERT INTO users (username, coins, stats_wagered, stats_won, stats_lost) VALUES ($1,$2,$3,$4,$5)
+       ON CONFLICT (username) DO UPDATE SET coins = EXCLUDED.coins, stats_wagered = EXCLUDED.stats_wagered,
+         stats_won = EXCLUDED.stats_won, stats_lost = EXCLUDED.stats_lost, updated_at = now()`,
+      [username, Math.max(0, Math.trunc(user.coins)), user.stats.wagered, user.stats.won, user.stats.lost]
     );
-    if (upd.rowCount === 0) {
-      await client.query(
-        `INSERT INTO users (username, coins, stats_wagered, stats_won, stats_lost) VALUES ($1,$2,$3,$4,$5)`,
-        [username, user.coins, user.stats.wagered, user.stats.won, user.stats.lost]
-      );
-    }
 
     if (txn && Array.isArray(txn.itemsTouched) && txn.itemsTouched.length) {
       for (const catalogId of txn.itemsTouched) {
@@ -289,6 +322,21 @@ async function persistUserState(username, user, txn) {
           [username, catalogId, qty]
         );
       }
+    }
+
+    // Escrow bookkeeping rides in the same transaction as the balance change,
+    // so "pets left your inventory" and "pets are held by game X" (or "game X
+    // paid out" and "hold released") always commit together or not at all.
+    if (txn && Array.isArray(txn.escrowAdd)) {
+      for (const e of txn.escrowAdd) {
+        await client.query(
+          `INSERT INTO escrows (id, username, kind, items, coins) VALUES ($1,$2,$3,$4,$5) ON CONFLICT (id) DO NOTHING`,
+          [e.id, username, e.kind, JSON.stringify(e.items || []), Math.trunc(e.coins || 0)]
+        );
+      }
+    }
+    if (txn && Array.isArray(txn.escrowRelease) && txn.escrowRelease.length) {
+      await client.query(`DELETE FROM escrows WHERE id = ANY($1)`, [txn.escrowRelease]);
     }
 
     if (txn) {
@@ -396,14 +444,17 @@ async function mergeCasedDuplicates(canonicalUsername, variants) {
 
     const invRes = await client.query('SELECT username, catalog_id, qty FROM inventory_items WHERE username = ANY($1)', [variants]);
 
-    const mergedCoins = Math.max(...usersRes.rows.map((r) => Number(r.coins)));
+    // SUM, not MAX: new accounts start at 0 coins, so nothing here was ever
+    // a free starting grant that summing would double-count - MAX silently
+    // deleted whatever the smaller variant had earned.
+    const mergedCoins = usersRes.rows.reduce((s, r) => s + Number(r.coins), 0);
     const mergedWagered = usersRes.rows.reduce((s, r) => s + Number(r.stats_wagered), 0);
     const mergedWon = usersRes.rows.reduce((s, r) => s + Number(r.stats_won), 0);
     const mergedLost = usersRes.rows.reduce((s, r) => s + Number(r.stats_lost), 0);
 
     const mergedInventory = {}; // catalogId -> max qty across variants
     for (const row of invRes.rows) {
-      mergedInventory[row.catalog_id] = Math.max(mergedInventory[row.catalog_id] || 0, row.qty);
+      mergedInventory[row.catalog_id] = (mergedInventory[row.catalog_id] || 0) + row.qty; // SUM - MAX deleted pets
     }
 
     // Upsert the canonical row with the merged totals.
@@ -436,6 +487,11 @@ async function mergeCasedDuplicates(canonicalUsername, variants) {
       await client.query(`UPDATE coinflip_history SET creator = $1 WHERE creator = ANY($2)`, [canonicalUsername, others]);
       await client.query(`UPDATE coinflip_history SET joiner = $1 WHERE joiner = ANY($2)`, [canonicalUsername, others]);
       await client.query(`UPDATE coinflip_history SET winner = $1 WHERE winner = ANY($2)`, [canonicalUsername, others]);
+      // These tables reference users(username) too - without re-pointing them
+      // the DELETE below hit a foreign-key error and the merge never finished.
+      await client.query(`UPDATE coinflip_lobbies SET creator = $1 WHERE creator = ANY($2)`, [canonicalUsername, others]);
+      await client.query(`UPDATE escrows SET username = $1 WHERE username = ANY($2)`, [canonicalUsername, others]);
+      await client.query(`DELETE FROM notifications WHERE username = ANY($1)`, [others]);
       // Deleting the old rows cascades to their now-redundant inventory_items
       // rows automatically (ON DELETE CASCADE) - already fully accounted
       // for in mergedInventory above, so nothing is lost by the cascade.
@@ -588,8 +644,59 @@ async function markAllNotificationsRead(username) {
   );
 }
 
+async function loadEscrows() {
+  const res = await pool.query(`SELECT id, username, kind, items, coins FROM escrows ORDER BY created_at ASC`);
+  return res.rows.map((r) => ({ id: r.id, username: r.username, kind: r.kind, items: Array.isArray(r.items) ? r.items : [], coins: Number(r.coins) }));
+}
+
+async function loadShopStock() {
+  const res = await pool.query(`SELECT catalog_id, qty FROM shop_stock WHERE qty > 0`);
+  const out = {};
+  for (const r of res.rows) out[r.catalog_id] = r.qty;
+  return out;
+}
+
+// Writes absolute quantities for the given catalog ids.
+async function saveShopStock(entries) {
+  const ids = Object.keys(entries);
+  if (!ids.length) return;
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    for (const id of ids) {
+      await client.query(
+        `INSERT INTO shop_stock (catalog_id, qty) VALUES ($1,$2) ON CONFLICT (catalog_id) DO UPDATE SET qty = $2`,
+        [id, Math.max(0, Math.trunc(entries[id] || 0))]
+      );
+    }
+    await client.query('COMMIT');
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
+async function loadServerState(key) {
+  const res = await pool.query(`SELECT value FROM server_state WHERE key = $1`, [key]);
+  return res.rows.length ? res.rows[0].value : null;
+}
+
+async function saveServerState(key, value) {
+  await pool.query(
+    `INSERT INTO server_state (key, value) VALUES ($1,$2) ON CONFLICT (key) DO UPDATE SET value = $2`,
+    [key, JSON.stringify(value)]
+  );
+}
+
 module.exports = {
   pool,
+  loadEscrows,
+  loadShopStock,
+  saveShopStock,
+  loadServerState,
+  saveServerState,
   initSchema,
   loadAllUsers,
   loadPendingWithdrawRequests,
