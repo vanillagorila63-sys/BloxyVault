@@ -248,7 +248,13 @@ function ensureUser(username) {
   }
   return u;
 }
-function trackWager(username, amount) { if (amount > 0) ensureUser(username).stats.wagered += amount; }
+function trackWager(username, amount) {
+  if (!(amount > 0)) return;
+  const u = ensureUser(username);
+  const before = levelForWagered(u.stats.wagered);
+  u.stats.wagered += amount;
+  if (levelForWagered(u.stats.wagered) !== before) scheduleDiscordRoleSync(username);
+}
 // Resolves a manually-typed username against real, already-known accounts
 // case-insensitively - e.g. admin types "dtn_bgsi" but the account is
 // actually stored as "DTN_BGSI" (its real Roblox-canonical casing). Used
@@ -270,7 +276,13 @@ function resolveExistingUsername(raw) {
 // A cancelled coinflip lobby never actually played out, so it shouldn't
 // keep counting toward "Played" / Most Played - this undoes the trackWager
 // that ran when the lobby was first created.
-function untrackWager(username, amount) { if (amount > 0) { const u = ensureUser(username); u.stats.wagered = Math.max(0, u.stats.wagered - amount); } }
+function untrackWager(username, amount) {
+  if (!(amount > 0)) return;
+  const u = ensureUser(username);
+  const before = levelForWagered(u.stats.wagered);
+  u.stats.wagered = Math.max(0, u.stats.wagered - amount);
+  if (levelForWagered(u.stats.wagered) !== before) scheduleDiscordRoleSync(username);
+}
 function trackWin(username, amount) { if (amount > 0) ensureUser(username).stats.won += amount; }
 function trackLoss(username, amount) { if (amount > 0) ensureUser(username).stats.lost += amount; }
 
@@ -288,6 +300,123 @@ function levelForWagered(wagered) {
   const lvl = Math.floor(Math.pow(w / LEVEL_CURVE_C, 1 / LEVEL_CURVE_K)) + 1;
   return Math.max(1, Math.min(MAX_LEVEL, lvl));
 }
+
+// ---------------------------------------------------------------------------
+// Discord level roles
+// The linking app's bot gives players a role in the Discord server that
+// matches their site level. Settings (Railway -> Variables):
+//   DISCORD_BOT_TOKEN    the bot's token (Developer Portal -> your app -> Bot)
+//   DISCORD_GUILD_ID     your server's ID
+//   DISCORD_LEVEL_ROLES  level:roleId pairs, e.g. 1:111,10:222,25:333,50:444,75:555,100:666
+//   DISCORD_STICKY_LEVELS (optional, default "1") levels whose role is kept forever
+// Rules: a "sticky" role (Level 1) is kept once earned. Of the other level
+// roles a player only ever has the HIGHEST one they've reached - lower ones
+// are removed. Roles that aren't level roles are never touched.
+// ---------------------------------------------------------------------------
+const DISCORD_BOT_TOKEN = process.env.DISCORD_BOT_TOKEN || '';
+const DISCORD_API_BASE = process.env.DISCORD_API_BASE || 'https://discord.com/api/v10'; // only overridden for local testing
+const DISCORD_GUILD_ID = (process.env.DISCORD_GUILD_ID || '').trim();
+const DISCORD_LEVEL_ROLES = String(process.env.DISCORD_LEVEL_ROLES || '')
+  .split(/[,\s]+/).map((pair) => pair.split(':').map((x) => x.trim()))
+  .filter(([lvl, role]) => /^\d+$/.test(lvl || '') && /^\d{5,25}$/.test(role || ''))
+  .map(([lvl, role]) => ({ level: Number(lvl), roleId: role }))
+  .sort((a, b) => a.level - b.level);
+const DISCORD_STICKY_LEVELS = new Set(String(process.env.DISCORD_STICKY_LEVELS || '1').split(/[,\s]+/).filter(Boolean).map(Number));
+function discordRolesConfigured() { return !!(DISCORD_BOT_TOKEN && DISCORD_GUILD_ID && DISCORD_LEVEL_ROLES.length); }
+if (!discordRolesConfigured() && (DISCORD_BOT_TOKEN || DISCORD_GUILD_ID || process.env.DISCORD_LEVEL_ROLES)) {
+  console.warn('[discord-roles] Partly configured - need DISCORD_BOT_TOKEN, DISCORD_GUILD_ID and DISCORD_LEVEL_ROLES (e.g. 1:123,10:456). Level roles are OFF.');
+}
+
+// Which level-role ids someone at `level` should have.
+function wantedLevelRoleIds(level) {
+  const want = new Set();
+  let best = null;
+  for (const r of DISCORD_LEVEL_ROLES) {
+    if (r.level > level) continue;
+    if (DISCORD_STICKY_LEVELS.has(r.level)) want.add(r.roleId);
+    else if (!best || r.level > best.level) best = r;
+  }
+  if (best) want.add(best.roleId);
+  return want;
+}
+
+// One request at a time, respecting Discord's rate limits (429 retry_after).
+let discordQueue = Promise.resolve();
+function discordApi(method, path) {
+  const run = async () => {
+    for (let attempt = 0; attempt < 4; attempt++) {
+      const res = await fetch(`${DISCORD_API_BASE}${path}`, {
+        method, headers: { Authorization: `Bot ${DISCORD_BOT_TOKEN}`, 'X-Audit-Log-Reason': 'BloxyVault level sync' },
+      });
+      if (res.status === 429) {
+        const body = await res.json().catch(() => ({}));
+        await new Promise((r) => setTimeout(r, Math.ceil((Number(body.retry_after) || 1) * 1000) + 100));
+        continue;
+      }
+      let data = null;
+      if (res.status !== 204) data = await res.json().catch(() => null);
+      return { status: res.status, data };
+    }
+    return { status: 429, data: null };
+  };
+  const p = discordQueue.then(run, run);
+  discordQueue = p.catch(() => {});
+  return p;
+}
+
+const discordRoleSyncedLevel = new Map(); // username -> level we last successfully synced
+const discordRoleSyncTimers = new Map();
+const discordLoginCheckAt = new Map();
+// Debounced: a burst of bets only produces one sync per player.
+function scheduleDiscordRoleSync(username, delayMs = 1500) {
+  if (!discordRolesConfigured()) return;
+  const u = users.get(username);
+  if (!u || !u.discord || !u.discord.id) return;
+  if (discordRoleSyncTimers.has(username)) clearTimeout(discordRoleSyncTimers.get(username));
+  discordRoleSyncTimers.set(username, setTimeout(() => {
+    discordRoleSyncTimers.delete(username);
+    syncDiscordLevelRoles(username).catch((err) => console.error(`[discord-roles] sync failed for ${username}:`, err.message));
+  }, delayMs));
+}
+
+async function syncDiscordLevelRoles(username, { force = false } = {}) {
+  if (!discordRolesConfigured()) return 'off';
+  const u = users.get(username);
+  if (!u || !u.discord || !u.discord.id) return 'not-linked';
+  const level = levelForWagered(u.stats.wagered);
+  if (!force && discordRoleSyncedLevel.get(username) === level) return 'unchanged';
+  const discordId = u.discord.id;
+  const member = await discordApi('GET', `/guilds/${DISCORD_GUILD_ID}/members/${discordId}`);
+  if (member.status === 404) return 'not-in-server'; // will retry next time their level changes / they log in
+  if (member.status !== 200 || !member.data) { console.warn(`[discord-roles] couldn't read member ${discordId} (${member.status})`); return 'error'; }
+  const has = new Set(member.data.roles || []);
+  const want = wantedLevelRoleIds(level);
+  const levelRoleIds = new Set(DISCORD_LEVEL_ROLES.map((r) => r.roleId));
+  for (const roleId of want) {
+    if (has.has(roleId)) continue;
+    const r = await discordApi('PUT', `/guilds/${DISCORD_GUILD_ID}/members/${discordId}/roles/${roleId}`);
+    if (r.status !== 204) console.warn(`[discord-roles] add role ${roleId} to ${username} failed (${r.status}) - is the bot's role above the level roles and does it have Manage Roles?`);
+  }
+  for (const roleId of has) {
+    if (!levelRoleIds.has(roleId) || want.has(roleId)) continue;
+    // Sticky roles are never taken away once earned.
+    const def = DISCORD_LEVEL_ROLES.find((r) => r.roleId === roleId);
+    if (def && DISCORD_STICKY_LEVELS.has(def.level)) continue;
+    const r = await discordApi('DELETE', `/guilds/${DISCORD_GUILD_ID}/members/${discordId}/roles/${roleId}`);
+    if (r.status !== 204) console.warn(`[discord-roles] remove role ${roleId} from ${username} failed (${r.status})`);
+  }
+  discordRoleSyncedLevel.set(username, level);
+  return 'synced';
+}
+
+// Removes every level role (used when someone unlinks their Discord).
+async function clearDiscordLevelRoles(discordId) {
+  if (!discordRolesConfigured() || !discordId) return;
+  for (const { roleId } of DISCORD_LEVEL_ROLES) {
+    await discordApi('DELETE', `/guilds/${DISCORD_GUILD_ID}/members/${discordId}/roles/${roleId}`);
+  }
+}
+
 
 // ---------------------------------------------------------------------------
 // Rain Pool - one shared, server-timed pool everyone sees the same countdown
@@ -2533,8 +2662,11 @@ function handleDiscordLinkStart(username) {
 async function handleDiscordUnlink(username) {
   const u = ensureUser(username);
   if (!u.discord) return;
+  const oldDiscordId = u.discord.id;
   await db.clearDiscordLink(username);
   u.discord = null;
+  discordRoleSyncedLevel.delete(username);
+  clearDiscordLevelRoles(oldDiscordId).catch((err) => console.error('[discord-roles] clear on unlink failed:', err.message));
   syncAccount(username);
   send(usernameToSocket.get(username), { type: 'toast', message: 'Discord unlinked.' });
 }
@@ -2875,6 +3007,8 @@ const server = http.createServer(async (req, res) => {
       if (!ok) return back({ discord: 'taken' });
       const u = ensureUser(pending.username);
       u.discord = link;
+      discordRoleSyncedLevel.delete(pending.username);
+      scheduleDiscordRoleSync(pending.username, 500);
       syncAccount(pending.username);
       return back({ discord: 'linked' });
     } catch (err) {
@@ -3164,6 +3298,16 @@ wss.on('connection', (ws) => {
       }
       socketToUsername.set(ws, username);
       usernameToSocket.set(username, ws);
+      // Re-check Discord roles on login (at most every 10 min per player) -
+      // catches players who linked before joining the Discord server.
+      if (discordRolesConfigured()) {
+        const last = discordLoginCheckAt.get(username) || 0;
+        if (Date.now() - last > 10 * 60 * 1000) {
+          discordLoginCheckAt.set(username, Date.now());
+          discordRoleSyncedLevel.delete(username);
+          scheduleDiscordRoleSync(username, 2000);
+        }
+      }
       const u = ensureUser(username);
       const myPendingWithdrawals = withdrawRequests
         .filter((r) => r.username === username && r.status === 'pending')
@@ -3443,6 +3587,19 @@ process.on('unhandledRejection', (err) => {
     const loadedCfLobbies = await db.loadPendingCoinflipLobbies();
     cfLobbies = loadedCfLobbies;
     console.log(`[boot] Loaded ${loadedCfLobbies.length} pending coinflip lobby(ies) from Postgres.`);
+
+    if (discordRolesConfigured()) {
+      const linked = [...users.entries()].filter(([, u]) => u.discord && u.discord.id).map(([name]) => name);
+      console.log(`[discord-roles] ON - ${DISCORD_LEVEL_ROLES.length} level role(s); catching up ${linked.length} linked player(s).`);
+      (async () => {
+        let done = 0;
+        for (const name of linked) {
+          try { const r = await syncDiscordLevelRoles(name, { force: true }); if (r === 'synced') done++; } catch (err) { console.error('[discord-roles] boot sync failed for', name, err.message); }
+          await new Promise((r) => setTimeout(r, 300));
+        }
+        console.log(`[discord-roles] boot catch-up finished (${done}/${linked.length} in the server).`);
+      })();
+    }
 
     loadIndexHtmlCache();
     loadPrivacyHtmlCache();
