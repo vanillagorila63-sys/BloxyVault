@@ -1502,83 +1502,191 @@
      animation, which is what broke the drift/iceberg last time. */
   .jp-enter-btn.sink-cashout-btn{ background:linear-gradient(90deg, var(--green), #0e9f6e); }
   .sink-status-note{ font-size:11.5px; color:var(--text-faint); text-align:center; margin-top:8px; min-height:14px; }
-  .sink-stage-wrap{ display:flex; flex-direction:column; align-items:center; gap:10px; width:100%; max-width:420px; }
-  .sink-phase-label{ font-family:var(--font-display); font-weight:800; font-size:12.5px; letter-spacing:1.2px; color:var(--text-faint); }
-  .sink-multiplier{ font-family:var(--font-display); font-weight:900; font-size:46px; line-height:1; color:var(--text); transition:color 0.2s ease; }
-  .sink-multiplier.cashed{ color:var(--green); }
-  .sink-multiplier.sunk{ color:var(--red); }
+  .sink-stage-wrap{ display:flex; flex-direction:column; align-items:center; gap:10px; width:100%; max-width:600px; }
+  .sink-phase-label{
+    display:inline-flex; align-items:center; gap:7px; padding:5px 12px; border-radius:999px;
+    font-family:var(--font-display); font-weight:800; font-size:11.5px; letter-spacing:1.3px;
+    color:#f6c453; background:rgba(246,196,83,.1); border:1px solid rgba(246,196,83,.28);
+  }
+  .sink-phase-label::before{ content:""; width:7px; height:7px; border-radius:50%; background:currentColor; box-shadow:0 0 8px currentColor; animation:sinkDotPulse 1.2s ease-in-out infinite; }
+  .sink-phase-label[data-phase="active"]{ color:#4ade80; background:rgba(74,222,128,.1); border-color:rgba(74,222,128,.3); }
+  .sink-phase-label[data-phase="sunk"]{ color:#f87171; background:rgba(248,113,113,.1); border-color:rgba(248,113,113,.3); }
+  .sink-phase-label[data-phase="sunk"]::before{ animation:none; }
+  @keyframes sinkDotPulse{ 0%,100%{ opacity:1; } 50%{ opacity:.35; } }
+  .sink-multiplier{ font-family:var(--font-display); font-weight:900; font-size:clamp(40px, 5vw, 56px); line-height:1; color:#fff; letter-spacing:-1px; font-variant-numeric:tabular-nums; text-shadow:0 4px 24px rgba(120,190,255,.25); transition:color .2s ease; }
+  .sink-multiplier.cashed{ color:var(--green); text-shadow:0 4px 24px rgba(74,222,128,.35); }
+  .sink-multiplier.sunk{ color:var(--red); text-shadow:0 4px 24px rgba(248,113,113,.35); }
+
+  /* ---- Scene ---- */
   .sink-ship-scene{
-    position:relative; width:100%; height:260px; border-radius:14px; overflow:hidden;
-    background:linear-gradient(180deg, #071527 0%, #0c2c48 45%, #0a4a6e 100%);
-    border:1px solid var(--border-soft);
+    --water:30%;
+    position:relative; width:100%; height:clamp(240px, 26vw, 340px); border-radius:16px; overflow:hidden; isolation:isolate;
+    container-type:inline-size;
+    background:linear-gradient(180deg, #050816 0%, #0b1330 38%, #1b2350 62%, #3a2f55 76%, #5a3a4a 86%);
+    border:1px solid rgba(255,255,255,.07);
+    box-shadow:inset 0 0 0 1px rgba(0,0,0,.4), 0 18px 40px -18px rgba(0,0,0,.7);
   }
+  .sink-sky{ position:absolute; inset:0; z-index:0; pointer-events:none; }
+  .sink-stars{ position:absolute; inset:0 0 30% 0; opacity:.9;
+    background-image:
+      radial-gradient(1.2px 1.2px at 8% 12%, #fff, transparent 60%), radial-gradient(1px 1px at 18% 34%, #cfe0ff, transparent 60%),
+      radial-gradient(1.4px 1.4px at 27% 8%, #fff, transparent 60%), radial-gradient(1px 1px at 36% 26%, #fff, transparent 60%),
+      radial-gradient(1.2px 1.2px at 47% 14%, #dfe8ff, transparent 60%), radial-gradient(1px 1px at 55% 40%, #fff, transparent 60%),
+      radial-gradient(1.5px 1.5px at 66% 10%, #fff, transparent 60%), radial-gradient(1px 1px at 74% 30%, #cfe0ff, transparent 60%),
+      radial-gradient(1.2px 1.2px at 84% 18%, #fff, transparent 60%), radial-gradient(1px 1px at 93% 38%, #fff, transparent 60%),
+      radial-gradient(1px 1px at 12% 50%, #fff, transparent 60%), radial-gradient(1px 1px at 61% 54%, #dfe8ff, transparent 60%);
+    animation:sinkTwinkle 4s ease-in-out infinite alternate; }
+  @keyframes sinkTwinkle{ from{ opacity:.55; } to{ opacity:.95; } }
+  .sink-moon{ position:absolute; top:12%; left:16%; width:clamp(34px, 9cqw, 54px); aspect-ratio:1; border-radius:50%;
+    background:radial-gradient(circle at 38% 36%, #fffaf0 0%, #fbe9c6 55%, #e9cfa0 100%);
+    box-shadow:0 0 22px 6px rgba(255,226,170,.35), 0 0 80px 30px rgba(255,170,90,.12); }
+  .sink-moon::after{ content:""; position:absolute; width:22%; height:22%; left:52%; top:56%; border-radius:50%; background:rgba(200,170,120,.35); box-shadow:-9px -12px 0 -1px rgba(200,170,120,.25); }
+  .sink-cloud{ position:absolute; height:12px; border-radius:20px; background:rgba(160,150,200,.10); filter:blur(3px); }
+  .sink-cloud.c1{ top:22%; width:34%; left:-36%; animation:sinkCloud 55s linear infinite; }
+  .sink-cloud.c2{ top:40%; width:24%; left:-26%; animation:sinkCloud 75s linear infinite; animation-delay:-30s; opacity:.7; }
+  @keyframes sinkCloud{ to{ transform:translateX(560cqw); } }
+  .sink-horizon{ position:absolute; left:0; right:0; bottom:var(--water); height:28%; background:linear-gradient(180deg, transparent, rgba(255,140,80,.14)); }
+
   .sink-depth{
-    position:absolute; top:10px; left:12px; z-index:5;
-    font-family:var(--font-display); font-weight:800; font-size:11px; letter-spacing:0.6px;
-    color:rgba(255,255,255,0.9); background:rgba(0,0,0,0.35); padding:4px 9px; border-radius:6px;
-    pointer-events:none;
+    position:absolute; top:10px; left:10px; z-index:7; display:inline-flex; align-items:center; gap:6px;
+    font-family:var(--font-display); font-weight:800; font-size:11px; letter-spacing:.7px; font-variant-numeric:tabular-nums;
+    color:#e6f4ff; background:rgba(5,12,26,.55); border:1px solid rgba(160,210,255,.18); padding:5px 10px; border-radius:8px;
+    backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px); pointer-events:none;
   }
-  /* Ship and iceberg both sit at z-index 1 (iceberg painted first, so the
-     ship draws in front of it, correct since the ship is closer to the
-     camera until the moment of impact). Both use `left` + a transform that
-     always includes translate(-50%,0) for horizontal centering on that
-     point, with rotation appended for tilt/wobble - see the JS.
-     Resting `bottom` is deliberately LESS than the waterline's resting
-     `height` (26% vs 30%) so the bottom edge of each actually sits behind/
-     under the water layer at rest - this is what makes them look like
-     they're sitting IN the water instead of hovering just above a line. */
+  .sink-depth::before{ content:""; width:0; height:0; border-left:4px solid transparent; border-right:4px solid transparent; border-top:6px solid #7cc7ff; }
+  .sink-depth-meter{ position:absolute; right:10px; top:12px; bottom:12px; width:5px; border-radius:4px; z-index:7; background:rgba(255,255,255,.08); overflow:hidden; pointer-events:none; }
+  .sink-depth-fill{ position:absolute; left:0; right:0; top:0; height:0%; border-radius:4px; background:linear-gradient(180deg, #7cc7ff, #2563eb 60%, #f87171); transition:height .5s linear; }
+
+  /* Iceberg: its own waterline sits exactly on the sea surface; JS moves/scales it around that point. */
   .sink-iceberg{
-    position:absolute; bottom:26%; left:96%; width:92px; z-index:1;
+    --ice-w:min(26cqw, 140px);
+    position:absolute; left:100%; width:var(--ice-w); z-index:1;
+    bottom:calc(var(--water) - var(--ice-w) * 0.344);
+    transform-origin:50% 63%;
     transform:translate(-50%, 0) scale(0.35); opacity:0.25;
     transition:left 0.3s linear, transform 0.3s linear, opacity 0.3s linear;
-    filter:drop-shadow(0 4px 8px rgba(0,0,0,0.35));
+    filter:drop-shadow(0 0 14px rgba(170,220,255,.25));
   }
-  .sink-iceberg img{ width:100%; height:auto; display:block; user-select:none; -webkit-user-drag:none; }
+  .sink-iceberg svg{ width:100%; height:auto; display:block; }
+
+  /* Ship: same idea - the hull's waterline sits on the sea surface at rest. */
   .sink-ship{
-    position:absolute; left:50%; bottom:26%; width:150px; z-index:1;
+    --ship-w:min(46cqw, 270px);
+    position:absolute; left:40%; width:var(--ship-w); z-index:1;
+    bottom:calc(var(--water) - var(--ship-w) * 0.075);
     transform:translate(-50%, 0) rotate(0deg);
     transition:left 0.4s linear, bottom 0.6s linear, transform 0.6s linear, opacity 1s ease;
-    filter:drop-shadow(0 6px 10px rgba(0,0,0,0.4));
+    filter:drop-shadow(0 8px 14px rgba(0,0,0,.45));
   }
-  .sink-ship svg{ width:100%; height:auto; display:block; }
-  /* Only an opacity fade here - bottom/transform are left exactly where
-     the last active-phase tick put them (already deep/tilted by then)
-     instead of jumping to a separate hardcoded end state, which is what
-     caused fighting with the JS-driven position before. */
+  .sink-ship-bob{ position:relative; animation:sinkBob 3.4s ease-in-out infinite; transform-origin:50% 85%; }
+  @keyframes sinkBob{ 0%,100%{ transform:translateY(0) rotate(-.8deg); } 50%{ transform:translateY(-2px) rotate(.8deg); } }
+  .sink-ship svg{ width:100%; height:auto; display:block; overflow:visible; }
+  .sink-ship .sink-lights{ transition:fill .8s ease, opacity .8s ease; }
+  .sink-ship.dark .sink-lights{ fill:#3a3f52; }
+  .sink-ship.flicker .sink-lights{ animation:sinkFlicker .9s steps(2) infinite; }
+  @keyframes sinkFlicker{ 0%{ opacity:1; } 50%{ opacity:.25; } }
   .sink-ship.sunk{ opacity:0; transition:opacity 1.8s ease-in; }
-  /* Sits above the ship/iceberg (z-index 2) so the water genuinely
-     visually covers whatever portion of the hull has sunk below it,
-     instead of the ship just floating in front of a solid color block. */
+  .sink-smoke{ position:absolute; left:40.5%; top:5%; width:0; height:0; pointer-events:none; }
+  .sink-smoke.s2{ left:54%; }
+  .sink-smoke span{ position:absolute; left:-5px; top:-5px; width:10px; height:10px; border-radius:50%; background:radial-gradient(circle, rgba(200,200,215,.30), rgba(200,200,215,0) 70%); filter:blur(2.5px); animation:sinkSmoke 3.6s ease-out infinite; opacity:0; }
+  .sink-smoke span:nth-child(2){ animation-delay:.9s; } .sink-smoke span:nth-child(3){ animation-delay:1.8s; } .sink-smoke span:nth-child(4){ animation-delay:2.7s; }
+  .sink-smoke.s2 span{ animation-duration:4.1s; }
+  @keyframes sinkSmoke{ 0%{ transform:translate(0,0) scale(.6); opacity:0; } 15%{ opacity:.7; } 100%{ transform:translate(-52px,-34px) scale(3.4); opacity:0; } }
+  .sink-ship.dark .sink-smoke{ display:none; }
+
+  /* Sea: sits above ship/iceberg so it genuinely covers whatever is below the surface. */
   .sink-waterline{
-    position:absolute; left:0; right:0; bottom:0; height:30%; z-index:2;
-    background:linear-gradient(180deg, rgba(35,140,190,0.55), rgba(6,40,70,0.95));
-    border-top:2px solid rgba(150,220,255,0.35);
+    position:absolute; left:0; right:0; bottom:0; height:var(--water); z-index:2;
+    background:linear-gradient(180deg, rgba(28,104,150,.72) 0%, rgba(12,62,104,.80) 22%, rgba(6,36,66,.86) 60%, rgba(3,20,38,.94) 100%);
     transition:height 0.5s linear;
   }
-  /* Darkens the whole scene as depth increases - communicates "going
-     underwater" independent of the waterline's own rising edge. */
+  .sink-wave{ position:absolute; left:0; right:0; height:16px; background-repeat:repeat-x; pointer-events:none; }
+  .sink-wave.w1{ top:-9px; background-size:120px 16px; animation:sinkWave 6s linear infinite;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 16'%3E%3Cpath d='M0 9 Q15 2 30 9 T60 9 T90 9 T120 9 V16 H0 Z' fill='%231c6896' fill-opacity='.85'/%3E%3Cpath d='M0 9 Q15 2 30 9 T60 9 T90 9 T120 9' stroke='%23a9e0ff' stroke-opacity='.55' stroke-width='1.4' fill='none'/%3E%3C/svg%3E"); }
+  .sink-wave.w2{ top:-4px; background-size:170px 14px; animation:sinkWave 9s linear infinite reverse; opacity:.7;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 170 14'%3E%3Cpath d='M0 7 Q21 1 42 7 T85 7 T127 7 T170 7 V14 H0 Z' fill='%23165985'/%3E%3C/svg%3E"); }
+  .sink-wave.w3{ top:8px; height:10px; background-size:90px 10px; animation:sinkWave 4.5s linear infinite; opacity:.35;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 90 10'%3E%3Cpath d='M0 5 Q11 1 22 5 T45 5 T67 5 T90 5' stroke='%23cdeeff' stroke-width='1' fill='none'/%3E%3C/svg%3E"); }
+  @keyframes sinkWave{ from{ background-position-x:0; } to{ background-position-x:-240px; } }
+  .sink-reflect{ position:absolute; top:4px; left:calc(16% - 4px); width:clamp(34px, 9cqw, 54px); height:min(70%, 90px); pointer-events:none;
+    background:
+      repeating-linear-gradient(180deg, rgba(255,230,180,.0) 0 4px, rgba(255,230,180,.55) 4px 5.5px, rgba(255,230,180,0) 5.5px 11px),
+      radial-gradient(50% 60% at 50% 0%, rgba(255,226,170,.28), transparent 70%);
+    filter:blur(.8px);
+    -webkit-mask-image:linear-gradient(180deg, #000, transparent 90%), radial-gradient(closest-side, #000, transparent);
+    mask-image:linear-gradient(180deg, #000, transparent 90%);
+    border-radius:50%;
+    animation:sinkShimmer 2.2s ease-in-out infinite alternate; opacity:.55; }
+  @keyframes sinkShimmer{ from{ transform:scaleX(.7); opacity:.4; } to{ transform:scaleX(1.15); opacity:.75; } }
+  .sink-rays{ position:absolute; inset:18px 0 0 0; pointer-events:none; opacity:.0; transition:opacity .6s linear;
+    background:repeating-linear-gradient(100deg, rgba(160,220,255,.10) 0 18px, transparent 18px 60px);
+    -webkit-mask-image:linear-gradient(180deg, #000 0%, transparent 75%); mask-image:linear-gradient(180deg, #000 0%, transparent 75%);
+    animation:sinkRays 7s ease-in-out infinite alternate; }
+  @keyframes sinkRays{ from{ transform:translateX(-12px); } to{ transform:translateX(12px); } }
+  .sink-ship-scene.deep .sink-rays{ opacity:1; }
+  .sink-ship-scene.deep .sink-reflect{ display:none; }
+  .sink-seabed{ position:absolute; left:0; right:0; bottom:0; height:32%; z-index:2; pointer-events:none; transform:translateY(100%); transition:transform .6s linear; }
+  .sink-seabed svg{ width:100%; height:100%; display:block; }
+  .sink-weed path{ transform-origin:bottom; animation:sinkWeed 4s ease-in-out infinite alternate; }
+  .sink-weed path:nth-child(2n){ animation-delay:-2s; }
+  @keyframes sinkWeed{ from{ transform:skewX(-6deg); } to{ transform:skewX(6deg); } }
+
   .sink-underwater-tint{
     position:absolute; inset:0; z-index:3; pointer-events:none;
-    background:linear-gradient(180deg, rgba(3,12,28,0) 0%, rgba(2,10,24,0.6) 100%);
+    background:radial-gradient(120% 90% at 50% 0%, rgba(3,12,28,0) 30%, rgba(2,8,20,.75) 100%);
     opacity:0; transition:opacity 0.6s linear;
   }
-  .sink-bubbles{ position:absolute; left:0; right:0; bottom:0; height:75%; z-index:4; pointer-events:none; opacity:0; transition:opacity 0.6s linear; }
+  .sink-bubbles{ position:absolute; left:0; right:0; bottom:0; height:85%; z-index:4; pointer-events:none; opacity:0; transition:opacity 0.6s linear; }
   .sink-bubbles span{
     position:absolute; bottom:0; border-radius:50%;
-    background:rgba(200,235,255,0.55);
-    animation:sinkBubbleRise 3.2s linear infinite;
+    background:radial-gradient(circle at 35% 30%, rgba(255,255,255,.9), rgba(170,220,255,.35) 45%, rgba(170,220,255,.08) 70%);
+    border:1px solid rgba(200,235,255,.35);
+    animation:sinkBubbleRise 3.4s ease-in infinite;
   }
-  .sink-bubbles span:nth-child(1){ left:18%; width:5px; height:5px; animation-delay:0s; }
-  .sink-bubbles span:nth-child(2){ left:42%; width:7px; height:7px; animation-delay:1.1s; }
-  .sink-bubbles span:nth-child(3){ left:63%; width:4px; height:4px; animation-delay:0.6s; }
-  .sink-bubbles span:nth-child(4){ left:80%; width:6px; height:6px; animation-delay:1.9s; }
-  .sink-bubbles span:nth-child(5){ left:30%; width:4px; height:4px; animation-delay:2.4s; }
+  .sink-bubbles span:nth-child(1){ left:30%; width:6px; height:6px; animation-delay:0s; }
+  .sink-bubbles span:nth-child(2){ left:42%; width:9px; height:9px; animation-delay:1.1s; }
+  .sink-bubbles span:nth-child(3){ left:53%; width:5px; height:5px; animation-delay:.6s; }
+  .sink-bubbles span:nth-child(4){ left:61%; width:7px; height:7px; animation-delay:1.9s; }
+  .sink-bubbles span:nth-child(5){ left:36%; width:4px; height:4px; animation-delay:2.4s; }
+  .sink-bubbles span:nth-child(6){ left:48%; width:5px; height:5px; animation-delay:.3s; animation-duration:2.8s; }
+  .sink-bubbles span:nth-child(7){ left:57%; width:4px; height:4px; animation-delay:1.5s; animation-duration:2.6s; }
+  .sink-bubbles span:nth-child(8){ left:24%; width:5px; height:5px; animation-delay:2.9s; }
+  .sink-bubbles span:nth-child(9){ left:68%; width:6px; height:6px; animation-delay:.9s; animation-duration:3.9s; }
+  .sink-bubbles span:nth-child(10){ left:45%; width:3px; height:3px; animation-delay:2.1s; animation-duration:2.4s; }
   @keyframes sinkBubbleRise{
-    0%{ transform:translateY(0) scale(1); opacity:0; }
-    12%{ opacity:0.8; }
-    88%{ opacity:0.35; }
-    100%{ transform:translateY(-190px) scale(1.5); opacity:0; }
+    0%{ transform:translate(0,0) scale(.8); opacity:0; }
+    12%{ opacity:.9; }
+    50%{ transform:translate(6px,-48cqw) scale(1.1); }
+    88%{ opacity:.35; }
+    100%{ transform:translate(-4px,-96cqw) scale(1.5); opacity:0; }
   }
+
+  /* Impact spray (iceberg hit) */
+  .sink-splash{ position:absolute; left:61%; bottom:var(--water); width:0; height:0; z-index:5; pointer-events:none; }
+  .sink-splash span{ position:absolute; width:6px; height:6px; border-radius:50%; background:#e9f8ff; opacity:0; box-shadow:0 0 6px rgba(200,240,255,.8); }
+  .sink-ship-scene.impact .sink-splash span{ animation:sinkSpray .8s ease-out forwards; }
+  .sink-splash span:nth-child(1){ --dx:-34px; --dy:-46px; } .sink-splash span:nth-child(2){ --dx:-14px; --dy:-62px; width:8px; height:8px; }
+  .sink-splash span:nth-child(3){ --dx:8px; --dy:-58px; } .sink-splash span:nth-child(4){ --dx:28px; --dy:-44px; width:5px; height:5px; }
+  .sink-splash span:nth-child(5){ --dx:-24px; --dy:-28px; width:4px; height:4px; } .sink-splash span:nth-child(6){ --dx:20px; --dy:-26px; width:7px; height:7px; }
+  .sink-splash span:nth-child(7){ --dx:-4px; --dy:-74px; width:4px; height:4px; } .sink-splash span:nth-child(8){ --dx:38px; --dy:-60px; width:3px; height:3px; }
+  @keyframes sinkSpray{ 0%{ transform:translate(0,0) scale(.6); opacity:1; } 70%{ opacity:.9; } 100%{ transform:translate(var(--dx), calc(var(--dy) * -0.2 + 30px)) scale(1); opacity:0; }
+                        40%{ transform:translate(calc(var(--dx) * .7), var(--dy)) scale(1); } }
+
+  /* Final bubble burst where the ship went under */
+  .sink-burst{ position:absolute; left:50%; bottom:20%; width:0; height:0; z-index:5; pointer-events:none; }
+  .sink-burst span{ position:absolute; left:-5px; top:-5px; width:10px; height:10px; border-radius:50%; opacity:0;
+    background:radial-gradient(circle at 35% 30%, #fff, rgba(170,220,255,.4) 50%, rgba(170,220,255,.05) 72%); border:1px solid rgba(210,240,255,.5); }
+  .sink-ship-scene.explosion .sink-burst span{ animation:sinkBurst 1.6s ease-out forwards; }
+  .sink-burst{ --k:1; }
+  .sink-burst span:nth-child(1){ --dx:-40px; --dy:-90px; } .sink-burst span:nth-child(2){ --dx:-20px; --dy:-130px; width:14px; height:14px; }
+  .sink-burst span:nth-child(3){ --dx:6px; --dy:-150px; } .sink-burst span:nth-child(4){ --dx:30px; --dy:-110px; width:7px; height:7px; }
+  .sink-burst span:nth-child(5){ --dx:52px; --dy:-80px; } .sink-burst span:nth-child(6){ --dx:-58px; --dy:-60px; width:6px; height:6px; }
+  .sink-burst span:nth-child(7){ --dx:-8px; --dy:-100px; width:16px; height:16px; } .sink-burst span:nth-child(8){ --dx:18px; --dy:-170px; width:5px; height:5px; }
+  .sink-burst span:nth-child(9){ --dx:-30px; --dy:-160px; width:6px; height:6px; } .sink-burst span:nth-child(10){ --dx:42px; --dy:-140px; width:9px; height:9px; }
+  .sink-burst span:nth-child(11){ --dx:-50px; --dy:-120px; width:4px; height:4px; } .sink-burst span:nth-child(12){ --dx:60px; --dy:-160px; width:4px; height:4px; }
+  .sink-burst span:nth-child(2n){ animation-delay:.12s; } .sink-burst span:nth-child(3n){ animation-delay:.25s; }
+  @keyframes sinkBurst{ 0%{ transform:translate(0,0) scale(.4); opacity:0; } 10%{ opacity:1; } 100%{ transform:translate(var(--dx), calc(var(--dy) * var(--k))) scale(1.3); opacity:0; } }
+
   /* The impact moment - fires once, right as the joining countdown hits 0. */
   @keyframes sinkImpactShake{
     0%, 100% { transform:translateX(0); }
@@ -1591,16 +1699,11 @@
   .sink-ship-scene.impact{ animation:sinkImpactShake 0.6s ease-in-out; }
   .sink-impact-flash{
     position:absolute; inset:0; z-index:6; pointer-events:none;
-    background:radial-gradient(circle at 66% 62%, rgba(255,255,255,0.85), rgba(255,255,255,0) 55%);
+    background:radial-gradient(circle at 61% 62%, rgba(220,245,255,0.85), rgba(255,255,255,0) 45%);
     opacity:0;
   }
-  .sink-ship-scene.impact .sink-impact-flash{
-    opacity:1; animation:sinkFlashFade 0.6s ease-out forwards;
-  }
+  .sink-ship-scene.impact .sink-impact-flash{ opacity:1; animation:sinkFlashFade 0.6s ease-out forwards; }
   @keyframes sinkFlashFade{ from{ opacity:1; } to{ opacity:0; } }
-  /* The final explosion - reuses the impact shake at a bigger amplitude,
-     plus the same flash element with a warmer/bigger burst so it reads as
-     distinct from the earlier iceberg-impact flash. */
   @keyframes sinkExplosionShake{
     0%, 100% { transform:translateX(0) translateY(0); }
     10% { transform:translateX(-9px) translateY(-3px) rotate(-0.8deg); }
@@ -1612,8 +1715,11 @@
   }
   .sink-ship-scene.explosion{ animation:sinkExplosionShake 0.75s ease-in-out; }
   .sink-ship-scene.explosion .sink-impact-flash{
-    background:radial-gradient(circle at 55% 60%, rgba(255,230,180,0.95), rgba(255,140,60,0.5) 35%, rgba(255,140,60,0) 60%);
+    background:radial-gradient(circle at var(--burst-x, 50%) 70%, rgba(255,210,150,0.75), rgba(255,120,50,0.35) 30%, rgba(255,120,50,0) 55%);
     opacity:1; animation:sinkFlashFade 0.9s ease-out forwards;
+  }
+  @media (prefers-reduced-motion: reduce){
+    .sink-ship-bob, .sink-wave, .sink-cloud, .sink-stars, .sink-reflect, .sink-rays, .sink-weed path, .sink-smoke span{ animation:none !important; }
   }
   .sink-payout{ font-family:var(--font-display); font-weight:700; font-size:13.5px; color:var(--gold); min-height:17px; }
 
@@ -4736,30 +4842,94 @@ body.cbn-open #cbnRoot .backdrop { opacity: 1; pointer-events: auto; }
               <div class="sink-phase-label" id="sinkPhaseLabel">JOINING</div>
               <div class="sink-multiplier" id="sinkMultiplierDisplay">1.00x</div>
               <div class="sink-ship-scene" id="sinkShipScene">
+                <div class="sink-sky" aria-hidden="true">
+                  <div class="sink-stars"></div>
+                  <div class="sink-moon"></div>
+                  <div class="sink-cloud c1"></div><div class="sink-cloud c2"></div>
+                  <div class="sink-horizon"></div>
+                </div>
                 <div class="sink-iceberg" id="sinkIceberg">
-                  <img src="/assets/img/c5d7259ffe0dd15a37aa.png" alt="Iceberg" draggable="false">
+                  <svg viewBox="0 0 160 150" xmlns="http://www.w3.org/2000/svg" aria-label="Iceberg">
+                    <defs>
+                      <linearGradient id="sinkIceTop" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#bfe3f5"/></linearGradient>
+                      <linearGradient id="sinkIceShade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8cc4e0"/><stop offset="1" stop-color="#5b9cc0"/></linearGradient>
+                      <linearGradient id="sinkIceDeep" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4f93b8" stop-opacity=".9"/><stop offset="1" stop-color="#1d5578" stop-opacity=".5"/></linearGradient>
+                    </defs>
+                    <path d="M14 95 L8 120 L30 146 L84 150 L132 140 L154 112 L148 95 Z" fill="url(#sinkIceDeep)"/>
+                    <path d="M14 95 L40 52 L58 60 L78 14 L96 34 L108 26 L132 70 L148 95 Z" fill="url(#sinkIceTop)"/>
+                    <path d="M78 14 L96 34 L108 26 L132 70 L148 95 L100 95 L90 56 Z" fill="url(#sinkIceShade)" opacity=".85"/>
+                    <path d="M40 52 L58 60 L50 95 L14 95 Z" fill="#d7eef9"/>
+                    <path d="M78 14 L84 40 L72 60 L58 60 Z" fill="#ffffff" opacity=".7"/>
+                    <path d="M12 95 L150 95" stroke="#e8f7ff" stroke-width="2.5" stroke-linecap="round" opacity=".8"/>
+                  </svg>
                 </div>
                 <div class="sink-ship" id="sinkShip">
-                  <svg viewBox="0 0 220 100" xmlns="http://www.w3.org/2000/svg">
-                    <line x1="88" y1="26" x2="88" y2="8" stroke="#262626" stroke-width="2" stroke-linecap="round"/>
-                    <rect x="120" y="12" width="16" height="30" rx="2" fill="#262626"/>
-                    <rect x="120" y="18" width="16" height="6" fill="#c0392b"/>
-                    <rect x="58" y="26" width="46" height="18" rx="2" fill="#e4e4dc"/>
-                    <rect x="64" y="30" width="10" height="8" rx="1" fill="#1a2b3a"/>
-                    <rect x="80" y="30" width="10" height="8" rx="1" fill="#1a2b3a"/>
-                    <rect x="22" y="42" width="158" height="16" rx="3" fill="#f2f2ec"/>
-                    <circle cx="34" cy="50" r="3" fill="#1a2b3a"/>
-                    <circle cx="46" cy="50" r="3" fill="#1a2b3a"/>
-                    <circle cx="150" cy="50" r="3" fill="#1a2b3a"/>
-                    <circle cx="162" cy="50" r="3" fill="#1a2b3a"/>
-                    <path d="M15 88 L15 64 Q15 56 24 56 L178 56 L202 56 Q212 57 206 67 L189 92 Q184 98 170 98 L28 98 Q15 98 15 88 Z" fill="#8a2020"/>
-                    <path d="M15 80 L206 80 L189 92 Q184 98 170 98 L28 98 Q15 98 15 88 Z" fill="#5c1414"/>
+                  <div class="sink-ship-bob">
+                    <div class="sink-smoke" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+                    <div class="sink-smoke s2" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+                    <svg viewBox="0 0 240 120" xmlns="http://www.w3.org/2000/svg" aria-label="Ship">
+                      <defs>
+                        <linearGradient id="sinkHull" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2a2d3d"/><stop offset="1" stop-color="#11131c"/></linearGradient>
+                        <linearGradient id="sinkDeck" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fbfaf5"/><stop offset="1" stop-color="#d9d6cc"/></linearGradient>
+                        <linearGradient id="sinkFunnel" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ff8a2a"/><stop offset="1" stop-color="#c9500a"/></linearGradient>
+                      </defs>
+                      <!-- rigging -->
+                      <path d="M60 50 L60 16 M196 54 L196 20 M60 18 L196 22 M196 22 L232 64 M60 18 L14 70" stroke="#6b6f80" stroke-width="1" fill="none" opacity=".8"/>
+                      <path d="M196 20 l12 3 l-12 4 z" fill="#e8650c"/>
+                      <!-- funnels -->
+                      <g class="sink-funnels">
+                        <path d="M86 40 L90 12 L108 12 L106 40 Z" fill="url(#sinkFunnel)"/>
+                        <rect x="89.5" y="10" width="19" height="6" rx="1" fill="#15161d"/>
+                        <rect x="88.6" y="22" width="18.6" height="2.2" fill="#fff" opacity=".85"/>
+                        <path d="M118 40 L122 12 L140 12 L138 40 Z" fill="url(#sinkFunnel)"/>
+                        <rect x="121.5" y="10" width="19" height="6" rx="1" fill="#15161d"/>
+                        <rect x="120.6" y="22" width="18.6" height="2.2" fill="#fff" opacity=".85"/>
+                      </g>
+                      <!-- superstructure -->
+                      <rect x="66" y="38" width="104" height="16" rx="2.5" fill="url(#sinkDeck)"/>
+                      <rect x="150" y="27" width="34" height="13" rx="2.5" fill="url(#sinkDeck)"/>
+                      <rect x="153" y="30" width="28" height="4.5" rx="1" fill="#1b2633"/>
+                      <rect x="40" y="52" width="160" height="20" rx="3" fill="url(#sinkDeck)"/>
+                      <g class="sink-lights" fill="#ffd27a">
+                        <rect x="72" y="43" width="7" height="5" rx="1"/><rect x="84" y="43" width="7" height="5" rx="1"/><rect x="96" y="43" width="7" height="5" rx="1"/><rect x="108" y="43" width="7" height="5" rx="1"/><rect x="120" y="43" width="7" height="5" rx="1"/><rect x="132" y="43" width="7" height="5" rx="1"/><rect x="144" y="43" width="7" height="5" rx="1"/><rect x="156" y="43" width="7" height="5" rx="1"/>
+                        <rect x="48" y="58" width="8" height="6" rx="1"/><rect x="62" y="58" width="8" height="6" rx="1"/><rect x="76" y="58" width="8" height="6" rx="1"/><rect x="90" y="58" width="8" height="6" rx="1"/><rect x="104" y="58" width="8" height="6" rx="1"/><rect x="118" y="58" width="8" height="6" rx="1"/><rect x="132" y="58" width="8" height="6" rx="1"/><rect x="146" y="58" width="8" height="6" rx="1"/><rect x="160" y="58" width="8" height="6" rx="1"/><rect x="174" y="58" width="8" height="6" rx="1"/><rect x="188" y="58" width="6" height="6" rx="1"/>
+                      </g>
+                      <!-- lifeboats -->
+                      <g fill="#f4f1e8" stroke="#b9b4a6" stroke-width=".8">
+                        <ellipse cx="80" cy="51" rx="7" ry="2.6"/><ellipse cx="100" cy="51" rx="7" ry="2.6"/><ellipse cx="136" cy="51" rx="7" ry="2.6"/><ellipse cx="156" cy="51" rx="7" ry="2.6"/>
+                      </g>
+                      <!-- hull -->
+                      <path d="M8 70 Q120 77 234 63 L219 104 Q213 112 197 112 L34 112 Q20 112 15 102 Z" fill="url(#sinkHull)"/>
+                      <path d="M13 96 Q120 101 223 91 L219 104 Q213 112 197 112 L34 112 Q20 112 15 102 Z" fill="#b3262c"/>
+                      <path d="M13 95.5 Q120 100.5 223.4 90.5" stroke="#efe9db" stroke-width="2" fill="none"/>
+                      <path d="M8 70 Q120 77 234 63" stroke="#d8d4c8" stroke-width="1.6" fill="none"/>
+                      <g class="sink-lights portholes" fill="#ffd27a">
+                        <circle cx="34" cy="83" r="2.1"/><circle cx="50" cy="84" r="2.1"/><circle cx="66" cy="84.5" r="2.1"/><circle cx="82" cy="85" r="2.1"/><circle cx="98" cy="85" r="2.1"/><circle cx="114" cy="85" r="2.1"/><circle cx="130" cy="84.6" r="2.1"/><circle cx="146" cy="84" r="2.1"/><circle cx="162" cy="83.2" r="2.1"/><circle cx="178" cy="82.2" r="2.1"/><circle cx="194" cy="81" r="2.1"/><circle cx="208" cy="79.6" r="2.1"/>
+                      </g>
+                      <text x="212" y="74" font-family="Poppins, Arial, sans-serif" font-weight="800" font-size="6" fill="#d8d4c8" text-anchor="end" opacity=".75">BLOXY</text>
+                    </svg>
+                  </div>
+                </div>
+                <div class="sink-waterline" id="sinkWaterline">
+                  <div class="sink-wave w1"></div><div class="sink-wave w2"></div><div class="sink-wave w3"></div>
+                  <div class="sink-reflect"></div>
+                  <div class="sink-rays"></div>
+                </div>
+                <div class="sink-seabed" id="sinkSeabed" aria-hidden="true">
+                  <svg viewBox="0 0 400 90" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M0 90 L0 52 Q30 40 60 50 T120 46 Q150 30 185 44 T250 42 Q290 26 320 44 T400 40 L400 90 Z" fill="#06121f"/>
+                    <path d="M0 90 L0 66 Q50 56 100 64 T200 60 T300 64 T400 58 L400 90 Z" fill="#030b14"/>
+                    <g stroke="#0f3b33" stroke-width="3" fill="none" stroke-linecap="round" class="sink-weed">
+                      <path d="M40 60 Q34 46 42 34 T38 12"/><path d="M48 62 Q54 48 46 36"/><path d="M290 52 Q284 38 292 26 T288 6"/><path d="M300 54 Q306 42 298 30"/><path d="M168 50 Q162 40 170 30"/>
+                    </g>
                   </svg>
                 </div>
                 <div class="sink-underwater-tint" id="sinkUnderwaterTint"></div>
-                <div class="sink-waterline" id="sinkWaterline"></div>
-                <div class="sink-bubbles" id="sinkBubbles"><span></span><span></span><span></span><span></span><span></span></div>
+                <div class="sink-bubbles" id="sinkBubbles"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+                <div class="sink-splash" id="sinkSplash" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+                <div class="sink-burst" id="sinkBurst" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
                 <div class="sink-depth" id="sinkDepthDisplay">DEPTH: 0 FT</div>
+                <div class="sink-depth-meter" aria-hidden="true"><div class="sink-depth-fill" id="sinkDepthFill"></div></div>
                 <div class="sink-impact-flash"></div>
               </div>
               <div class="sink-payout" id="sinkPayoutDisplay"></div>
@@ -9331,13 +9501,23 @@ function sinkApplyDepth(progress){
   // which is a reasonable physical result of it being deep enough to be
   // gone from view, not an arbitrary independent animation.
   const visual = Math.min(progress, 1.4);
-  document.getElementById('sinkWaterline').style.height = Math.min(30 + visual * 66, 100) + '%';
-  document.getElementById('sinkUnderwaterTint').style.opacity = Math.min(visual * 0.75, 0.9);
+  const scene = document.getElementById('sinkShipScene');
+  const water = Math.min(30 + visual * 64, 97);
+  scene.style.setProperty('--water', water + '%');
+  document.getElementById('sinkUnderwaterTint').style.opacity = Math.min(visual * 0.8, 0.92);
   document.getElementById('sinkBubbles').style.opacity = Math.min(1, visual * 1.6);
+  const seabed = document.getElementById('sinkSeabed');
+  if (seabed) seabed.style.transform = `translateY(${Math.max(0, 100 - visual * 120)}%)`;
+  const fill = document.getElementById('sinkDepthFill');
+  if (fill) fill.style.height = Math.min(100, visual / 1.4 * 100) + '%';
+  scene.classList.toggle('deep', visual > 0.25);
   const ship = document.getElementById('sinkShip');
-  ship.style.bottom = (26 - visual * 28) + '%';
+  // Ship drops below the rising surface (water height is set via --water above).
+  ship.style.bottom = `calc(${(water - visual * 40).toFixed(2)}% - var(--ship-w) * 0.075)`;
   ship.style.transform = `translate(-50%, 0) rotate(${Math.min(visual * 22, 30)}deg)`;
-  ship.style.opacity = Math.max(0, 1 - visual * 0.55);
+  ship.style.opacity = Math.max(0.15, 1 - visual * 0.4);
+  ship.classList.toggle('flicker', visual > 0.15 && visual <= 0.4);
+  ship.classList.toggle('dark', visual > 0.4);
 }
 
 // Drives the final-5-seconds approach: the ship drifts sideways toward the
@@ -9347,13 +9527,13 @@ function sinkApplyDepth(progress){
 // they visibly converge right as the round goes active.
 function sinkApplyApproach(t){
   const ship = document.getElementById('sinkShip');
-  ship.style.left = (50 + t * 14) + '%';
+  ship.style.left = (40 + t * 6) + '%';
   ship.style.transform = `translate(-50%, 0) rotate(${t * 3 - 1.5}deg)`;
 
   const iceberg = document.getElementById('sinkIceberg');
-  iceberg.style.left = (96 - t * 30) + '%';
-  iceberg.style.opacity = 0.25 + t * 0.75;
-  iceberg.style.transform = `translate(-50%, 0) scale(${0.35 + t * 0.75})`;
+  iceberg.style.left = (100 - t * 26) + '%';
+  iceberg.style.opacity = 0.3 + t * 0.7;
+  iceberg.style.transform = `translate(-50%, 0) scale(${0.45 + t * 0.55})`;
 }
 
 function sinkMyEntry(){
@@ -9432,6 +9612,7 @@ function sinkTick(){
     const remaining = Math.max(0, sinkState.joinEndsAt - (Date.now() + sinkClockOffset));
     const secs = Math.ceil(remaining / 1000);
     phaseLabel.textContent = 'JOINING';
+    phaseLabel.dataset.phase = 'joining';
     timerEl.textContent = `Round starts in ${secs}s`;
     multEl.className = 'sink-multiplier';
     multEl.textContent = '1.00x';
@@ -9459,6 +9640,7 @@ function sinkTick(){
     }
     const liveMultiplier = sinkMultiplierAt(elapsed, sinkState.growthRate);
     phaseLabel.textContent = 'SAILING';
+    phaseLabel.dataset.phase = 'active';
     timerEl.textContent = '';
     const mine = sinkMyEntry();
     const iCashedOut = !!(mine && mine.cashedOutAt != null);
@@ -9494,6 +9676,7 @@ function sinkTick(){
     // The explosion + final full-submersion sequence is handled once, as
     // a delayed one-time effect, from the phase-transition handler below.
     phaseLabel.textContent = 'SUNK';
+    phaseLabel.dataset.phase = 'sunk';
     timerEl.textContent = '';
     multEl.className = 'sink-multiplier sunk';
     multEl.textContent = (sinkState.sunkMultiplier || 1).toFixed(2) + 'x';
@@ -9560,7 +9743,7 @@ mpOn('sink:state', (msg) => {
   if(sinkPrevPhase === 'joining' && msg.phase === 'active'){
     const scene = document.getElementById('sinkShipScene');
     scene.classList.add('impact');
-    setTimeout(() => scene.classList.remove('impact'), 650);
+    setTimeout(() => scene.classList.remove('impact'), 850);
   }
 
   // The final explosion - fires synchronously, tied directly to the
@@ -9571,6 +9754,20 @@ mpOn('sink:state', (msg) => {
   if(sinkPrevPhase === 'active' && msg.phase === 'sunk'){
     const scene = document.getElementById('sinkShipScene');
     const shipEl = document.getElementById('sinkShip');
+    const burst = document.getElementById('sinkBurst');
+    if (burst) {
+      const sr = shipEl.getBoundingClientRect(), cr = scene.getBoundingClientRect();
+      const bx = ((sr.left + sr.width / 2 - cr.left) / cr.width) * 100;
+      const by = ((cr.bottom - (sr.top + sr.height * 0.6)) / cr.height) * 100;
+      burst.style.left = Math.max(10, Math.min(90, bx)) + '%';
+      const byc = Math.max(8, Math.min(80, by));
+      burst.style.bottom = byc + '%';
+      // Bubbles only rise as far as the surface, never up into the sky.
+      const waterPct = parseFloat(scene.style.getPropertyValue('--water')) || 30;
+      const risePx = Math.max(0, (waterPct - byc) / 100 * cr.height - 6);
+      burst.style.setProperty('--k', Math.max(0.15, Math.min(1, risePx / 170)).toFixed(2));
+      scene.style.setProperty('--burst-x', Math.max(10, Math.min(90, bx)) + '%');
+    }
     scene.classList.add('explosion');
     // The real depth it actually sank at, not a hardcoded "max" - depth
     // has no cap now (see sinkProgressFor), so forcing a fixed value here
@@ -9578,7 +9775,7 @@ mpOn('sink:state', (msg) => {
     // round that sank past the old 300ft-equivalent point.
     sinkApplyDepth(sinkProgressFor(msg.sunkMultiplier || 1));
     shipEl.classList.add('sunk');
-    setTimeout(() => scene.classList.remove('explosion'), 750);
+    setTimeout(() => scene.classList.remove('explosion'), 1700);
   }
 
   sinkPrevPhase = msg.phase;
