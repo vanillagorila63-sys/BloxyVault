@@ -3954,17 +3954,19 @@ body.cbn-open #cbnRoot .backdrop { opacity: 1; pointer-events: auto; }
   /* ---------- Battle jackpot wheel: clean ring, no glow/3D/flash ---------- */
   #cbnRoot .bv-jackpot-wheel-wrap{ background:rgba(15,12,17,.94) !important; backdrop-filter:none !important; gap:18px !important; }
   #cbnRoot .bv-jackpot-title, #cbnRoot .bv-jackpot-glow, #cbnRoot .bv-jackpot-ambient-ring, #cbnRoot .bv-jackpot-flash{ display:none !important; }
-  #cbnRoot .bv-jackpot-slam-stage{ width:268px !important; height:268px !important; perspective:none !important; flex-shrink:0; --jp-r:106px; }
-  #cbnRoot .bv-jackpot-wheel{ border:6px solid var(--bg-panel-3) !important; box-shadow:0 10px 30px rgba(0,0,0,.45) !important; }
+  #cbnRoot .bv-jackpot-slam-stage{ width:var(--jp-size, 260px) !important; height:var(--jp-size, 260px) !important; perspective:none !important; flex-shrink:0; }
+  #cbnRoot .bv-jackpot-wheel-wrap{ justify-content:center !important; padding:16px 12px !important; overflow:hidden; }
+  #cbnRoot .bv-stage.jp-on{ min-height:min(460px, 72vh) !important; }
+  #cbnRoot .bv-jackpot-wheel{ border:calc(var(--jp-size, 260px) * 0.023) solid var(--bg-panel-3) !important; box-shadow:0 10px 30px rgba(0,0,0,.45) !important; }
   #cbnRoot .bv-jackpot-pointer{ top:-6px !important; border-left:11px solid transparent !important; border-right:11px solid transparent !important; border-top:18px solid #fff !important; filter:drop-shadow(0 2px 2px rgba(0,0,0,.6)) !important; z-index:6 !important; }
   #cbnRoot .bv-jackpot-pointer::after{ display:none !important; }
   #cbnRoot .bv-jackpot-hub{ width:62% !important; height:62% !important; margin:0 !important; top:19% !important; left:19% !important;
     background:var(--bg-panel) !important; border:1px solid var(--border) !important; box-shadow:inset 0 0 0 6px var(--bg-deep) !important;
     display:flex !important; flex-direction:column; align-items:center; justify-content:center; gap:2px; text-align:center; padding:0 18px; }
-  #cbnRoot .bv-jp-hub-top{ font-size:10.5px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--text-faint); }
-  #cbnRoot .bv-jp-hub-main{ font-family:var(--font-display); font-size:16px; font-weight:700; color:var(--text); max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  #cbnRoot .bv-jp-hub-sub{ font-size:11.5px; color:var(--text-dim); min-height:14px; }
-  #cbnRoot .bv-jackpot-avatar-badge{ width:30px !important; height:30px !important; margin:-15px 0 0 -15px !important; border:2px solid #fff !important;
+  #cbnRoot .bv-jp-hub-top{ font-size:clamp(9px, calc(var(--jp-size, 260px) * 0.04), 11px); font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--text-faint); }
+  #cbnRoot .bv-jp-hub-main{ font-family:var(--font-display); font-size:clamp(12px, calc(var(--jp-size, 260px) * 0.062), 17px); font-weight:700; color:var(--text); max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #cbnRoot .bv-jp-hub-sub{ font-size:clamp(9.5px, calc(var(--jp-size, 260px) * 0.044), 12px); color:var(--text-dim); min-height:14px; }
+  #cbnRoot .bv-jackpot-avatar-badge{ width:var(--jp-badge, 30px) !important; height:var(--jp-badge, 30px) !important; margin:calc(var(--jp-badge, 30px) / -2) 0 0 calc(var(--jp-badge, 30px) / -2) !important; border:2px solid #fff !important;
     box-shadow:0 1px 4px rgba(0,0,0,.5) !important; font-size:10px !important; transition:none !important; }
   #cbnRoot .bv-jackpot-avatar-badge.winner{ animation:none !important; outline:3px solid #fff; outline-offset:2px; }
   #cbnRoot .bv-jackpot-legend{ gap:6px !important; max-width:520px !important; }
@@ -3976,13 +3978,11 @@ body.cbn-open #cbnRoot .backdrop { opacity: 1; pointer-events: auto; }
   #cbnRoot .bv-jackpot-legend-name{ color:var(--text) !important; }
   #cbnRoot .bv-jackpot-legend-pct{ color:var(--text-dim) !important; font-weight:700 !important; }
   @media (max-width:640px){
-    #cbnRoot .bv-jackpot-slam-stage{ width:190px !important; height:190px !important; --jp-r:75px; }
-    #cbnRoot .bv-stage{ min-height:330px !important; }
+    #cbnRoot .bv-stage.jp-on{ min-height:min(400px, 70vh) !important; }
     #cbnRoot .bv-jackpot-wheel-wrap{ gap:12px !important; padding:14px 8px; }
     #cbnRoot .bv-jp-hub-main{ font-size:13px; }
     #cbnRoot .bv-jp-hub-top, #cbnRoot .bv-jp-hub-sub{ font-size:9.5px; }
     #cbnRoot .bv-jackpot-legend-item{ padding:5px 8px !important; font-size:11.5px !important; }
-    #cbnRoot .bv-jackpot-avatar-badge{ width:26px !important; height:26px !important; margin:-13px 0 0 -13px !important; }
   }
 
   /* ---------- Borrow mode control ---------- */
@@ -6371,7 +6371,47 @@ function roleColorForUser(level, specialRole){
 // VIEW SWITCHING — used by sidenav buttons AND the Top Games
 // cards on Home, so both navigate the same way.
 // ===========================================================
+// The Case Battle screens (battle view + create screen) are overlays on top
+// of the page, not normal views - so switching to Coinflip/Dice Duel/etc.
+// used to leave them sitting on top until you clicked back into Case
+// Battles. Now leaving tucks them away ("parked"), and coming back to Case
+// Battles restores exactly what was open. A battle that keeps running in
+// the background stays parked instead of popping up over another game.
+const BATTLE_OVERLAY_IDS = ['cbnBattleView', 'cbnCreationView'];
+let currentViewName = 'home';
+function parkBattleOverlays(){
+  BATTLE_OVERLAY_IDS.forEach((id) => {
+    const el = document.getElementById(id);
+    if (el && !el.hidden) { el.dataset.parked = '1'; el.dataset.parkedByNav = '1'; el.hidden = true; }
+  });
+}
+function restoreBattleOverlays(){
+  BATTLE_OVERLAY_IDS.forEach((id) => {
+    const el = document.getElementById(id);
+    if (el && el.dataset.parked) { delete el.dataset.parked; el.hidden = false; }
+  });
+}
+document.addEventListener('DOMContentLoaded', () => {
+  if (!('MutationObserver' in window)) return;
+  BATTLE_OVERLAY_IDS.forEach((id) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    new MutationObserver(() => {
+      if (!el.hidden && currentViewName !== 'battles') {
+        // battle code tried to show it while you're on another game: keep it tucked away
+        el.dataset.parked = '1'; el.dataset.parkedByNav = '1'; el.hidden = true;
+        return;
+      }
+      if (el.hidden) {
+        if (el.dataset.parkedByNav) { delete el.dataset.parkedByNav; return; } // our own park
+        delete el.dataset.parked; // battle code closed it (finished/cancelled/back) - don't bring it back
+      }
+    }).observe(el, { attributes: true, attributeFilter: ['hidden'] });
+  });
+});
 function switchView(name){
+  currentViewName = name;
+  if (name === 'battles') restoreBattleOverlays(); else parkBattleOverlays();
   document.querySelectorAll('.side-btn').forEach(b=>b.classList.remove('active'));
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   const btn = document.querySelector(`.side-btn[data-view="${name}"]`);
@@ -13368,7 +13408,22 @@ function renderAdminWithdrawList(){
   // outcome the server already settled, same as the rest of the reveal.
   const JACKPOT_WHEEL_COLORS = ["#e8650c", "#7c5cff", "#2bb39a", "#e5b62e", "#d9467a", "#3b8eea", "#a8794f", "#8fbf3a"];
   const JACKPOT_GAP_COLOR = "#17131a";
-  const JACKPOT_BADGE_RADIUS = 104; // px from centre to the middle of the coloured ring
+  const JACKPOT_BADGE_RADIUS = 104; // fallback only - sizeJackpotWheel() sets the real value
+  // Fits the wheel inside whatever room the battle area really has (any
+  // screen size, zoom level or window size) instead of a fixed 268px that
+  // overflowed short screens - the top got cut off and the legend hidden.
+  function sizeJackpotWheel(){
+    const stageEl = bvJackpotWrap.querySelector('.bv-jackpot-slam-stage');
+    if (!stageEl || bvJackpotWrap.hidden) return;
+    const rect = bvJackpotWrap.getBoundingClientRect();
+    const legendH = bvJackpotLegend.offsetHeight || 0;
+    const avail = Math.min(rect.width - 40, rect.height - legendH - 56);
+    const size = Math.max(140, Math.min(300, Math.floor(avail)));
+    stageEl.style.setProperty('--jp-size', size + 'px');
+    stageEl.style.setProperty('--jp-r', Math.round(size * 0.405 - 3) + 'px');
+    stageEl.style.setProperty('--jp-badge', Math.round(Math.max(22, Math.min(32, size * 0.115))) + 'px');
+  }
+  window.addEventListener('resize', sizeJackpotWheel);
   const bvJackpotSlam = document.getElementById('cbnBvJackpotSlam');
   const bvJackpotAvatars = document.getElementById('cbnBvJackpotAvatars');
   const bvJackpotFlash = document.getElementById('cbnBvJackpotFlash');
@@ -13444,7 +13499,7 @@ function renderAdminWithdrawList(){
       const members = membersForSegment(b.key);
       const midDeg = ((b.start + b.end) / 2 / 100) * 360;
       const inner = members.length ? avatarCircleInner(members[0].name) : (b.label || '?').slice(0, 2).toUpperCase();
-      return `<div class="bv-jackpot-avatar-badge" data-seg-label="${escapeHtml(b.label)}" style="background:${b.color}; transform:rotate(${midDeg}deg) translate(0, calc(-1 * var(--jp-r, ${JACKPOT_BADGE_RADIUS}px))) rotate(${-midDeg}deg);">${inner}</div>`;
+      return `<div class="bv-jackpot-avatar-badge" data-seg-label="${escapeHtml(b.label)}" data-mid="${midDeg}" style="background:${b.color}; transform:rotate(${midDeg}deg) translate(0, calc(-1 * var(--jp-r, ${JACKPOT_BADGE_RADIUS}px))) rotate(${-midDeg}deg);">${inner}</div>`;
     }).join('');
 
     bvJackpotFlash.classList.remove('flashing');
@@ -13466,7 +13521,9 @@ function renderAdminWithdrawList(){
       // already decided the winner (see result.winner / result.jackpotInfo,
       // both received before this function even runs); nothing here can
       // influence the outcome, it only plays it out. ====
+      bvStage.classList.add('jp-on'); // gives the battle area enough height for the wheel
       bvJackpotWrap.hidden = false;
+      sizeJackpotWheel();
       const entranceAnim = bvJackpotSlam.animate([
         { transform: 'scale(0.92)', opacity: 0 },
         { transform: 'scale(1)', opacity: 1 },
@@ -13502,6 +13559,11 @@ function renderAdminWithdrawList(){
       if (isStaleRun(runToken)) return;
       spinAnim.cancel();
       bvJackpotWheel.style.transform = `rotate(${finalRotation}deg)`;
+      // Badges spin with the wheel; turn their faces upright again now it has stopped.
+      bvJackpotAvatars.querySelectorAll('.bv-jackpot-avatar-badge').forEach((el) => {
+        const mid = Number(el.dataset.mid) || 0;
+        el.style.transform = `rotate(${mid}deg) translate(0, calc(-1 * var(--jp-r, ${JACKPOT_BADGE_RADIUS}px))) rotate(${-mid - finalRotation}deg)`;
+      });
 
       // ---- Winner reveal: flash + glow-pulse on the winning face/legend row ----
       playLand();
@@ -13518,6 +13580,7 @@ function renderAdminWithdrawList(){
       bvJackpotSlam.getAnimations().forEach((a) => a.cancel());
       bvJackpotWheel.getAnimations().forEach((a) => a.cancel());
       bvJackpotWrap.hidden = true;
+      bvStage.classList.remove('jp-on');
     }
   }
 
