@@ -5761,17 +5761,14 @@ function applyAvatarForUser(username){
     return;
   }
 
-  // Retries a few times with backoff - a single slow/failed lookup used to
-  // leave the top-bar avatar as initials for the whole session.
-  const attempt = (n) => fetchRobloxAvatarUrl(username).then(url => {
-    if(currentUser !== username) return; // user switched/logged out before this resolved
-    if(!url){ if(n < 3) setTimeout(() => attempt(n + 1), 4000 * (n + 1)); return; }
+  fetchRobloxAvatarUrl(username).then(url => {
+    if(!url) return;
     if(users[username]) users[username].avatarUrl = url;
+    if(currentUser !== username) return; // user switched/logged out before this resolved
     imgEl.onload = () => imgEl.classList.add('loaded');
-    imgEl.onerror = () => { imgEl.classList.remove('loaded'); if(n < 3) setTimeout(() => { if(users[username]) users[username].avatarUrl = null; attempt(n + 1); }, 4000 * (n + 1)); };
+    imgEl.onerror = () => imgEl.classList.remove('loaded');
     imgEl.src = url;
-  }).catch(() => { if(n < 3 && currentUser === username) setTimeout(() => attempt(n + 1), 4000 * (n + 1)); });
-  attempt(0);
+  }).catch(() => { /* keep initials avatar */ });
 }
 
 // General-purpose avatar lookup for ANY username shown anywhere in the app
@@ -5782,38 +5779,6 @@ function applyAvatarForUser(username){
 // the topbar avatar already does.
 const sharedAvatarCache = {}; // username -> { url: string|null, cachedAt: number }
 const sharedAvatarPending = new Set();
-const sharedAvatarWaiters = {}; // username -> [callbacks] - EVERY place waiting on this avatar, not just the first
-// Once a photo arrives, upgrade every initials placeholder for that user that
-// is already on the page (chat, lobbies, battles, leaderboard...). Before,
-// only the first caller was re-rendered, so the same player could show a
-// photo in one spot and initials everywhere else.
-function upgradeAvatarPlaceholders(username, url){
-  if(!url) return;
-  let sel;
-  try { sel = `span[data-profile-user="${CSS.escape(username)}"]`; } catch(e){ return; }
-  document.querySelectorAll(sel).forEach((span) => {
-    const holder = span.parentElement;
-    if(!holder) return;
-    const img = document.createElement('img');
-    img.src = url;
-    img.dataset.profileUser = username;
-    img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:50%;cursor:pointer;';
-    img.onerror = () => { img.replaceWith(span); };
-    span.replaceWith(img);
-  });
-}
-// Called from an <img onerror>: fall back to initials instead of an empty circle.
-function avatarImgFailed(img){
-  const username = img.getAttribute('data-profile-user') || '';
-  const span = document.createElement('span');
-  span.setAttribute('data-profile-user', username);
-  span.style.cssText = 'display:contents; cursor:pointer;';
-  span.textContent = initials(username);
-  img.replaceWith(span);
-  // Forget the broken URL so the next render tries a fresh lookup.
-  if(sharedAvatarCache[username]) sharedAvatarCache[username] = { url: null, cachedAt: Date.now() - AVATAR_RETRY_COOLDOWN_MS + 5000 };
-  if(users[username]) users[username].avatarUrl = null;
-}
 // A failed lookup used to be cached as permanent - once ANY transient
 // issue (a rate limit, a brief server hiccup, a flaky CORS-relay fallback)
 // hit on the first attempt for a given username, that user's avatar would
@@ -5829,21 +5794,13 @@ function getCachedAvatarUrl(username, onLoaded){
   const isStaleFailure = entry && entry.url == null && (Date.now() - entry.cachedAt) > AVATAR_RETRY_COOLDOWN_MS;
   if(entry && !isStaleFailure) return entry.url;
 
-  if(typeof onLoaded === 'function'){
-    (sharedAvatarWaiters[username] = sharedAvatarWaiters[username] || []).push(onLoaded);
-  }
   if(!sharedAvatarPending.has(username)){
     sharedAvatarPending.add(username);
     fetchRobloxAvatarUrl(username).then(url => {
       sharedAvatarCache[username] = { url: url || null, cachedAt: Date.now() };
       sharedAvatarPending.delete(username);
-      const waiters = sharedAvatarWaiters[username] || [];
-      delete sharedAvatarWaiters[username];
-      if(url){
-        upgradeAvatarPlaceholders(username, url);
-        waiters.forEach((cb) => { try { cb(); } catch(e){} });
-      }
-    }).catch(() => { sharedAvatarPending.delete(username); delete sharedAvatarWaiters[username]; sharedAvatarCache[username] = { url: null, cachedAt: Date.now() }; });
+      if(url && typeof onLoaded === 'function') onLoaded();
+    }).catch(() => { sharedAvatarPending.delete(username); sharedAvatarCache[username] = { url: null, cachedAt: Date.now() }; });
   }
   // While a (re)fetch is in flight, keep showing whatever we last knew
   // (even a stale failure) instead of flashing back to initials and then
@@ -5862,7 +5819,7 @@ function escapeHtml(str){
 }
 function avatarCircleInner(username, onLoaded){
   const url = getCachedAvatarUrl(username, onLoaded);
-  if(url) return `<img src="${escapeHtml(url)}" data-profile-user="${escapeHtml(username)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;cursor:pointer;" onerror="avatarImgFailed(this)">`;
+  if(url) return `<img src="${escapeHtml(url)}" data-profile-user="${escapeHtml(username)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;cursor:pointer;" onerror="this.style.display='none'">`;
   return `<span data-profile-user="${escapeHtml(username)}" style="display:contents; cursor:pointer;">${escapeHtml(initials(username))}</span>`;
 }
 
@@ -5945,7 +5902,7 @@ async function fetchRobloxAvatarUrl(username){
     if(res.ok){
       const data = await res.json();
       if(data.userId && users[username]) users[username].robloxId = data.userId;
-      return data.imageUrl || null; // server reached fine: either a photo, or genuinely none (e.g. bots)
+      return data.imageUrl || null;
     }
   } catch(err){
     console.warn('[roblox pfp] server avatar lookup failed, falling back to CORS relays:', err.message || err);
