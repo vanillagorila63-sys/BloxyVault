@@ -193,6 +193,22 @@ async function initSchema() {
     );
   `);
 
+  // Discord linking (one Discord account can only be linked to one player).
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS discord_id TEXT;`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS discord_username TEXT;`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS discord_avatar TEXT;`);
+  await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_discord_id ON users(discord_id) WHERE discord_id IS NOT NULL;`);
+
+  // Per-player chat ignore list.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS ignored_users (
+      username    TEXT NOT NULL,
+      ignored     TEXT NOT NULL,
+      created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+      PRIMARY KEY (username, ignored)
+    );
+  `);
+
   console.log('[db] Schema ready.');
 }
 
@@ -204,7 +220,7 @@ async function initSchema() {
 // Returns a Map in the exact shape server.js's `users` Map already expects:
 // username -> { coins, inventory: {catalogId: qty}, stats: {wagered, won, lost} }
 async function loadAllUsers() {
-  const usersRes = await pool.query('SELECT username, coins, stats_wagered, stats_won, stats_lost FROM users');
+  const usersRes = await pool.query('SELECT username, coins, stats_wagered, stats_won, stats_lost, discord_id, discord_username, discord_avatar FROM users');
   const invRes = await pool.query('SELECT username, catalog_id, qty FROM inventory_items WHERE qty > 0');
 
   const map = new Map();
@@ -213,6 +229,7 @@ async function loadAllUsers() {
       coins: Number(row.coins),
       inventory: {},
       stats: { wagered: Number(row.stats_wagered), won: Number(row.stats_won), lost: Number(row.stats_lost) },
+      discord: row.discord_id ? { id: row.discord_id, username: row.discord_username, avatar: row.discord_avatar } : null,
     });
   }
   for (const row of invRes.rows) {
@@ -491,6 +508,7 @@ async function mergeCasedDuplicates(canonicalUsername, variants) {
       // the DELETE below hit a foreign-key error and the merge never finished.
       await client.query(`UPDATE coinflip_lobbies SET creator = $1 WHERE creator = ANY($2)`, [canonicalUsername, others]);
       await client.query(`UPDATE escrows SET username = $1 WHERE username = ANY($2)`, [canonicalUsername, others]);
+      await client.query(`DELETE FROM ignored_users WHERE username = ANY($1) OR ignored = ANY($1)`, [others]);
       await client.query(`DELETE FROM notifications WHERE username = ANY($1)`, [others]);
       // Deleting the old rows cascades to their now-redundant inventory_items
       // rows automatically (ON DELETE CASCADE) - already fully accounted
@@ -644,6 +662,38 @@ async function markAllNotificationsRead(username) {
   );
 }
 
+// Returns false if that Discord account is already linked to someone else.
+async function setDiscordLink(username, discord) {
+  try {
+    await pool.query(
+      `UPDATE users SET discord_id = $2, discord_username = $3, discord_avatar = $4, updated_at = now() WHERE username = $1`,
+      [username, discord.id, discord.username, discord.avatar || null]
+    );
+    return true;
+  } catch (err) {
+    if (err.code === '23505') return false; // unique violation: linked to another player
+    throw err;
+  }
+}
+async function clearDiscordLink(username) {
+  await pool.query(`UPDATE users SET discord_id = NULL, discord_username = NULL, discord_avatar = NULL WHERE username = $1`, [username]);
+}
+async function loadAllIgnores() {
+  const res = await pool.query(`SELECT username, ignored FROM ignored_users`);
+  const map = new Map();
+  for (const r of res.rows) {
+    if (!map.has(r.username)) map.set(r.username, new Set());
+    map.get(r.username).add(r.ignored);
+  }
+  return map;
+}
+async function addIgnore(username, ignored) {
+  await pool.query(`INSERT INTO ignored_users (username, ignored) VALUES ($1,$2) ON CONFLICT DO NOTHING`, [username, ignored]);
+}
+async function removeIgnore(username, ignored) {
+  await pool.query(`DELETE FROM ignored_users WHERE username = $1 AND ignored = $2`, [username, ignored]);
+}
+
 async function loadEscrows() {
   const res = await pool.query(`SELECT id, username, kind, items, coins FROM escrows ORDER BY created_at ASC`);
   return res.rows.map((r) => ({ id: r.id, username: r.username, kind: r.kind, items: Array.isArray(r.items) ? r.items : [], coins: Number(r.coins) }));
@@ -692,6 +742,11 @@ async function saveServerState(key, value) {
 
 module.exports = {
   pool,
+  setDiscordLink,
+  clearDiscordLink,
+  loadAllIgnores,
+  addIgnore,
+  removeIgnore,
   loadEscrows,
   loadShopStock,
   saveShopStock,

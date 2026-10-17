@@ -1657,7 +1657,7 @@
   .acc-body-close{ position:absolute; top:20px; right:20px; }
   .acc-profile-head{ display:flex; align-items:center; gap:16px; margin-bottom:22px; flex-wrap:wrap; }
   .acc-avatar{ width:64px; height:64px; border-radius:50%; background:linear-gradient(135deg, var(--purple), var(--teal)); display:flex; align-items:center; justify-content:center; font-size:22px; font-weight:900; overflow:hidden; flex-shrink:0; position:relative; }
-  .acc-avatar img{ width:100%; height:100%; object-fit:cover; border-radius:50%; display:none; }
+  .acc-avatar img{ width:100%; height:100%; object-fit:cover; border-radius:50%; display:block; } /* was display:none, so the photo never showed */
   .acc-avatar img.loaded{ display:block; }
   .acc-avatar img.loaded + span{ display:none; }
   .acc-name-row{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
@@ -3999,6 +3999,21 @@ body.cbn-open #cbnRoot .backdrop { opacity: 1; pointer-events: auto; }
   #cbnRoot .bc-borrow-pct{ font-family:var(--font-display); font-weight:700; font-size:18px; color:var(--text); }
   #cbnRoot .bc-borrow-note{ font-size:12px; color:var(--text-dim); white-space:nowrap; }
   #cbnRoot .bh-borrow{ display:inline-block; margin-left:6px; padding:1px 7px; border-radius:6px; background:rgba(232,101,12,.14); color:var(--purple-bright); font-size:11px; font-weight:700; vertical-align:1px; }
+
+  /* ---------- Account: Discord + Ignored users ---------- */
+  .acc-discord-icon{ position:relative; overflow:hidden; }
+  .acc-discord-icon.has-avatar img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; border-radius:inherit; }
+  .acc-discord-card.linked{ border-color:rgba(88,101,242,.45) !important; }
+  .acc-section-title{ font-family:var(--font-display); font-weight:700; font-size:18px; margin-bottom:4px; }
+  .acc-section-sub{ font-size:13px; color:var(--text-faint); margin-bottom:16px; }
+  .acc-ignore-add{ display:flex; gap:8px; margin-bottom:16px; }
+  .acc-ignore-add .auth-input{ flex:1; }
+  .acc-ignore-list{ display:flex; flex-direction:column; gap:8px; }
+  .acc-ignore-row{ display:flex; align-items:center; gap:12px; background:var(--bg-panel-2); border:1px solid var(--border); border-radius:var(--r-sm); padding:8px 10px; }
+  .acc-ignore-avatar{ width:34px; height:34px; border-radius:50%; overflow:hidden; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:800; flex-shrink:0; }
+  .acc-ignore-name{ flex:1; font-weight:600; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .acc-ignore-row .ghost-btn{ padding:6px 12px; font-size:12px; }
+  .acc-ignore-empty{ font-size:13px; color:var(--text-faint); padding:18px; text-align:center; border:1px dashed var(--border); border-radius:var(--r-sm); }
   /* Result overlay never wraps into the winner box */
   #cbnRoot .bv-result-banner{ white-space:nowrap; max-width:92%; overflow:hidden; text-overflow:ellipsis; font-size:13px !important; padding:6px 14px !important; }
   #cbnRoot .bv-result-summary{ top:56px !important; }
@@ -4883,12 +4898,13 @@ body.cbn-open #cbnRoot .backdrop { opacity: 1; pointer-events: auto; }
       <button class="acc-nav-btn" data-acc-tab="sessions"><span class="nav-icon-slot" data-icon="monitor"></span> Sessions</button>
       <button class="acc-nav-btn disabled" data-acc-tab="history"><span class="nav-icon-slot" data-icon="history"></span> Game History</button>
       <button class="acc-nav-btn disabled" data-acc-tab="transactions"><span class="nav-icon-slot" data-icon="receipt"></span> Transaction History</button>
-      <button class="acc-nav-btn disabled" data-acc-tab="ignored"><span class="nav-icon-slot" data-icon="userX"></span> Ignored Users</button>
+      <button class="acc-nav-btn" data-acc-tab="ignored"><span class="nav-icon-slot" data-icon="userX"></span> Ignored Users</button>
     </div>
     <div class="acc-body">
       <button class="close-x acc-body-close" id="closeAccountModalBtn"><span class="nav-icon-slot" data-icon="x" style="width:16px;height:16px;"></span></button>
       <div class="acc-tab-content" id="accTabProfile"></div>
       <div class="acc-tab-content" id="accTabSessions" style="display:none;"></div>
+      <div class="acc-tab-content" id="accTabIgnored" style="display:none;"></div>
       <div class="acc-tab-content" id="accTabComingSoon" style="display:none;">
         <div class="acc-empty">
           <span class="nav-icon-slot" data-icon="history"></span>
@@ -5072,7 +5088,10 @@ body.cbn-open #cbnRoot .backdrop { opacity: 1; pointer-events: auto; }
         </div>
       </div>
 
-      <button class="exchange-btn" id="profileTipBtn" style="width:100%; margin-top:14px;">Tip User</button>
+      <div style="display:flex; gap:8px; margin-top:14px;">
+        <button class="exchange-btn" id="profileTipBtn" style="flex:1;">Tip User</button>
+        <button class="ghost-btn" id="profileIgnoreBtn" style="flex:1;">Ignore</button>
+      </div>
     </div>
   </div>
 </div>
@@ -5515,7 +5534,10 @@ function mpSyncAccount(serverUser) {
     pendingWithdrawals: serverUser.pendingWithdrawals || [],
     avatarUrl: existing.avatarUrl,
     robloxId: existing.robloxId,
+    discord: serverUser.discord || null,
+    ignored: Array.isArray(serverUser.ignored) ? serverUser.ignored : (existing.ignored || []),
   };
+  if (currentUser === serverUser.username) applyIgnoreListToChat();
   if (currentUser === serverUser.username) {
     refreshBalanceUI();
     if (typeof renderExchange === 'function') renderExchange();
@@ -6371,47 +6393,39 @@ function roleColorForUser(level, specialRole){
 // VIEW SWITCHING — used by sidenav buttons AND the Top Games
 // cards on Home, so both navigate the same way.
 // ===========================================================
-// The Case Battle screens (battle view + create screen) are overlays on top
-// of the page, not normal views - so switching to Coinflip/Dice Duel/etc.
-// used to leave them sitting on top until you clicked back into Case
-// Battles. Now leaving tucks them away ("parked"), and coming back to Case
-// Battles restores exactly what was open. A battle that keeps running in
-// the background stays parked instead of popping up over another game.
-const BATTLE_OVERLAY_IDS = ['cbnBattleView', 'cbnCreationView'];
+// The Case Battle screens (battle view + create screen) and the game
+// "watch" popups sit on top of the page rather than being normal views, so
+// switching tabs used to leave them covering everything until you pressed
+// Back. Now ANY sidebar/tab navigation closes them exactly like Back does.
+// A battle that's still running keeps going on the server - reopen it from
+// the Case Battles list ("View"/"Watch").
 let currentViewName = 'home';
-function parkBattleOverlays(){
-  BATTLE_OVERLAY_IDS.forEach((id) => {
-    const el = document.getElementById(id);
-    if (el && !el.hidden) { el.dataset.parked = '1'; el.dataset.parkedByNav = '1'; el.hidden = true; }
-  });
-}
-function restoreBattleOverlays(){
-  BATTLE_OVERLAY_IDS.forEach((id) => {
-    const el = document.getElementById(id);
-    if (el && el.dataset.parked) { delete el.dataset.parked; el.hidden = false; }
+function closeGameOverlays(){
+  if (typeof window.closeBattleScreens === 'function') window.closeBattleScreens();
+  const cf = document.getElementById('cfBattleModalOverlay');
+  if (cf && cf.classList.contains('open')) { const b = document.getElementById('closeCfBattleBtn'); if (b) b.click(); else cf.classList.remove('open'); }
+  const dd = document.getElementById('ddBattleModalOverlay');
+  if (dd && dd.classList.contains('open')) { const b = document.getElementById('closeDdBattleBtn'); if (b) b.click(); else dd.classList.remove('open'); }
+  document.querySelectorAll('.bh-detail-overlay').forEach((o) => o.remove());
+  ['cbnTeamChoiceModalOverlay', 'cfLobbyModalOverlay', 'ddLobbyModalOverlay', 'cfHistoryModalOverlay'].forEach((id) => {
+    const el = document.getElementById(id); if (el) el.classList.remove('open');
   });
 }
 document.addEventListener('DOMContentLoaded', () => {
+  // If a battle tries to open its screen while you're on another tab (e.g.
+  // someone joined your waiting battle), don't let it cover that game.
   if (!('MutationObserver' in window)) return;
-  BATTLE_OVERLAY_IDS.forEach((id) => {
+  ['cbnBattleView', 'cbnCreationView'].forEach((id) => {
     const el = document.getElementById(id);
     if (!el) return;
     new MutationObserver(() => {
-      if (!el.hidden && currentViewName !== 'battles') {
-        // battle code tried to show it while you're on another game: keep it tucked away
-        el.dataset.parked = '1'; el.dataset.parkedByNav = '1'; el.hidden = true;
-        return;
-      }
-      if (el.hidden) {
-        if (el.dataset.parkedByNav) { delete el.dataset.parkedByNav; return; } // our own park
-        delete el.dataset.parked; // battle code closed it (finished/cancelled/back) - don't bring it back
-      }
+      if (!el.hidden && currentViewName !== 'battles') el.hidden = true;
     }).observe(el, { attributes: true, attributeFilter: ['hidden'] });
   });
 });
 function switchView(name){
   currentViewName = name;
-  if (name === 'battles') restoreBattleOverlays(); else parkBattleOverlays();
+  closeGameOverlays();
   document.querySelectorAll('.side-btn').forEach(b=>b.classList.remove('active'));
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   const btn = document.querySelector(`.side-btn[data-view="${name}"]`);
@@ -10693,19 +10707,97 @@ function renderAccountTabs(){
   const profileEl = document.getElementById('accTabProfile');
   const sessionsEl = document.getElementById('accTabSessions');
   const comingSoonEl = document.getElementById('accTabComingSoon');
+  const ignoredEl = document.getElementById('accTabIgnored');
   profileEl.style.display = accActiveTab === 'profile' ? 'block' : 'none';
   sessionsEl.style.display = accActiveTab === 'sessions' ? 'block' : 'none';
-  comingSoonEl.style.display = (accActiveTab !== 'profile' && accActiveTab !== 'sessions') ? 'block' : 'none';
+  ignoredEl.style.display = accActiveTab === 'ignored' ? 'block' : 'none';
+  comingSoonEl.style.display = (!['profile', 'sessions', 'ignored'].includes(accActiveTab)) ? 'block' : 'none';
 
   if(accActiveTab === 'profile') renderAccountProfile();
   else if(accActiveTab === 'sessions') renderAccountSessions();
+  else if(accActiveTab === 'ignored') renderAccountIgnored();
 }
 
 function connectDiscord(){
-  // Stubbed on purpose - there's no real Discord OAuth wired into this
-  // build. This is where a real "start OAuth flow" call would go.
-  showToast("Discord login isn't set up in this build yet.", true);
+  if (mpMockMode) return showToast("Discord linking needs the live server (you're in offline practice mode).", true);
+  mpSend({ type: 'discord:linkStart' });
 }
+function unlinkDiscord(){
+  if (mpMockMode) return;
+  mpSend({ type: 'discord:unlink' });
+}
+// Server answers with Discord's sign-in page; going there and coming back
+// lands on ?discord=linked (or an error code), handled on page load below.
+mpOn('discord:authUrl', (msg) => { if (msg.url) window.location.href = msg.url; });
+
+// ---- Ignored users: their chat messages are hidden for you ----
+function myIgnoreList(){ return (currentUser && users[currentUser] && users[currentUser].ignored) || []; }
+function isIgnoredUser(name){ const l = myIgnoreList(); return !!name && l.some((n) => n.toLowerCase() === String(name).toLowerCase()); }
+function applyIgnoreListToChat(){
+  document.querySelectorAll('.chat-msg[data-user]').forEach((row) => {
+    row.style.display = isIgnoredUser(row.dataset.user) ? 'none' : '';
+  });
+  if (document.getElementById('accountModalOverlay').classList.contains('open') && accActiveTab === 'ignored') renderAccountIgnored();
+  if (typeof refreshProfileIgnoreBtn === 'function') refreshProfileIgnoreBtn();
+}
+function setIgnored(name, on){
+  if (!currentUser || !name) return;
+  if (mpMockMode) {
+    const u = users[currentUser]; u.ignored = u.ignored || [];
+    if (on && !isIgnoredUser(name) && name !== currentUser) u.ignored.push(name);
+    if (!on) u.ignored = u.ignored.filter((n) => n.toLowerCase() !== name.toLowerCase());
+    applyIgnoreListToChat();
+    return;
+  }
+  mpSend({ type: on ? 'ignore:add' : 'ignore:remove', username: name });
+}
+function renderAccountIgnored(){
+  const el = document.getElementById('accTabIgnored');
+  const list = myIgnoreList();
+  el.innerHTML = `
+    <div class="acc-section-title">Ignored Users</div>
+    <div class="acc-section-sub">You won't see chat messages from these players. They aren't told.</div>
+    <form class="acc-ignore-add" id="accIgnoreForm">
+      <input class="auth-input" id="accIgnoreInput" placeholder="Roblox username" maxlength="20" autocomplete="off">
+      <button class="exchange-btn" type="submit" style="width:auto; padding:0 18px;">Ignore</button>
+    </form>
+    <div class="acc-ignore-list">
+      ${list.length ? list.map((n) => `
+        <div class="acc-ignore-row">
+          <div class="acc-ignore-avatar" style="background:${colorForUsername(n)};">${avatarCircleInner(n, renderAccountIgnored)}</div>
+          <div class="acc-ignore-name">${escapeHtml(n)}</div>
+          <button class="ghost-btn acc-unignore" data-name="${escapeHtml(n)}">Unignore</button>
+        </div>`).join('') : `<div class="acc-ignore-empty">You haven't ignored anyone.</div>`}
+    </div>`;
+  document.getElementById('accIgnoreForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const v = document.getElementById('accIgnoreInput').value.trim();
+    if (v) setIgnored(v, true);
+  });
+  el.querySelectorAll('.acc-unignore').forEach((b) => b.addEventListener('click', () => setIgnored(b.dataset.name, false)));
+}
+
+// Back from Discord's sign-in page
+(function handleDiscordReturn(){
+  const params = new URLSearchParams(window.location.search);
+  const result = params.get('discord');
+  if (!result) return;
+  params.delete('discord');
+  const clean = window.location.pathname + (params.toString() ? '?' + params.toString() : '') + window.location.hash;
+  try { history.replaceState(null, '', clean); } catch (e) {}
+  const messages = {
+    linked: ['Discord linked!', false],
+    taken: ['That Discord account is already linked to another player.', true],
+    cancelled: ['Discord linking was cancelled.', true],
+    expired: ['That Discord link request expired - try again.', true],
+    failed: ["Couldn't link Discord - please try again.", true],
+  };
+  const [text, isErr] = messages[result] || messages.failed;
+  setTimeout(() => {
+    if (typeof showToast === 'function') showToast(text, isErr);
+    if (result === 'linked' && currentUser) openAccountModal('profile');
+  }, 1200);
+})();
 
 function renderAccountProfile(){
   if(!currentUser) return;
@@ -10752,14 +10844,23 @@ function renderAccountProfile(){
       <div class="acc-stat-card"><div class="acc-stat-val" title="${fmt(Math.round(stats.lost))}">${coinIcon(15)} ${fmtCompact(stats.lost)}</div><div class="acc-stat-lbl">LOST</div></div>
     </div>
 
+    ${u.discord ? `
+    <div class="acc-discord-card linked">
+      <div class="acc-discord-icon has-avatar"><img src="${escapeHtml(u.discord.avatarUrl || '')}" alt="" onerror="this.remove()">${ICONS.discord}</div>
+      <div class="acc-discord-text">
+        <div class="acc-discord-title">Discord Linked</div>
+        <div class="acc-discord-sub">Connected as <b>${escapeHtml(u.discord.username || '')}</b></div>
+      </div>
+      <button class="ghost-btn" id="accUnlinkDiscordBtn">Unlink</button>
+    </div>` : `
     <div class="acc-discord-card">
       <div class="acc-discord-icon">${ICONS.discord}</div>
       <div class="acc-discord-text">
         <div class="acc-discord-title">Discord Not Linked</div>
-        <div class="acc-discord-sub">Link your Discord to sync your avatar and unlock server perks.</div>
+        <div class="acc-discord-sub">Link your Discord account to your BloxyVault profile.</div>
       </div>
       <button class="acc-discord-btn" id="accConnectDiscordBtn">Connect Discord</button>
-    </div>
+    </div>`}
   `;
 
   document.getElementById('accCopyIdBtn').addEventListener('click', () => {
@@ -10767,7 +10868,10 @@ function renderAccountProfile(){
       navigator.clipboard.writeText(String(robloxId)).then(() => showToast('ID copied.'));
     }
   });
-  document.getElementById('accConnectDiscordBtn').addEventListener('click', connectDiscord);
+  const connectBtn = document.getElementById('accConnectDiscordBtn');
+  if (connectBtn) connectBtn.addEventListener('click', connectDiscord);
+  const unlinkBtn = document.getElementById('accUnlinkDiscordBtn');
+  if (unlinkBtn) unlinkBtn.addEventListener('click', unlinkDiscord);
 }
 
 function parseBrowserAndOs(ua){
@@ -11003,6 +11107,10 @@ function addChatMessage(user, text, isSystem, wagered, specialRole, timestamp){
   if(placeholder) placeholder.remove();
   const row = document.createElement('div');
   row.className = 'chat-msg';
+  if(!isSystem && user){
+    row.dataset.user = user;
+    if(isIgnoredUser(user)) row.style.display = 'none';
+  }
   const time = new Date(timestamp || Date.now()).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
   if(isSystem){
     row.innerHTML = `<div class="chat-msg-body"><div class="chat-msg-head"><span class="chat-time">${time}</span></div><div class="chat-text" style="color:var(--gold); font-style:italic;">${escapeHtml(text)}</div></div>`;
@@ -11138,11 +11246,23 @@ document.addEventListener('click', (e) => {
   // is just about not showing controls that would obviously be rejected.
   document.getElementById('profileAdminRoles').hidden = !(currentUser === ADMIN_USERNAME && targetUsername !== currentUser && !mpMockMode);
   document.getElementById('profileModalOverlay').classList.add('open');
+  refreshProfileIgnoreBtn();
   if (!mpMockMode) mpSend({ type: 'profile:request', username: targetUsername });
   else showToast("Can't load another player's profile in offline practice mode.", true);
 });
 document.getElementById('closeProfileModalBtn').addEventListener('click', () => document.getElementById('profileModalOverlay').classList.remove('open'));
 document.getElementById('profileModalOverlay').addEventListener('click', (e) => { if(e.target.id === 'profileModalOverlay') e.currentTarget.classList.remove('open'); });
+function refreshProfileIgnoreBtn(){
+  const btn = document.getElementById('profileIgnoreBtn');
+  if (!btn) return;
+  const show = !!currentUser && !!profileTargetUsername && profileTargetUsername !== currentUser;
+  btn.style.display = show ? '' : 'none';
+  btn.textContent = isIgnoredUser(profileTargetUsername) ? 'Unignore' : 'Ignore';
+}
+document.getElementById('profileIgnoreBtn').addEventListener('click', () => {
+  if (!profileTargetUsername) return;
+  setIgnored(profileTargetUsername, !isIgnoredUser(profileTargetUsername));
+});
 document.getElementById('profileTipBtn').addEventListener('click', () => {
   document.getElementById('profileModalOverlay').classList.remove('open');
   openTipModal(profileTargetUsername);
@@ -13670,6 +13790,15 @@ function renderAdminWithdrawList(){
   });
 
   window.openCaseBattlesWindow = openMenu;
+  // Used by tab navigation: identical to pressing Back, minus re-opening the list.
+  window.closeBattleScreens = () => {
+    if (!battleView.hidden) {
+      battleCancelled = true;
+      battleView.hidden = true;
+      callBotsBtn.hidden = true;
+    }
+    if (!creationView.hidden) creationView.hidden = true;
+  };
 })();
 
 // --- auto-login on page load if a valid saved session exists ---

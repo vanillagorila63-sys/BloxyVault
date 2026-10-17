@@ -70,6 +70,31 @@ const ROBLOX_OAUTH_CLIENT_SECRET = process.env.ROBLOX_OAUTH_CLIENT_SECRET || '';
 // '/roblox/oauth/callback') whatever Redirect URL is registered in
 // Roblox's OAuth app settings.
 const PUBLIC_BASE_URL = (process.env.PUBLIC_BASE_URL || '').replace(/\/$/, '');
+
+// Discord account linking (OAuth2, "identify" scope only - we only ever read
+// the Discord user id, username and avatar). Set DISCORD_CLIENT_ID and
+// DISCORD_CLIENT_SECRET in Railway, and add
+// PUBLIC_BASE_URL + '/discord/oauth/callback' as a Redirect in the Discord
+// Developer Portal (OAuth2 tab). Until then the button explains it isn't set up.
+const DISCORD_CLIENT_ID = process.env.DISCORD_CLIENT_ID || '';
+const DISCORD_CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET || '';
+const pendingDiscordStates = new Map(); // state -> { username, expires }
+function discordConfigured() { return !!(DISCORD_CLIENT_ID && DISCORD_CLIENT_SECRET && PUBLIC_BASE_URL); }
+function discordPublic(d) {
+  if (!d || !d.id) return null;
+  let avatarUrl;
+  if (d.avatar) avatarUrl = `https://cdn.discordapp.com/avatars/${d.id}/${d.avatar}.${String(d.avatar).startsWith('a_') ? 'gif' : 'png'}?size=128`;
+  else {
+    let idx = 0; try { idx = Number((BigInt(d.id) >> 22n) % 6n); } catch (e) {}
+    avatarUrl = `https://cdn.discordapp.com/embed/avatars/${idx}.png`;
+  }
+  return { username: d.username, avatarUrl };
+}
+
+// Chat ignore lists: username -> Set of ignored usernames (persisted).
+let ignoreLists = new Map();
+const MAX_IGNORES = 200;
+function ignoredListFor(username) { return [...(ignoreLists.get(username) || [])].sort((a, b) => a.localeCompare(b)); }
 if (!ROBLOX_OAUTH_CLIENT_ID || !ROBLOX_OAUTH_CLIENT_SECRET || !PUBLIC_BASE_URL) {
   console.warn('[roblox-oauth] Not fully configured (need ROBLOX_OAUTH_CLIENT_ID, ROBLOX_OAUTH_CLIENT_SECRET, PUBLIC_BASE_URL) - "Log in with Roblox" will not work until all three are set.');
 }
@@ -506,6 +531,8 @@ function syncAccount(username) {
       specialRole: u.specialRole || null, mutedUntil: u.mutedUntil || 0,
       lockedItems: lockedItemsForUser(username),
       pendingWithdrawals: myPendingWithdrawals,
+      discord: discordPublic(u.discord),
+      ignored: ignoredListFor(username),
     },
   });
 }
@@ -2486,6 +2513,60 @@ function handleAdminSetRole(username, msg) {
 }
 
 // ---------------------------------------------------------------------------
+// Discord linking + chat ignore list
+// ---------------------------------------------------------------------------
+function handleDiscordLinkStart(username) {
+  const errTo = usernameToSocket.get(username);
+  if (!discordConfigured()) return send(errTo, { type: 'error', message: "Discord linking isn't set up on the server yet." });
+  const state = crypto.randomBytes(16).toString('hex');
+  pendingDiscordStates.set(state, { username, expires: Date.now() + 10 * 60 * 1000 });
+  const authorizeUrl = new URL('https://discord.com/oauth2/authorize');
+  authorizeUrl.searchParams.set('client_id', DISCORD_CLIENT_ID);
+  authorizeUrl.searchParams.set('redirect_uri', `${PUBLIC_BASE_URL}/discord/oauth/callback`);
+  authorizeUrl.searchParams.set('response_type', 'code');
+  authorizeUrl.searchParams.set('scope', 'identify');
+  authorizeUrl.searchParams.set('state', state);
+  authorizeUrl.searchParams.set('prompt', 'consent');
+  send(errTo, { type: 'discord:authUrl', url: authorizeUrl.toString() });
+}
+
+async function handleDiscordUnlink(username) {
+  const u = ensureUser(username);
+  if (!u.discord) return;
+  await db.clearDiscordLink(username);
+  u.discord = null;
+  syncAccount(username);
+  send(usernameToSocket.get(username), { type: 'toast', message: 'Discord unlinked.' });
+}
+
+async function handleIgnoreAdd(username, msg) {
+  const errTo = usernameToSocket.get(username);
+  const raw = String(msg.username || '').trim();
+  if (!isValidUsername(raw)) return send(errTo, { type: 'error', message: "That isn't a valid username." });
+  const target = resolveExistingUsername(raw);
+  if (!target) return send(errTo, { type: 'error', message: 'No player with that name.' });
+  if (target === username) return send(errTo, { type: 'error', message: "You can't ignore yourself." });
+  const set = ignoreLists.get(username) || new Set();
+  if (set.has(target)) return syncAccount(username);
+  if (set.size >= MAX_IGNORES) return send(errTo, { type: 'error', message: `You can ignore at most ${MAX_IGNORES} players.` });
+  await db.addIgnore(username, target);
+  set.add(target);
+  ignoreLists.set(username, set);
+  syncAccount(username);
+  send(errTo, { type: 'toast', message: `Ignoring ${target}. You won't see their chat messages.` });
+}
+
+async function handleIgnoreRemove(username, msg) {
+  const target = String(msg.username || '').trim();
+  const set = ignoreLists.get(username);
+  if (!set || !set.has(target)) return syncAccount(username);
+  await db.removeIgnore(username, target);
+  set.delete(target);
+  syncAccount(username);
+  send(usernameToSocket.get(username), { type: 'toast', message: `${target} is no longer ignored.` });
+}
+
+// ---------------------------------------------------------------------------
 // Tipping - coins and/or items, direct account-to-account transfer.
 // ---------------------------------------------------------------------------
 function handleTipSend(username, msg) {
@@ -2762,6 +2843,46 @@ const server = http.createServer(async (req, res) => {
   // If any of these aren't set, the routes below fail cleanly with a
   // clear error redirect instead of crashing.
   // ---------------------------------------------------------------------
+  if(url.pathname === '/discord/oauth/callback'){
+    const back = (params) => {
+      const dest = new URL(PUBLIC_BASE_URL || `http://${req.headers.host}/`);
+      for (const [k, v] of Object.entries(params)) dest.searchParams.set(k, v);
+      res.writeHead(302, { Location: dest.toString() });
+      res.end();
+    };
+    const code = url.searchParams.get('code');
+    const state = url.searchParams.get('state');
+    const pending = state && pendingDiscordStates.get(state);
+    if (state) pendingDiscordStates.delete(state); // one-time use
+    if (url.searchParams.get('error')) return back({ discord: 'cancelled' });
+    if (!discordConfigured() || !code || !pending || pending.expires < Date.now()) return back({ discord: 'expired' });
+    try {
+      const tokenRes = await fetchWithRetry('https://discord.com/api/oauth2/token', 2, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          client_id: DISCORD_CLIENT_ID, client_secret: DISCORD_CLIENT_SECRET,
+          grant_type: 'authorization_code', code, redirect_uri: `${PUBLIC_BASE_URL}/discord/oauth/callback`,
+        }).toString(),
+      });
+      const tokenData = await tokenRes.json();
+      if (!tokenData.access_token) return back({ discord: 'failed' });
+      const meRes = await fetchWithRetry('https://discord.com/api/users/@me', 2, { headers: { Authorization: `Bearer ${tokenData.access_token}` } });
+      const me = await meRes.json();
+      if (!me || !me.id) return back({ discord: 'failed' });
+      const link = { id: String(me.id), username: String(me.global_name || me.username || 'Discord user').slice(0, 64), avatar: me.avatar || null };
+      const ok = await db.setDiscordLink(pending.username, link);
+      if (!ok) return back({ discord: 'taken' });
+      const u = ensureUser(pending.username);
+      u.discord = link;
+      syncAccount(pending.username);
+      return back({ discord: 'linked' });
+    } catch (err) {
+      console.error('[discord] OAuth callback failed:', err.message);
+      return back({ discord: 'failed' });
+    }
+  }
+
   if(url.pathname === '/roblox/oauth/login'){
     if (!ROBLOX_OAUTH_CLIENT_ID || !PUBLIC_BASE_URL) {
       res.writeHead(500, { 'Content-Type': 'text/plain' });
@@ -3054,6 +3175,8 @@ wss.on('connection', (ws) => {
           specialRole: u.specialRole || null, mutedUntil: u.mutedUntil || 0,
           lockedItems: lockedItemsForUser(username),
           pendingWithdrawals: myPendingWithdrawals,
+          discord: discordPublic(u.discord),
+          ignored: ignoredListFor(username),
         },
       });
       send(ws, { type: 'exchange:stock', stock: shopStock });
@@ -3181,6 +3304,10 @@ wss.on('connection', (ws) => {
       case 'tip:send': return handleTipSend(username, msg);
       case 'profile:request': return handleProfileRequest(username, msg);
       case 'admin:setRole': return handleAdminSetRole(username, msg);
+      case 'discord:linkStart': return handleDiscordLinkStart(username);
+      case 'discord:unlink': return handleDiscordUnlink(username);
+      case 'ignore:add': return handleIgnoreAdd(username, msg);
+      case 'ignore:remove': return handleIgnoreRemove(username, msg);
     }
   }
 
@@ -3223,6 +3350,11 @@ const PORT = process.env.PORT || 8080;
 
 // Last-resort safety net: a stray promise rejection must never take the
 // whole server down (Node exits on unhandled rejections by default).
+setInterval(() => {
+  const now = Date.now();
+  for (const [k, v] of pendingDiscordStates) if (v.expires < now) pendingDiscordStates.delete(k);
+}, 60 * 1000);
+
 process.on('unhandledRejection', (err) => {
   console.error('[process] Unhandled promise rejection (kept running):', err);
 });
@@ -3301,6 +3433,8 @@ process.on('unhandledRejection', (err) => {
     console.log(`[boot] Loaded exchange stock (${Object.keys(shopStock).length} pet type(s)).`);
     const savedRain = await db.loadServerState('rainPool');
     if (savedRain && Number.isFinite(Number(savedRain.pool))) rainPool = Math.max(RAIN_BASE, Math.floor(Number(savedRain.pool)));
+
+    ignoreLists = await db.loadAllIgnores();
 
     const loadedRequests = await db.loadPendingWithdrawRequests();
     withdrawRequests = loadedRequests;
