@@ -3950,6 +3950,55 @@ body.cbn-open #cbnRoot .backdrop { opacity: 1; pointer-events: auto; }
     #cbnRoot .reel-item-icon{ width:64px !important; height:64px !important; }
     #cbnRoot .reel-item-text{ display:none; }
   }
+
+  /* ---------- Battle jackpot wheel: clean ring, no glow/3D/flash ---------- */
+  #cbnRoot .bv-jackpot-wheel-wrap{ background:rgba(15,12,17,.94) !important; backdrop-filter:none !important; gap:18px !important; }
+  #cbnRoot .bv-jackpot-title, #cbnRoot .bv-jackpot-glow, #cbnRoot .bv-jackpot-ambient-ring, #cbnRoot .bv-jackpot-flash{ display:none !important; }
+  #cbnRoot .bv-jackpot-slam-stage{ width:268px !important; height:268px !important; perspective:none !important; flex-shrink:0; --jp-r:106px; }
+  #cbnRoot .bv-jackpot-wheel{ border:6px solid var(--bg-panel-3) !important; box-shadow:0 10px 30px rgba(0,0,0,.45) !important; }
+  #cbnRoot .bv-jackpot-pointer{ top:-6px !important; border-left:11px solid transparent !important; border-right:11px solid transparent !important; border-top:18px solid #fff !important; filter:drop-shadow(0 2px 2px rgba(0,0,0,.6)) !important; z-index:6 !important; }
+  #cbnRoot .bv-jackpot-pointer::after{ display:none !important; }
+  #cbnRoot .bv-jackpot-hub{ width:62% !important; height:62% !important; margin:0 !important; top:19% !important; left:19% !important;
+    background:var(--bg-panel) !important; border:1px solid var(--border) !important; box-shadow:inset 0 0 0 6px var(--bg-deep) !important;
+    display:flex !important; flex-direction:column; align-items:center; justify-content:center; gap:2px; text-align:center; padding:0 18px; }
+  #cbnRoot .bv-jp-hub-top{ font-size:10.5px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--text-faint); }
+  #cbnRoot .bv-jp-hub-main{ font-family:var(--font-display); font-size:16px; font-weight:700; color:var(--text); max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #cbnRoot .bv-jp-hub-sub{ font-size:11.5px; color:var(--text-dim); min-height:14px; }
+  #cbnRoot .bv-jackpot-avatar-badge{ width:30px !important; height:30px !important; margin:-15px 0 0 -15px !important; border:2px solid #fff !important;
+    box-shadow:0 1px 4px rgba(0,0,0,.5) !important; font-size:10px !important; transition:none !important; }
+  #cbnRoot .bv-jackpot-avatar-badge.winner{ animation:none !important; outline:3px solid #fff; outline-offset:2px; }
+  #cbnRoot .bv-jackpot-legend{ gap:6px !important; max-width:520px !important; }
+  #cbnRoot .bv-jackpot-legend-item{ background:var(--bg-panel-2) !important; border:1px solid var(--border) !important; border-radius:var(--r-sm) !important;
+    box-shadow:none !important; padding:6px 10px !important; color:var(--text) !important; transform:none !important; gap:6px !important; }
+  #cbnRoot .bv-jackpot-legend-item.winner{ border-color:var(--seg) !important; background:color-mix(in srgb, var(--seg) 14%, var(--bg-panel-2)) !important; }
+  #cbnRoot .bv-jackpot-legend-swatch{ width:10px !important; height:10px !important; border-radius:3px !important; }
+  #cbnRoot .bv-jackpot-legend-avatar{ border:1.5px solid var(--bg-panel-2) !important; box-shadow:none !important; }
+  #cbnRoot .bv-jackpot-legend-name{ color:var(--text) !important; }
+  #cbnRoot .bv-jackpot-legend-pct{ color:var(--text-dim) !important; font-weight:700 !important; }
+  @media (max-width:640px){
+    #cbnRoot .bv-jackpot-slam-stage{ width:190px !important; height:190px !important; --jp-r:75px; }
+    #cbnRoot .bv-stage{ min-height:330px !important; }
+    #cbnRoot .bv-jackpot-wheel-wrap{ gap:12px !important; padding:14px 8px; }
+    #cbnRoot .bv-jp-hub-main{ font-size:13px; }
+    #cbnRoot .bv-jp-hub-top, #cbnRoot .bv-jp-hub-sub{ font-size:9.5px; }
+    #cbnRoot .bv-jackpot-legend-item{ padding:5px 8px !important; font-size:11.5px !important; }
+    #cbnRoot .bv-jackpot-avatar-badge{ width:26px !important; height:26px !important; margin:-13px 0 0 -13px !important; }
+  }
+
+  /* ---------- Borrow mode control ---------- */
+  #cbnRoot .bc-borrow-block{ grid-column:1 / -1; }
+  #cbnRoot .bc-borrow-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; }
+  #cbnRoot .bc-borrow-help{ font-size:12px; color:var(--text-faint); }
+  #cbnRoot .bc-borrow-body{ display:flex; align-items:center; gap:16px; margin-top:12px; }
+  #cbnRoot .bc-borrow-body[hidden]{ display:none; }
+  #cbnRoot .bc-borrow-body input[type=range]{ flex:1; -webkit-appearance:none; appearance:none; height:6px; border-radius:6px; outline:none;
+    background:linear-gradient(90deg, var(--purple) var(--fill,50%), var(--bg-panel-3) var(--fill,50%)); }
+  #cbnRoot .bc-borrow-body input[type=range]::-webkit-slider-thumb{ -webkit-appearance:none; width:18px; height:18px; border-radius:50%; background:#fff; border:3px solid var(--purple); cursor:pointer; }
+  #cbnRoot .bc-borrow-body input[type=range]::-moz-range-thumb{ width:14px; height:14px; border-radius:50%; background:#fff; border:3px solid var(--purple); cursor:pointer; }
+  #cbnRoot .bc-borrow-readout{ display:flex; flex-direction:column; align-items:flex-end; min-width:120px; }
+  #cbnRoot .bc-borrow-pct{ font-family:var(--font-display); font-weight:700; font-size:18px; color:var(--text); }
+  #cbnRoot .bc-borrow-note{ font-size:12px; color:var(--text-dim); white-space:nowrap; }
+  #cbnRoot .bh-borrow{ display:inline-block; margin-left:6px; padding:1px 7px; border-radius:6px; background:rgba(232,101,12,.14); color:var(--purple-bright); font-size:11px; font-weight:700; vertical-align:1px; }
   /* Result overlay never wraps into the winner box */
   #cbnRoot .bv-result-banner{ white-space:nowrap; max-width:92%; overflow:hidden; text-overflow:ellipsis; font-size:13px !important; padding:6px 14px !important; }
   #cbnRoot .bv-result-summary{ top:56px !important; }
@@ -5761,14 +5810,17 @@ function applyAvatarForUser(username){
     return;
   }
 
-  fetchRobloxAvatarUrl(username).then(url => {
-    if(!url) return;
-    if(users[username]) users[username].avatarUrl = url;
+  // Retries a few times with backoff - a single slow/failed lookup used to
+  // leave the top-bar avatar as initials for the whole session.
+  const attempt = (n) => fetchRobloxAvatarUrl(username).then(url => {
     if(currentUser !== username) return; // user switched/logged out before this resolved
+    if(!url){ if(n < 3) setTimeout(() => attempt(n + 1), 4000 * (n + 1)); return; }
+    if(users[username]) users[username].avatarUrl = url;
     imgEl.onload = () => imgEl.classList.add('loaded');
-    imgEl.onerror = () => imgEl.classList.remove('loaded');
+    imgEl.onerror = () => { imgEl.classList.remove('loaded'); if(n < 3) setTimeout(() => { if(users[username]) users[username].avatarUrl = null; attempt(n + 1); }, 4000 * (n + 1)); };
     imgEl.src = url;
-  }).catch(() => { /* keep initials avatar */ });
+  }).catch(() => { if(n < 3 && currentUser === username) setTimeout(() => attempt(n + 1), 4000 * (n + 1)); });
+  attempt(0);
 }
 
 // General-purpose avatar lookup for ANY username shown anywhere in the app
@@ -5779,6 +5831,38 @@ function applyAvatarForUser(username){
 // the topbar avatar already does.
 const sharedAvatarCache = {}; // username -> { url: string|null, cachedAt: number }
 const sharedAvatarPending = new Set();
+const sharedAvatarWaiters = {}; // username -> [callbacks] - EVERY place waiting on this avatar, not just the first
+// Once a photo arrives, upgrade every initials placeholder for that user that
+// is already on the page (chat, lobbies, battles, leaderboard...). Before,
+// only the first caller was re-rendered, so the same player could show a
+// photo in one spot and initials everywhere else.
+function upgradeAvatarPlaceholders(username, url){
+  if(!url) return;
+  let sel;
+  try { sel = `span[data-profile-user="${CSS.escape(username)}"]`; } catch(e){ return; }
+  document.querySelectorAll(sel).forEach((span) => {
+    const holder = span.parentElement;
+    if(!holder) return;
+    const img = document.createElement('img');
+    img.src = url;
+    img.dataset.profileUser = username;
+    img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:50%;cursor:pointer;';
+    img.onerror = () => { img.replaceWith(span); };
+    span.replaceWith(img);
+  });
+}
+// Called from an <img onerror>: fall back to initials instead of an empty circle.
+function avatarImgFailed(img){
+  const username = img.getAttribute('data-profile-user') || '';
+  const span = document.createElement('span');
+  span.setAttribute('data-profile-user', username);
+  span.style.cssText = 'display:contents; cursor:pointer;';
+  span.textContent = initials(username);
+  img.replaceWith(span);
+  // Forget the broken URL so the next render tries a fresh lookup.
+  if(sharedAvatarCache[username]) sharedAvatarCache[username] = { url: null, cachedAt: Date.now() - AVATAR_RETRY_COOLDOWN_MS + 5000 };
+  if(users[username]) users[username].avatarUrl = null;
+}
 // A failed lookup used to be cached as permanent - once ANY transient
 // issue (a rate limit, a brief server hiccup, a flaky CORS-relay fallback)
 // hit on the first attempt for a given username, that user's avatar would
@@ -5794,13 +5878,21 @@ function getCachedAvatarUrl(username, onLoaded){
   const isStaleFailure = entry && entry.url == null && (Date.now() - entry.cachedAt) > AVATAR_RETRY_COOLDOWN_MS;
   if(entry && !isStaleFailure) return entry.url;
 
+  if(typeof onLoaded === 'function'){
+    (sharedAvatarWaiters[username] = sharedAvatarWaiters[username] || []).push(onLoaded);
+  }
   if(!sharedAvatarPending.has(username)){
     sharedAvatarPending.add(username);
     fetchRobloxAvatarUrl(username).then(url => {
       sharedAvatarCache[username] = { url: url || null, cachedAt: Date.now() };
       sharedAvatarPending.delete(username);
-      if(url && typeof onLoaded === 'function') onLoaded();
-    }).catch(() => { sharedAvatarPending.delete(username); sharedAvatarCache[username] = { url: null, cachedAt: Date.now() }; });
+      const waiters = sharedAvatarWaiters[username] || [];
+      delete sharedAvatarWaiters[username];
+      if(url){
+        upgradeAvatarPlaceholders(username, url);
+        waiters.forEach((cb) => { try { cb(); } catch(e){} });
+      }
+    }).catch(() => { sharedAvatarPending.delete(username); delete sharedAvatarWaiters[username]; sharedAvatarCache[username] = { url: null, cachedAt: Date.now() }; });
   }
   // While a (re)fetch is in flight, keep showing whatever we last knew
   // (even a stale failure) instead of flashing back to initials and then
@@ -5819,7 +5911,7 @@ function escapeHtml(str){
 }
 function avatarCircleInner(username, onLoaded){
   const url = getCachedAvatarUrl(username, onLoaded);
-  if(url) return `<img src="${escapeHtml(url)}" data-profile-user="${escapeHtml(username)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;cursor:pointer;" onerror="this.style.display='none'">`;
+  if(url) return `<img src="${escapeHtml(url)}" data-profile-user="${escapeHtml(username)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;cursor:pointer;" onerror="avatarImgFailed(this)">`;
   return `<span data-profile-user="${escapeHtml(username)}" style="display:contents; cursor:pointer;">${escapeHtml(initials(username))}</span>`;
 }
 
@@ -5902,7 +5994,7 @@ async function fetchRobloxAvatarUrl(username){
     if(res.ok){
       const data = await res.json();
       if(data.userId && users[username]) users[username].robloxId = data.userId;
-      return data.imageUrl || null;
+      return data.imageUrl || null; // server reached fine: either a photo, or genuinely none (e.g. bots)
     }
   } catch(err){
     console.warn('[roblox pfp] server avatar lookup failed, falling back to CORS relays:', err.message || err);
@@ -11421,7 +11513,7 @@ function renderAdminWithdrawList(){
             <div class="bv-jackpot-wheel" id="cbnBvJackpotWheel">
               <div class="bv-jackpot-avatars" id="cbnBvJackpotAvatars"></div>
             </div>
-            <div class="bv-jackpot-hub"><span class="bv-jackpot-hub-coin coin-emoji-static">🪙</span></div>
+            <div class="bv-jackpot-hub"><div class="bv-jp-hub-top">Jackpot</div><div class="bv-jp-hub-main" id="cbnBvJackpotHubMain">Spinning…</div><div class="bv-jp-hub-sub" id="cbnBvJackpotHubSub"></div></div>
             <div class="bv-jackpot-flash" id="cbnBvJackpotFlash"></div>
           </div>
         </div>
@@ -11476,6 +11568,25 @@ function renderAdminWithdrawList(){
           <button class="bc-mode-btn" data-winmode="crazy" title="Lowest total value wins"><span class="bc-mode-name">Crazy</span><span class="bc-mode-desc">Lowest</span></button>
           <button class="bc-mode-btn" data-winmode="jackpot" title="Odds match your share of the pot"><span class="bc-mode-name">Jackpot</span><span class="bc-mode-desc">By share</span></button>
           <button class="bc-mode-btn" data-winmode="terminal" title="Only the biggest pull on the final case counts"><span class="bc-mode-name">Terminal</span><span class="bc-mode-desc">Final case</span></button>
+        </div>
+      </div>
+      <div class="bc-config-block bc-borrow-block">
+        <div class="bc-borrow-head">
+          <div>
+            <div class="bc-config-title" style="margin-bottom:2px;">Borrow</div>
+            <div class="bc-borrow-help">Cases cost less, pulls are worth the same % less.</div>
+          </div>
+          <label class="bc-switch" title="Borrow mode">
+            <input type="checkbox" id="cbnBcBorrowToggle">
+            <span class="bc-switch-slider"></span>
+          </label>
+        </div>
+        <div class="bc-borrow-body" id="cbnBcBorrowBody" hidden>
+          <input type="range" id="cbnBcBorrowRange" min="20" max="80" step="5" value="50">
+          <div class="bc-borrow-readout">
+            <span class="bc-borrow-pct" id="cbnBcBorrowPct">50%</span>
+            <span class="bc-borrow-note" id="cbnBcBorrowNote">Pay 50% · Win 50%</span>
+          </div>
         </div>
       </div>
     </div>
@@ -11731,7 +11842,7 @@ function renderAdminWithdrawList(){
 
   function mockBroadcastBattles(){
     mpDispatch({ type: 'casebattle:list', battles: mockBattles.map((b) => ({
-      id: b.id, creator: b.creator, status: b.status, mode: b.mode,
+      id: b.id, creator: b.creator, status: b.status, mode: b.mode, winMode: b.winMode, borrow: b.borrow || 0,
       caseQueue: b.caseQueue, caseNames: b.caseNames,
       players: b.players.map((p) => ({ username: p.username, isBot: p.isBot, team: p.team, total: p.total || 0 })),
       winner: b.winner, winnerValue: b.winnerValue,
@@ -11760,7 +11871,8 @@ function renderAdminWithdrawList(){
       const pool = getPool(b.caseQueue[roundIdx]);
       const isFinalRound = roundIdx === b.caseQueue.length - 1;
       const roundPlayers = b.players.map((p) => {
-        const pulled = weightedPick(pool);
+        const rawPull = weightedPick(pool);
+        const pulled = b.borrow ? { ...rawPull, value: Math.floor(rawPull.value * (100 - b.borrow) / 100) } : rawPull;
         p.total = (p.total || 0) + pulled.value;
         if (isFinalRound) p.lastPull = pulled.value;
         return { username: p.username, pulled, total: p.total };
@@ -11829,7 +11941,7 @@ function renderAdminWithdrawList(){
         if (typeof addCoins === 'function') addCoins(payout);
         if (typeof trackWin === 'function') trackWin(payout);
       } else if (typeof trackLoss === 'function') {
-        const cost = b.caseQueue.reduce((sum, idx) => sum + CASE_DATA[idx].price, 0);
+        const cost = borrowedPrice(b.caseQueue.reduce((sum, idx) => sum + CASE_DATA[idx].price, 0), b.borrow || 0);
         trackLoss(cost);
       }
     }
@@ -11854,7 +11966,8 @@ function renderAdminWithdrawList(){
   }
 
   mpOnSend('casebattle:create', (msg) => {
-    const cost = msg.caseQueue.reduce((sum, idx) => sum + CASE_DATA[idx].price, 0);
+    const mockBorrow = (Number(msg.borrow) >= 20 && Number(msg.borrow) <= 80) ? Math.round(Number(msg.borrow) / 5) * 5 : 0;
+    const cost = borrowedPrice(msg.caseQueue.reduce((sum, idx) => sum + CASE_DATA[idx].price, 0), mockBorrow);
     if (typeof spendCoins === 'function' && !spendCoins(cost)) {
       if (typeof showToast === 'function') showToast("You don't have enough coins for this battle.", true);
       return;
@@ -11865,7 +11978,7 @@ function renderAdminWithdrawList(){
     const WIN_MODES = new Set(['normal', 'crazy', 'jackpot', 'terminal']);
     const winMode = WIN_MODES.has(msg.winMode) ? msg.winMode : 'normal';
     mockBattles.push({
-      id, creator: currentUser, status: 'waiting', mode: msg.mode, winMode,
+      id, creator: currentUser, status: 'waiting', mode: msg.mode, winMode, borrow: mockBorrow,
       caseQueue: msg.caseQueue, caseNames, players: [{ username: currentUser, isBot: false, team: 0, total: 0, lastPull: 0 }],
     });
     mockBroadcastBattles();
@@ -11909,7 +12022,7 @@ function renderAdminWithdrawList(){
     if (b.creator !== currentUser || b.status !== 'waiting') return;
     const otherReal = b.players.some((p) => p.username !== currentUser && !p.isBot);
     if (otherReal) return;
-    const cost = b.caseQueue.reduce((sum, i) => sum + CASE_DATA[i].price, 0);
+    const cost = borrowedPrice(b.caseQueue.reduce((sum, i) => sum + CASE_DATA[i].price, 0), b.borrow || 0);
     if (typeof addCoins === 'function') addCoins(cost);
     if (typeof untrackWager === 'function') untrackWager(cost);
     mockBattles.splice(idx, 1);
@@ -11963,7 +12076,7 @@ function renderAdminWithdrawList(){
         return `
           <div class="bh-row ${youWon ? 'won' : ''}">
             <div class="bh-main">
-              <div class="bh-title">${modeLabel} · ${b.caseNames.length} case${b.caseNames.length > 1 ? 's' : ''}</div>
+              <div class="bh-title">${modeLabel} · ${b.caseNames.length} case${b.caseNames.length > 1 ? 's' : ''}${b.borrow ? ` <span class="bh-borrow">Borrow ${b.borrow}%</span>` : ''}</div>
               <div class="bh-cases">${caseThumbs}${more}</div>
             </div>
             <div class="bh-result">
@@ -11983,7 +12096,7 @@ function renderAdminWithdrawList(){
       return `
         <div class="bh-row ${b.status === 'running' ? 'live' : ''}">
           <div class="bh-main">
-            <div class="bh-title">${b.status === 'running' ? '<span class="bh-live-dot"></span>' : ''}${escapeHtml(b.creator)} · ${modeLabel} · ${b.caseNames.length} case${b.caseNames.length > 1 ? 's' : ''}</div>
+            <div class="bh-title">${b.status === 'running' ? '<span class="bh-live-dot"></span>' : ''}${escapeHtml(b.creator)} · ${modeLabel} · ${b.caseNames.length} case${b.caseNames.length > 1 ? 's' : ''}${b.borrow ? ` <span class="bh-borrow">Borrow ${b.borrow}%</span>` : ''}</div>
             <div class="bh-cases">${caseThumbs}${more}</div>
           </div>
           <div class="bh-result">
@@ -12373,6 +12486,10 @@ function renderAdminWithdrawList(){
     updateCreationPill();
   }
 
+  // Borrow mode (0 = off, otherwise 20-80). The server re-validates and
+  // computes every price itself - this is only for display.
+  let borrowPct = 0;
+  function borrowedPrice(full, pct){ return pct ? Math.max(1, Math.ceil(full * (100 - pct) / 100)) : full; }
   function updateCreationPill() {
     let totalCases = 0, totalCost = 0;
     CASE_DATA.forEach((c, i) => {
@@ -12381,8 +12498,28 @@ function renderAdminWithdrawList(){
       totalCost += count * c.price;
     });
     bcCasesCount.textContent = `${totalCases}/${MAX_CASES}`;
-    bcTotalValue.textContent = commas(totalCost);
+    bcTotalValue.textContent = commas(borrowedPrice(totalCost, borrowPct));
   }
+  (function initBorrowControl(){
+    const toggle = document.getElementById('cbnBcBorrowToggle');
+    const body = document.getElementById('cbnBcBorrowBody');
+    const range = document.getElementById('cbnBcBorrowRange');
+    const pctEl = document.getElementById('cbnBcBorrowPct');
+    const noteEl = document.getElementById('cbnBcBorrowNote');
+    if (!toggle || !range) return;
+    const sync = () => {
+      const v = Number(range.value);
+      borrowPct = toggle.checked ? v : 0;
+      body.hidden = !toggle.checked;
+      pctEl.textContent = v + '%';
+      noteEl.textContent = `Pay ${100 - v}% · Win ${100 - v}%`;
+      range.style.setProperty('--fill', ((v - 20) / 60 * 100) + '%');
+      updateCreationPill();
+    };
+    toggle.addEventListener('change', sync);
+    range.addEventListener('input', sync);
+    sync();
+  })();
 
   function setSelectedMode(key) {
     if (!MODE_CONFIGS[key]) return;
@@ -12460,7 +12597,7 @@ function renderAdminWithdrawList(){
     });
     if (queue.length === 0) return;
     hideCreationScreen();
-    mpSend({ type: 'casebattle:create', mode: selectedModeKey, winMode: selectedWinModeKey, caseQueue: queue });
+    mpSend({ type: 'casebattle:create', mode: selectedModeKey, winMode: selectedWinModeKey, caseQueue: queue, borrow: borrowPct });
     showToast('Creating battle...');
   });
 
@@ -12481,7 +12618,7 @@ function renderAdminWithdrawList(){
     if (bvMarker) bvMarker.hidden = true;
     callBotsBtn.hidden = true; // replaced by the per-seat buttons rendered below
     const cfg = MODE_CONFIGS[b.mode] || MODE_CONFIGS['ffa-2'];
-    bvModeLabel.textContent = cfg.isTeam ? '2v2' : `${cfg.count} Player FFA`;
+    bvModeLabel.textContent = (cfg.isTeam ? '2v2' : `${cfg.count} Player FFA`) + (b.borrow ? ` · Borrow ${b.borrow}%` : '');
     bvProgress.textContent = `Case 1 of ${b.caseQueue.length}`;
     renderWaitSlots(b);
   }
@@ -12610,6 +12747,7 @@ function renderAdminWithdrawList(){
     battleQueue = battle.caseQueue;
     currentBattleConfig = { count: battle.players.length, isTeam: battle.mode === 'team-2v2', teamSize: 2 };
     currentBattleWinMode = battle.winMode || 'normal';
+    currentBattleBorrow = battle.borrow || 0;
 
     battlePlayers = battle.players.map((p) => ({
       name: p.username, isYou: p.username === currentUser, isBot: p.isBot,
@@ -12620,7 +12758,7 @@ function renderAdminWithdrawList(){
     });
 
     const pct = (100 / battlePlayers.length).toFixed(1);
-    bvModeLabel.textContent = currentBattleConfig.isTeam ? '2v2' : `${battlePlayers.length} Player FFA`;
+    bvModeLabel.textContent = (currentBattleConfig.isTeam ? '2v2' : `${battlePlayers.length} Player FFA`) + (currentBattleBorrow ? ` · Borrow ${currentBattleBorrow}%` : '');
 
     bvCaseStrip.innerHTML = '';
     battleQueue.forEach((caseIdx, i) => {
@@ -12685,7 +12823,7 @@ function renderAdminWithdrawList(){
     }
     document.querySelectorAll('#cbnRoot .bv-player-total-pill .coin-emoji-static').forEach((el) => { el.outerHTML = COIN_ICON_HTML; });
 
-    const battleTotalCost = battleQueue.reduce((sum, idx) => sum + CASE_DATA[idx].price, 0);
+    const battleTotalCost = borrowedPrice(battleQueue.reduce((sum, idx) => sum + CASE_DATA[idx].price, 0), currentBattleBorrow);
     myTotalCasesOpened = battleQueue.length;
     myTotalValueWon = battleTotalCost;
     refreshHeaderStats();
@@ -13098,6 +13236,7 @@ function renderAdminWithdrawList(){
 
   const TEAM_COLORS = ["#9e84ff", "#ff6e96"];
   let currentBattleConfig = { count: 4, isTeam: false };
+  let currentBattleBorrow = 0; // Borrow % of the battle being shown (0 = off)
   let currentBattleWinMode = 'normal'; // set fresh in beginRunningBattle - only 'jackpot' actually needs the % chip, since it's the only mode where odds are proportional to pot share
 
   function runCountdown(n, onDone, runToken) {
@@ -13227,7 +13366,9 @@ function renderAdminWithdrawList(){
   // guessed or recomputed client-side), spins it, and lands the pointer
   // exactly on the pre-decided winner - the spin is pure animation over an
   // outcome the server already settled, same as the rest of the reveal.
-  const JACKPOT_WHEEL_COLORS = ["#9e84ff", "#ff6e96", "#64dcc8", "#ffb454", "#7aa2ff", "#ff8fd6", "#f4c430", "#5fd0ff"];
+  const JACKPOT_WHEEL_COLORS = ["#e8650c", "#7c5cff", "#2bb39a", "#e5b62e", "#d9467a", "#3b8eea", "#a8794f", "#8fbf3a"];
+  const JACKPOT_GAP_COLOR = "#17131a";
+  const JACKPOT_BADGE_RADIUS = 104; // px from centre to the middle of the coloured ring
   const bvJackpotSlam = document.getElementById('cbnBvJackpotSlam');
   const bvJackpotAvatars = document.getElementById('cbnBvJackpotAvatars');
   const bvJackpotFlash = document.getElementById('cbnBvJackpotFlash');
@@ -13266,7 +13407,16 @@ function renderAdminWithdrawList(){
       boundaries[boundaries.length - 1].end = 100;
     }
 
-    const gradientStops = boundaries.map((b) => `${b.color} ${b.start}% ${b.end}%`).join(', ');
+    // Thin dark gaps between slices so each player's share reads as its own
+    // segment (one solid ring if there's only a single slice).
+    const gap = boundaries.length > 1 ? 0.35 : 0;
+    const gradientStops = boundaries.map((b) => gap
+      ? `${JACKPOT_GAP_COLOR} ${b.start}% ${b.start + gap}%, ${b.color} ${b.start + gap}% ${b.end - gap}%, ${JACKPOT_GAP_COLOR} ${b.end - gap}% ${b.end}%`
+      : `${b.color} ${b.start}% ${b.end}%`).join(', ');
+    const hubMain = document.getElementById('cbnBvJackpotHubMain');
+    const hubSub = document.getElementById('cbnBvJackpotHubSub');
+    if (hubMain) { hubMain.textContent = 'Spinning…'; hubMain.style.color = ''; }
+    if (hubSub) hubSub.textContent = '';
     bvJackpotWheel.style.background = `conic-gradient(${gradientStops})`;
     bvJackpotWheel.style.transform = 'rotate(0deg)';
 
@@ -13276,10 +13426,10 @@ function renderAdminWithdrawList(){
         ? members.slice(0, 2).map((m) => `<span class="bv-jackpot-legend-avatar" style="border-color:${b.color};">${avatarCircleInner(m.name)}</span>`).join('')
         : '';
       return `
-        <div class="bv-jackpot-legend-item" data-seg-label="${b.label}" style="border-left-color:${b.color}; color:${b.color};">
-          <span class="bv-jackpot-legend-avatars">${avatarsHtml}</span>
+        <div class="bv-jackpot-legend-item" data-seg-label="${escapeHtml(b.label)}" style="--seg:${b.color};">
           <span class="bv-jackpot-legend-swatch" style="background:${b.color}"></span>
-          <span class="bv-jackpot-legend-name">${b.label}</span>
+          <span class="bv-jackpot-legend-avatars">${avatarsHtml}</span>
+          <span class="bv-jackpot-legend-name">${escapeHtml(b.label)}</span>
           <span class="bv-jackpot-legend-pct">${b.percent}%</span>
         </div>
       `;
@@ -13294,7 +13444,7 @@ function renderAdminWithdrawList(){
       const members = membersForSegment(b.key);
       const midDeg = ((b.start + b.end) / 2 / 100) * 360;
       const inner = members.length ? avatarCircleInner(members[0].name) : (b.label || '?').slice(0, 2).toUpperCase();
-      return `<div class="bv-jackpot-avatar-badge" data-seg-label="${b.label}" style="background:${b.color}; color:${b.color}; border-color:${b.color}; box-shadow:0 0 0 2px rgba(0,0,0,0.4), 0 0 10px ${b.color}; transform:rotate(${midDeg}deg) translate(0, -80px) rotate(${-midDeg}deg);">${inner}</div>`;
+      return `<div class="bv-jackpot-avatar-badge" data-seg-label="${escapeHtml(b.label)}" style="background:${b.color}; transform:rotate(${midDeg}deg) translate(0, calc(-1 * var(--jp-r, ${JACKPOT_BADGE_RADIUS}px))) rotate(${-midDeg}deg);">${inner}</div>`;
     }).join('');
 
     bvJackpotFlash.classList.remove('flashing');
@@ -13318,25 +13468,12 @@ function renderAdminWithdrawList(){
       // influence the outcome, it only plays it out. ====
       bvJackpotWrap.hidden = false;
       const entranceAnim = bvJackpotSlam.animate([
-        { transform: 'rotateY(-108deg) rotateX(10deg) scale(0.48)', opacity: 0.1, offset: 0, easing: 'cubic-bezier(0.55, 0, 0.85, 0.35)' },
-        { transform: 'rotateY(150deg) rotateX(-14deg) scale(0.78)', opacity: 1, offset: 0.28, easing: 'ease-in-out' },
-        { transform: 'rotateY(-55deg) rotateX(8deg) scale(0.95)', offset: 0.55, easing: 'ease-out' },
-        { transform: 'rotateY(18deg) rotateX(-3deg) scale(1.04)', offset: 0.78, easing: 'ease-out' },
-        { transform: 'rotateY(-5deg) rotateX(1deg) scale(0.99)', offset: 0.92, easing: 'ease-out' },
-        { transform: 'rotateY(0deg) rotateX(0deg) scale(1)', offset: 1 },
-      ], { duration: 1250, fill: 'forwards' });
+        { transform: 'scale(0.92)', opacity: 0 },
+        { transform: 'scale(1)', opacity: 1 },
+      ], { duration: 260, easing: 'ease-out', fill: 'forwards' });
       await entranceAnim.finished;
       if (isStaleRun(runToken)) return;
-
-      // A little weight/impact once it's landed flat, before it starts spinning
-      playLand();
-      bvJackpotSlam.animate([
-        { transform: 'scale(1, 1)', offset: 0 },
-        { transform: 'scale(1.05, 0.93)', offset: 0.35 },
-        { transform: 'scale(0.98, 1.02)', offset: 0.7 },
-        { transform: 'scale(1, 1)', offset: 1 },
-      ], { duration: 260, easing: 'ease-out' });
-      await wait(260);
+      await wait(250);
       if (isStaleRun(runToken)) return;
 
       // ==== 5-6: the actual Jackpot spin - quick acceleration, several fast
@@ -13352,18 +13489,12 @@ function renderAdminWithdrawList(){
       const targetDeg = (targetPercent / 100) * 360;
       const fullSpins = 6 * 360;
       const finalRotation = fullSpins - targetDeg;
-      const overshootDeg = 16; // slight past-the-mark spin before settling back, like a mechanical needle
-
-      const spinDuration = 4400;
+      const spinDuration = 5200;
       stopRoll = startRollSound(spinDuration);
       const spinAnim = bvJackpotWheel.animate([
-        { transform: 'rotate(0deg)', offset: 0, easing: 'cubic-bezier(0.4, 0, 0.9, 0.3)' },      // quick acceleration
-        { transform: `rotate(${finalRotation * 0.12}deg)`, offset: 0.08, easing: 'linear' },       // whip up to speed
-        { transform: `rotate(${finalRotation * 0.60}deg)`, offset: 0.45, easing: 'cubic-bezier(0.15, 0.7, 0.25, 1)' }, // several fast rotations, then starts slowing
-        { transform: `rotate(${finalRotation * 0.90}deg)`, offset: 0.76, easing: 'cubic-bezier(0.1, 0.7, 0.2, 1)' },   // gradual slowing, progressively smaller rotations
-        { transform: `rotate(${finalRotation + overshootDeg}deg)`, offset: 0.93, easing: 'cubic-bezier(0.3, 1.3, 0.6, 1)' }, // slight overshoot past the winner
-        { transform: `rotate(${finalRotation}deg)`, offset: 1 },  // settle/bounce back exactly onto the winner
-      ], { duration: spinDuration, fill: 'forwards' });
+        { transform: 'rotate(0deg)' },
+        { transform: `rotate(${finalRotation}deg)` },
+      ], { duration: spinDuration, easing: 'cubic-bezier(0.12, 0.72, 0.12, 1)', fill: 'forwards' });
 
       await spinAnim.finished;
       stopRoll();
@@ -13373,14 +13504,15 @@ function renderAdminWithdrawList(){
       bvJackpotWheel.style.transform = `rotate(${finalRotation}deg)`;
 
       // ---- Winner reveal: flash + glow-pulse on the winning face/legend row ----
-      bvJackpotFlash.classList.add('flashing');
       playLand();
+      if (hubMain) { hubMain.textContent = winnerSeg.label; hubMain.style.color = winnerSeg.color; }
+      if (hubSub) hubSub.textContent = `won with ${winnerSeg.percent}%`;
       const winnerBadge = bvJackpotAvatars.querySelector(`[data-seg-label="${CSS.escape(winnerSeg.label)}"]`);
       if (winnerBadge) winnerBadge.classList.add('winner');
       const winnerLegendItem = bvJackpotLegend.querySelector(`[data-seg-label="${CSS.escape(winnerSeg.label)}"]`);
       if (winnerLegendItem) winnerLegendItem.classList.add('winner');
 
-      await wait(900);
+      await wait(1600);
     } finally {
       if (stopRoll) stopRoll();
       bvJackpotSlam.getAnimations().forEach((a) => a.cancel());

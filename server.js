@@ -1109,6 +1109,21 @@ const WIN_MODES = new Set(['normal', 'crazy', 'jackpot', 'terminal']);
 function battleCost(caseQueue) {
   return caseQueue.reduce((sum, idx) => sum + caseData[idx].price, 0);
 }
+// Borrow mode: the creator picks 20-80% (steps of 5). Every player pays that
+// much LESS for the cases, and every pull is worth that much less too - so the
+// pot, the payout and the odds all scale together. 0 = off.
+const BORROW_MIN = 20, BORROW_MAX = 80, BORROW_STEP = 5;
+function parseBorrow(v) {
+  const n = Math.round(Number(v));
+  if (!Number.isFinite(n) || n < BORROW_MIN || n > BORROW_MAX) return 0;
+  return Math.round(n / BORROW_STEP) * BORROW_STEP;
+}
+function borrowMultiplier(borrow) { return (100 - (borrow || 0)) / 100; }
+// What one seat actually costs (rounded UP so borrowing never undercharges).
+function battleEntryCost(caseQueue, borrow) {
+  const full = battleCost(caseQueue);
+  return borrow ? Math.max(1, Math.ceil(full * borrowMultiplier(borrow))) : full;
+}
 // Picks a team for a new auto-assigned player (a bot, or a join that didn't
 // request a specific side) based on ACTUAL current occupancy - never blind
 // alternation. Team choice (see handleCaseBattleJoin) means a team can fill
@@ -1131,7 +1146,7 @@ function broadcastBattles() {
   broadcast({
     type: 'casebattle:list',
     battles: [...battles.values()].map((b) => ({
-      id: b.id, creator: b.creator, status: b.status, mode: b.mode, winMode: b.winMode,
+      id: b.id, creator: b.creator, status: b.status, mode: b.mode, winMode: b.winMode, borrow: b.borrow || 0,
       caseQueue: b.caseQueue, caseNames: b.caseNames,
       players: b.players.map((p) => ({ username: p.username, isBot: p.isBot, team: p.team, total: p.total || 0 })),
       winner: b.winner, winnerValue: b.winnerValue,
@@ -1154,7 +1169,8 @@ function handleCaseBattleCreate(username, msg) {
   if (!modeConfigs[msg.mode]) msg.mode = 'ffa-2';
   const cfg = modeConfigs[msg.mode];
   const winMode = WIN_MODES.has(msg.winMode) ? msg.winMode : 'normal';
-  const cost = battleCost(msg.caseQueue);
+  const borrow = parseBorrow(msg.borrow);
+  const cost = battleEntryCost(msg.caseQueue, borrow);
   const u = ensureUser(username);
   if (u.coins < cost) return send(usernameToSocket.get(username), { type: 'error', message: "You don't have enough coins for this battle." });
   const before = u.coins;
@@ -1167,7 +1183,7 @@ function handleCaseBattleCreate(username, msg) {
   const id = 'battle_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
   const caseNames = msg.caseQueue.map((i) => caseData[i].name);
   battles.set(id, {
-    id, creator: username, status: 'waiting', mode: msg.mode, winMode,
+    id, creator: username, status: 'waiting', mode: msg.mode, winMode, borrow,
     caseQueue: msg.caseQueue, caseNames, cfg,
     players: [{ username, isBot: false, team: 0, total: 0, lastPull: 0, escrowId: creatorEscrowId }],
   });
@@ -1191,7 +1207,7 @@ function handleCaseBattleJoin(username, msg) {
   if (b.players.some((p) => p.username === username)) {
     return send(usernameToSocket.get(username), { type: 'error', message: "You're already in this battle." });
   }
-  const cost = battleCost(b.caseQueue);
+  const cost = battleEntryCost(b.caseQueue, b.borrow);
   const u = ensureUser(username);
   if (u.coins < cost) return send(usernameToSocket.get(username), { type: 'error', message: "You don't have enough coins for this battle." });
 
@@ -1264,7 +1280,7 @@ function handleCaseBattleCancel(username, msg) {
   if (!b || b.creator !== username || b.status !== 'waiting') return;
   const anyoneElseJoined = b.players.length > 1;
   if (anyoneElseJoined) return;
-  const cost = battleCost(b.caseQueue);
+  const cost = battleEntryCost(b.caseQueue, b.borrow);
   const u = ensureUser(username);
   const before = u.coins;
   u.coins += cost;
@@ -1291,11 +1307,14 @@ function startBattle(b) {
 }
 
 async function runBattle(b) {
+  const pullMult = borrowMultiplier(b.borrow);
   for (let roundIdx = 0; roundIdx < b.caseQueue.length; roundIdx++) {
     const pool = getPool(b.caseQueue[roundIdx]);
     const isFinalRound = roundIdx === b.caseQueue.length - 1;
     const roundPlayers = b.players.map((p) => {
-      const pulled = weightedPick(pool);
+      const rawPull = weightedPick(pool);
+      // Borrow mode: every pull is worth borrow% less (same cut as the price).
+      const pulled = pullMult === 1 ? rawPull : { ...rawPull, value: Math.floor(rawPull.value * pullMult) };
       p.total = (p.total || 0) + pulled.value;
       if (isFinalRound) p.lastPull = pulled.value; // Terminal only cares about this final-round pull
       return { username: p.username, pulled, total: p.total };
@@ -1305,7 +1324,7 @@ async function runBattle(b) {
   }
 
   const battleTotal = b.players.reduce((s, p) => s + p.total, 0); // winner takes ALL pulled value, not just their own side
-  const perPlayerCost = battleCost(b.caseQueue);
+  const perPlayerCost = battleEntryCost(b.caseQueue, b.borrow);
   const winMode = WIN_MODES.has(b.winMode) ? b.winMode : 'normal';
 
   // Group players the same way regardless of mode - teams for Team battles,
@@ -3192,7 +3211,7 @@ function broadcastBattlesTo(ws) {
   send(ws, {
     type: 'casebattle:list',
     battles: [...battles.values()].map((b) => ({
-      id: b.id, creator: b.creator, status: b.status, mode: b.mode,
+      id: b.id, creator: b.creator, status: b.status, mode: b.mode, winMode: b.winMode, borrow: b.borrow || 0,
       caseQueue: b.caseQueue, caseNames: b.caseNames,
       players: b.players.map((p) => ({ username: p.username, isBot: p.isBot, team: p.team, total: p.total || 0 })),
       winner: b.winner, winnerValue: b.winnerValue,
