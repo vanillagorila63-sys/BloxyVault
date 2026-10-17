@@ -20,6 +20,11 @@ const db = require('./db');
 
 const gameData = JSON.parse(fs.readFileSync(path.join(__dirname, 'gameData.json'), 'utf8'));
 const { petCatalog, caseData, caseItems, casePools, modeConfigs, botNamesBattles } = gameData;
+// Group mode (case battles): 2-4 players open the same cases together and the
+// whole pot is split equally between everyone, no matter who pulled what.
+modeConfigs['group-2'] = { count: 2, isTeam: false, isGroup: true };
+modeConfigs['group-3'] = { count: 3, isTeam: false, isGroup: true };
+modeConfigs['group-4'] = { count: 4, isTeam: false, isGroup: true };
 
 const STARTING_BALANCE = 0; // normal accounts start with nothing - no free coins on creation
 const CASEBATTLE_ABANDON_MS = 5 * 60 * 1000; // if a creator walks away without calling bots or getting joined, clean it up after 5 minutes
@@ -809,9 +814,9 @@ function resolveCoinflip(creator, creatorSide, creatorItems, joiner, joinerSide,
   const wonAmount = stakeValue(loserItems);
   addItems(winner, winnerFinalItems);
   trackWin(winner, wonAmount);
-  persistUser(winner, { type: 'coinflip_win', amount: 0, itemsTouched: [...new Set(winnerFinalItems)] });
+  persistUser(winner, { type: 'coinflip_win', amount: 0, itemsTouched: [...new Set(winnerFinalItems)], game: { game: 'coinflip', wager: stakeValue(winnerOwnItems), payout: stakeValue(winnerFinalItems) } });
   trackLoss(loser, wonAmount);
-  persistUser(loser, { type: 'coinflip_loss', amount: 0 });
+  persistUser(loser, { type: 'coinflip_loss', amount: 0, game: { game: 'coinflip', wager: stakeValue(loserItems), payout: 0 } });
   if (rakeItems.length) {
     addItems(ADMIN_USERNAME, rakeItems);
     persistUser(ADMIN_USERNAME, { type: 'coinflip_rake', amount: 0, itemsTouched: [...new Set(rakeItems)] });
@@ -1069,9 +1074,9 @@ function resolveDiceDuel(duel, finalRoll) {
   const wonAmount = stakeValue(loserItems);
   addItems(winner, winnerFinalItems);
   trackWin(winner, wonAmount);
-  persistUser(winner, { type: 'diceduel_win', amount: 0, itemsTouched: [...new Set(winnerFinalItems)], escrowRelease: [duel.creatorEscrowId, duel.joinerEscrowId].filter(Boolean) });
+  persistUser(winner, { type: 'diceduel_win', amount: 0, itemsTouched: [...new Set(winnerFinalItems)], escrowRelease: [duel.creatorEscrowId, duel.joinerEscrowId].filter(Boolean), game: { game: 'diceduel', wager: stakeValue(winnerOwnItems), payout: stakeValue(winnerFinalItems) } });
   trackLoss(loser, wonAmount);
-  persistUser(loser, { type: 'diceduel_loss', amount: 0 });
+  persistUser(loser, { type: 'diceduel_loss', amount: 0, game: { game: 'diceduel', wager: stakeValue(loserItems), payout: 0 } });
   if (rakeItems.length) {
     addItems(ADMIN_USERNAME, rakeItems);
     persistUser(ADMIN_USERNAME, { type: 'diceduel_rake', amount: 0, itemsTouched: [...new Set(rakeItems)] });
@@ -1227,11 +1232,17 @@ function resolveJackpot() {
   if (coinsPortion > 0) u.coins += coinsPortion;
   if (allItems.length) addItems(winner.username, allItems);
   trackWin(winner.username, total);
-  persistUser(winner.username, { type: 'jackpot_win', amount: coinsPortion, balanceBefore: before, balanceAfter: u.coins, itemsTouched: [...new Set(allItems)], escrowRelease: round.entrants.map((e) => e.escrowId).filter(Boolean) });
+  // Someone can enter more than once in a round - history shows one row per player.
+  const jpStakeBy = new Map();
+  for (const e of round.entrants) jpStakeBy.set(e.username, (jpStakeBy.get(e.username) || 0) + e.value);
+  persistUser(winner.username, { type: 'jackpot_win', amount: coinsPortion, balanceBefore: before, balanceAfter: u.coins, itemsTouched: [...new Set(allItems)], escrowRelease: round.entrants.map((e) => e.escrowId).filter(Boolean), game: { game: 'jackpot', wager: jpStakeBy.get(winner.username) || 0, payout: total } });
+  const jpLossRecorded = new Set();
   for (const e of round.entrants) {
     if (e.username !== winner.username) {
       trackLoss(e.username, e.value);
-      persistUser(e.username, { type: 'jackpot_loss', amount: 0 });
+      const first = !jpLossRecorded.has(e.username);
+      jpLossRecorded.add(e.username);
+      persistUser(e.username, { type: 'jackpot_loss', amount: 0, ...(first ? { game: { game: 'jackpot', wager: jpStakeBy.get(e.username) || 0, payout: 0 } } : {}) });
     }
   }
   // trackLoss above only touches the server's copy of each loser's stats -
@@ -1260,7 +1271,9 @@ const battles = new Map(); // id -> battle
 // simulates all three offline (mockRunBattle) for when it's disconnected from
 // the server; runBattle() below mirrors that exact math so the animation the
 // player already tested against matches the real, server-authoritative result.
-const WIN_MODES = new Set(['normal', 'crazy', 'jackpot', 'terminal']);
+const WIN_MODES = new Set(['normal', 'crazy', 'jackpot', 'terminal', 'coinflip']);
+// Coinflip decides between exactly two sides, so it's only allowed in 1v1 and 2v2.
+const COINFLIP_MODES = new Set(['ffa-2', 'team-2v2']);
 
 function battleCost(caseQueue) {
   return caseQueue.reduce((sum, idx) => sum + caseData[idx].price, 0);
@@ -1324,7 +1337,11 @@ function handleCaseBattleCreate(username, msg) {
   }
   if (!modeConfigs[msg.mode]) msg.mode = 'ffa-2';
   const cfg = modeConfigs[msg.mode];
-  const winMode = WIN_MODES.has(msg.winMode) ? msg.winMode : 'normal';
+  let winMode = WIN_MODES.has(msg.winMode) ? msg.winMode : 'normal';
+  if (cfg.isGroup) winMode = 'group'; // group battles have no winner - always an equal split
+  if (winMode === 'coinflip' && !COINFLIP_MODES.has(msg.mode)) {
+    return send(usernameToSocket.get(username), { type: 'error', message: 'Coinflip battles can only be 1v1 or 2v2.' });
+  }
   const borrow = parseBorrow(msg.borrow);
   const cost = battleEntryCost(msg.caseQueue, borrow);
   const u = ensureUser(username);
@@ -1481,7 +1498,7 @@ async function runBattle(b) {
 
   const battleTotal = b.players.reduce((s, p) => s + p.total, 0); // winner takes ALL pulled value, not just their own side
   const perPlayerCost = battleEntryCost(b.caseQueue, b.borrow);
-  const winMode = WIN_MODES.has(b.winMode) ? b.winMode : 'normal';
+  const winMode = b.cfg.isGroup ? 'group' : (WIN_MODES.has(b.winMode) ? b.winMode : 'normal');
 
   // Group players the same way regardless of mode - teams for Team battles,
   // one group per player for FFA/Group - then each mode below just picks
@@ -1504,8 +1521,18 @@ async function runBattle(b) {
     groups = b.players.map((p) => ({ key: p.username, label: p.username, total: p.total, lastPull: p.lastPull || 0, members: [p] }));
   }
 
-  let winningGroups, jackpotInfo = null;
-  if (winMode === 'crazy') {
+  let winningGroups, jackpotInfo = null, coinflipInfo = null;
+  if (winMode === 'group') {
+    // Everyone "wins": the pot is split equally between every seat.
+    winningGroups = groups;
+  } else if (winMode === 'coinflip' && groups.length === 2) {
+    // First side (creator / Team A) is Heads, the other Tails. The flip is
+    // decided here on the server; the client only animates the coin.
+    const result = crypto.randomInt(2) === 0 ? 'H' : 'T';
+    const sides = groups.map((g, i) => ({ key: g.key, label: g.label, side: i === 0 ? 'H' : 'T' }));
+    winningGroups = [groups[result === 'H' ? 0 : 1]];
+    coinflipInfo = { result, sides };
+  } else if (winMode === 'crazy') {
     // Crazy inverts the normal rule: lowest total value wins. A tie for
     // lowest splits the pot across every tied group's members.
     const best = Math.min(...groups.map((g) => g.total));
@@ -1550,7 +1577,7 @@ async function runBattle(b) {
     const before = u.coins;
     u.coins += share;
     trackWin(p.username, share);
-    persistUser(p.username, { type: 'casebattle_win', amount: share, balanceBefore: before, balanceAfter: u.coins, escrowRelease: takeEscrowRelease() });
+    persistUser(p.username, { type: 'casebattle_win', amount: share, balanceBefore: before, balanceAfter: u.coins, escrowRelease: takeEscrowRelease(), game: { game: 'battles', wager: perPlayerCost, payout: share } });
     syncAccount(p.username);
     createNotification({
       username: p.username,
@@ -1562,7 +1589,7 @@ async function runBattle(b) {
   });
   b.players.filter((p) => !winningMembers.includes(p) && !p.isBot).forEach((p) => {
     trackLoss(p.username, perPlayerCost);
-    persistUser(p.username, { type: 'casebattle_loss', amount: 0, escrowRelease: takeEscrowRelease() });
+    persistUser(p.username, { type: 'casebattle_loss', amount: 0, escrowRelease: takeEscrowRelease(), game: { game: 'battles', wager: perPlayerCost, payout: 0 } });
   });
 
   b.status = 'finished';
@@ -1570,7 +1597,7 @@ async function runBattle(b) {
   b.winnerValue = winnerValue;
   broadcastBattles();
   broadcast({
-    type: 'casebattle:finished', battleId: b.id, winner, winnerValue, winMode, jackpotInfo,
+    type: 'casebattle:finished', battleId: b.id, winner, winnerValue, winMode, jackpotInfo, coinflipInfo,
     // Explicit per-winner personal earnings for the end-of-battle summary
     // screen - `share` here is the exact same value each winning member's
     // account was actually credited with above, not a client-side estimate
@@ -1907,7 +1934,7 @@ function resolveSinkRound(round) {
       // Didn't cash out in time - the wager was already deducted at join
       // time, so this is purely recording the loss for stats/feed purposes.
       trackLoss(username, p.wager);
-      persistUser(username, { type: 'sink_loss', amount: 0, escrowRelease: [p.escrowId].filter(Boolean) });
+      persistUser(username, { type: 'sink_loss', amount: 0, escrowRelease: [p.escrowId].filter(Boolean), game: { game: 'sink', wager: p.wager, payout: 0 } });
       pushFeedEvent({ game: 'sink', username, amount: p.wager, won: false });
     }
   }
@@ -1969,7 +1996,7 @@ function handleSinkCashout(username) {
   const before = u.coins;
   u.coins += payout;
   trackWin(username, payout);
-  persistUser(username, { type: 'sink_cashout', amount: payout, balanceBefore: before, balanceAfter: u.coins, escrowRelease: [p.escrowId].filter(Boolean) });
+  persistUser(username, { type: 'sink_cashout', amount: payout, balanceBefore: before, balanceAfter: u.coins, escrowRelease: [p.escrowId].filter(Boolean), game: { game: 'sink', wager: p.wager, payout } });
   syncAccount(username);
   pushFeedEvent({ game: 'sink', username, amount: payout, multiplier: currentMultiplier, won: true });
   broadcastSinkState();
@@ -2039,7 +2066,7 @@ function handleMinesReveal(username, msg) {
     round.active = false;
     activeMinesRounds.delete(username);
     trackLoss(username, round.amount);
-    persistUser(username, { type: 'mines_loss', amount: 0, escrowRelease: [round.escrowId].filter(Boolean) });
+    persistUser(username, { type: 'mines_loss', amount: 0, escrowRelease: [round.escrowId].filter(Boolean), game: { game: 'mines', wager: round.amount, payout: 0 } });
     // The round is over - safe to reveal every bomb now for the board
     // animation, since none of these positions were ever sent before this.
     send(errTo, { type: 'mines:hit', tileIndex, bombs: [...round.bombs] });
@@ -2060,7 +2087,7 @@ function handleMinesReveal(username, msg) {
     trackWin(username, currentPayout);
     round.active = false;
     activeMinesRounds.delete(username);
-    persistUser(username, { type: 'mines_resolve', amount: currentPayout, balanceBefore: before, balanceAfter: u.coins, escrowRelease: [round.escrowId].filter(Boolean) });
+    persistUser(username, { type: 'mines_resolve', amount: currentPayout, balanceBefore: before, balanceAfter: u.coins, escrowRelease: [round.escrowId].filter(Boolean), game: { game: 'mines', wager: round.amount, payout: currentPayout } });
     syncAccount(username);
     send(errTo, { type: 'mines:revealed', tileIndex, multiplier, payout: currentPayout, picks: round.picks, fullClear: true });
     pushFeedEvent({ game: 'mines', username, amount: currentPayout, multiplier, won: true });
@@ -2086,7 +2113,7 @@ function handleMinesCashout(username) {
   const before = u.coins;
   u.coins += payout;
   trackWin(username, payout);
-  persistUser(username, { type: 'mines_resolve', amount: payout, balanceBefore: before, balanceAfter: u.coins, escrowRelease: [round.escrowId].filter(Boolean) });
+  persistUser(username, { type: 'mines_resolve', amount: payout, balanceBefore: before, balanceAfter: u.coins, escrowRelease: [round.escrowId].filter(Boolean), game: { game: 'mines', wager: round.amount, payout } });
   syncAccount(username);
   send(errTo, { type: 'mines:cashedOut', payout, multiplier });
   pushFeedEvent({ game: 'mines', username, amount: payout, multiplier, won: true });
@@ -2211,7 +2238,7 @@ function handleCaseOpen(username, msg) {
 
   u.coins += payout; // pulls convert straight to coins, matching the existing "no inventory needed" case design
   trackWager(username, c.price);
-  persistUser(username, { type: 'case_open', amount: payout - c.price, balanceBefore: before, balanceAfter: u.coins });
+  persistUser(username, { type: 'case_open', amount: payout - c.price, balanceBefore: before, balanceAfter: u.coins, game: { game: 'cases', wager: c.price, payout } });
   syncAccount(username);
   send(errTo, {
     type: 'case:opened',
@@ -2389,7 +2416,8 @@ async function handleAdminWithdrawFulfill(username, msg) {
   }
   req.status = 'fulfilled';
   req.actuallyRemoved = actuallyRemoved;
-  persistUser(req.username, { type: 'withdraw_fulfilled', amount: 0, itemsTouched: Object.keys(actuallyRemoved), reason: `Fulfilled by ${ADMIN_USERNAME}`, adminUsername: ADMIN_USERNAME });
+  const withdrawValue = Object.entries(actuallyRemoved).reduce((sum, [id, q]) => sum + (petCatalog[id] ? petCatalog[id].value : 0) * q, 0);
+  persistUser(req.username, { type: 'withdraw_fulfilled', amount: 0, itemsTouched: Object.keys(actuallyRemoved), reason: `Fulfilled by ${ADMIN_USERNAME}`, adminUsername: ADMIN_USERNAME, value: -withdrawValue });
   syncAccount(req.username);
   send(usernameToSocket.get(req.username), { type: 'chat:message', username: 'System', text: `Your withdrawal request was fulfilled by ${ADMIN_USERNAME}.`, timestamp: Date.now(), system: true });
   const removedNames = Object.keys(actuallyRemoved)
@@ -2671,6 +2699,80 @@ async function handleDiscordUnlink(username) {
   send(usernameToSocket.get(username), { type: 'toast', message: 'Discord unlinked.' });
 }
 
+// ---------------------------------------------------------------------------
+// Account history (Game History + Transaction History). Always the requesting
+// player's own rows - the username comes from the logged-in connection, never
+// from the message.
+// ---------------------------------------------------------------------------
+const HISTORY_PAGE_SIZE = 10;
+const HISTORY_GAMES = new Set(['battles', 'cases', 'coinflip', 'diceduel', 'mines', 'jackpot', 'sink']);
+const TXN_CATEGORIES = {
+  deposit: ['tip_receive'],          // split into Deposit / Tip Received below
+  tip: ['tip_send', 'tip_receive'],
+  withdraw: ['withdraw_fulfilled', 'withdraw_rejected'],
+  exchange: ['exchange_buy', 'exchange_sell'],
+  rain: ['rain_deposit', 'rain_payout'],
+  other: ['admin_adjust', 'escrow_refund'],
+};
+// Every non-game type that is allowed to show up at all.
+const TXN_VISIBLE = [...new Set(Object.values(TXN_CATEGORIES).flat())];
+let historyLastAt = new Map();
+
+async function handleHistoryRequest(username, msg) {
+  const ws = usernameToSocket.get(username);
+  // Light flood guard - each request is a DB query.
+  const now = Date.now();
+  if (now - (historyLastAt.get(username) || 0) < 250) return;
+  historyLastAt.set(username, now);
+  const kind = msg.kind === 'transactions' ? 'transactions' : 'games';
+  const page = Math.min(100000, Math.max(1, Math.floor(Number(msg.page) || 1)));
+  const offset = (page - 1) * HISTORY_PAGE_SIZE;
+  try {
+    if (kind === 'games') {
+      const filter = HISTORY_GAMES.has(msg.filter) ? msg.filter : null;
+      const { total, rows } = await db.loadGameHistory(username, filter, HISTORY_PAGE_SIZE, offset);
+      return send(ws, { type: 'history:result', kind, filter: filter || 'all', page, pageSize: HISTORY_PAGE_SIZE, total, rows });
+    }
+    const filter = Object.prototype.hasOwnProperty.call(TXN_CATEGORIES, msg.filter) ? msg.filter : null;
+    let types = filter ? TXN_CATEGORIES[filter] : TXN_VISIBLE;
+    let result;
+    if (filter === 'deposit' || filter === 'tip') {
+      // Deposits are pets/coins sent from the stock account; anything else
+      // received is a normal tip (told apart by the reason text).
+      result = await db.loadTransactionHistory(username, types, null, 1000, 0);
+      const fromStock = (r) => r.type === 'tip_receive' && String(r.reason || '').toLowerCase() === `from ${STOCK_USERNAME.toLowerCase()}`;
+      const all = result.rows.filter((r) => (filter === 'deposit' ? fromStock(r) : !fromStock(r)));
+      result = { total: all.length, rows: all.slice(offset, offset + HISTORY_PAGE_SIZE) };
+    } else {
+      result = await db.loadTransactionHistory(username, types, null, HISTORY_PAGE_SIZE, offset);
+    }
+    const rows = result.rows.map((r) => {
+      let value = r.value;
+      // Older rows (before values were stored): coins moved, else catalog
+      // value of the pets listed (one of each - quantities weren't stored).
+      if (value == null) {
+        value = r.amount;
+        if (!value && r.items.length) {
+          const v = r.items.reduce((sum, id) => sum + (petCatalog[id] ? petCatalog[id].value : 0), 0);
+          value = (r.type === 'tip_send' || r.type === 'withdraw_fulfilled' || r.type === 'exchange_sell') ? -v : v;
+        }
+      }
+      const fromStock = r.type === 'tip_receive' && String(r.reason || '').toLowerCase() === `from ${STOCK_USERNAME.toLowerCase()}`;
+      return {
+        type: fromStock ? 'deposit' : r.type,
+        value,
+        balance: r.amount !== 0 ? 'Coins' : (r.items.length ? 'Items' : 'Coins'),
+        note: fromStock ? null : r.reason,
+        at: r.at,
+      };
+    });
+    return send(ws, { type: 'history:result', kind, filter: filter || 'all', page, pageSize: HISTORY_PAGE_SIZE, total: result.total, rows });
+  } catch (err) {
+    console.error(`[history] ${kind} for ${username} failed:`, err.message);
+    return send(ws, { type: 'history:result', kind, error: true, page, pageSize: HISTORY_PAGE_SIZE, total: 0, rows: [] });
+  }
+}
+
 async function handleIgnoreAdd(username, msg) {
   const errTo = usernameToSocket.get(username);
   const raw = String(msg.username || '').trim();
@@ -2689,11 +2791,16 @@ async function handleIgnoreAdd(username, msg) {
 }
 
 async function handleIgnoreRemove(username, msg) {
-  const target = String(msg.username || '').trim();
+  const raw = String(msg.username || '').trim().toLowerCase();
   const set = ignoreLists.get(username);
-  if (!set || !set.has(target)) return syncAccount(username);
-  await db.removeIgnore(username, target);
-  set.delete(target);
+  // Match without caring about upper/lower case - a name clicked in chat or
+  // on a profile can be spelled with different casing than the stored one,
+  // and an exact match used to make Unignore silently do nothing.
+  const matches = set ? [...set].filter((n) => n.toLowerCase() === raw) : [];
+  if (!raw || matches.length === 0) return syncAccount(username);
+  await db.removeIgnore(username, raw);
+  for (const n of matches) set.delete(n);
+  const target = matches[0];
   syncAccount(username);
   send(usernameToSocket.get(username), { type: 'toast', message: `${target} is no longer ignored.` });
 }
@@ -2738,8 +2845,9 @@ function handleTipSend(username, msg) {
     addItems(toUsername, items);
   }
 
-  persistUser(username, { type: 'tip_send', amount: -coins, balanceBefore: senderBefore, balanceAfter: u.coins, itemsTouched: senderItemsTouched, reason: `To ${toUsername}` });
-  persistUser(toUsername, { type: 'tip_receive', amount: coins, balanceBefore: targetBefore, balanceAfter: target.coins, itemsTouched: [...new Set(items)], reason: `From ${username}` });
+  const tipValue = coins + stakeValue(items);
+  persistUser(username, { type: 'tip_send', amount: -coins, balanceBefore: senderBefore, balanceAfter: u.coins, itemsTouched: senderItemsTouched, reason: `To ${toUsername}`, value: -tipValue });
+  persistUser(toUsername, { type: 'tip_receive', amount: coins, balanceBefore: targetBefore, balanceAfter: target.coins, itemsTouched: [...new Set(items)], reason: `From ${username}`, value: tipValue });
   syncAccount(username);
   syncAccount(toUsername);
 
@@ -3452,6 +3560,7 @@ wss.on('connection', (ws) => {
       case 'discord:unlink': return handleDiscordUnlink(username);
       case 'ignore:add': return handleIgnoreAdd(username, msg);
       case 'ignore:remove': return handleIgnoreRemove(username, msg);
+      case 'history:request': return handleHistoryRequest(username, msg);
     }
   }
 

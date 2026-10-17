@@ -4014,6 +4014,96 @@ body.cbn-open #cbnRoot .backdrop { opacity: 1; pointer-events: auto; }
   .acc-ignore-name{ flex:1; font-weight:600; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .acc-ignore-row .ghost-btn{ padding:6px 12px; font-size:12px; }
   .acc-ignore-empty{ font-size:13px; color:var(--text-faint); padding:18px; text-align:center; border:1px dashed var(--border); border-radius:var(--r-sm); }
+
+  /* ---------- Battle creation: 7 modes + 5 win conditions ---------- */
+  #cbnRoot .bc-config{ grid-template-columns:1fr !important; }
+  #cbnRoot #cbnBcModeOptions{ grid-template-columns:repeat(7, minmax(0,1fr)) !important; }
+  #cbnRoot #cbnBcWinModeOptions{ grid-template-columns:repeat(5, minmax(0,1fr)) !important; }
+  #cbnRoot .bc-seg .bc-mode-btn.bc-blocked{ opacity:.38 !important; }
+  #cbnRoot .bc-seg .bc-mode-btn.bc-blocked:hover{ border-color:var(--border) !important; }
+  #cbnRoot .bc-config-note{ margin-top:10px; font-size:12.5px; color:var(--text-dim); background:var(--bg-panel-2); border:1px dashed var(--border); border-radius:var(--r-sm); padding:8px 10px; }
+  #cbnRoot .bc-config-note[hidden]{ display:none; }
+  @media (max-width: 1100px){ #cbnRoot #cbnBcModeOptions{ grid-template-columns:repeat(4, minmax(0,1fr)) !important; } }
+  @media (max-width: 640px){
+    #cbnRoot #cbnBcModeOptions{ grid-template-columns:repeat(2, minmax(0,1fr)) !important; }
+    #cbnRoot #cbnBcWinModeOptions{ grid-template-columns:repeat(2, minmax(0,1fr)) !important; }
+  }
+
+  /* ---------- Coinflip battle reveal ---------- */
+  #cbnRoot .bv-cf-wrap{ position:absolute; inset:0; z-index:210; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px;
+    background:rgba(15,12,17,.94); padding:16px 12px; }
+  #cbnRoot .bv-cf-wrap[hidden]{ display:none; }
+  #cbnRoot .bv-cf-sides{ display:flex; align-items:center; gap:14px; flex-wrap:wrap; justify-content:center; }
+  #cbnRoot .bv-cf-side{ display:flex; align-items:center; gap:8px; background:var(--bg-panel-2); border:1px solid var(--border); border-radius:var(--r-sm); padding:7px 12px; transition:opacity .3s, border-color .3s; }
+  #cbnRoot .bv-cf-side.won{ border-color:var(--gold); }
+  #cbnRoot .bv-cf-side.lost{ opacity:.45; }
+  #cbnRoot .bv-cf-name{ font-weight:700; font-size:14px; max-width:180px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #cbnRoot .bv-cf-vs{ font-size:12px; font-weight:700; color:var(--text-faint); text-transform:uppercase; }
+  #cbnRoot .bv-cf-chip{ width:22px; height:22px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0; color:transparent;
+    background-size:cover; background-position:center; }
+  #cbnRoot .bv-cf-chip.H, #cbnRoot .bv-cf-face.H{ background-color:#f0b43a; background-image:url("/assets/img/014d1d6d863fca2d91ef.webp"); }
+  #cbnRoot .bv-cf-chip.T, #cbnRoot .bv-cf-face.T{ background-color:#b9c2cf; background-image:url("/assets/img/f7cc25fddd6b46a427dc.webp"); }
+  #cbnRoot .bv-cf-coin-stage{ width:clamp(110px, 22vmin, 160px); height:clamp(110px, 22vmin, 160px); perspective:900px; flex-shrink:0; }
+  #cbnRoot .bv-cf-coin{ position:relative; width:100%; height:100%; transform-style:preserve-3d; }
+  #cbnRoot .bv-cf-face{ position:absolute; inset:0; border-radius:50%; backface-visibility:hidden; -webkit-backface-visibility:hidden;
+    display:flex; align-items:center; justify-content:center; font-size:0; color:transparent;
+    background-size:cover; background-position:center; box-shadow:inset 0 0 0 4px rgba(0,0,0,.18), 0 10px 24px rgba(0,0,0,.45); }
+  #cbnRoot .bv-cf-face.T{ transform:rotateY(180deg); }
+  #cbnRoot .bv-cf-result{ font-family:var(--font-display); font-weight:700; font-size:16px; color:var(--text); text-align:center; min-height:22px; }
+
+  /* ---------- Account: Game + Transaction History ---------- */
+  .hist-title{ display:flex; align-items:center; gap:14px; margin-bottom:20px; padding-right:40px; }
+  .hist-title h2{ margin:0; font-family:var(--font-display); font-weight:800; font-size:22px; }
+  .hist-title-icon{ width:44px; height:44px; border-radius:12px; background:var(--bg-panel-3); color:var(--purple-bright); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .hist-filters{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:18px; }
+  .hist-chip{ display:inline-flex; align-items:center; gap:7px; flex-shrink:0; padding:9px 14px; border-radius:10px; border:1px solid var(--border); background:var(--bg-panel-2); color:var(--text-dim); font:inherit; font-weight:700; font-size:13.5px; cursor:pointer; transition:background .15s, color .15s, border-color .15s; }
+  .hist-chip:hover{ color:var(--text); border-color:var(--border-strong, var(--border)); }
+  .hist-chip.active{ background:var(--bg-panel-3); color:var(--text); border-color:var(--purple); }
+  .hist-chip .icon-wrap{ opacity:.85; }
+  .hist-body.is-loading{ opacity:.55; pointer-events:none; transition:opacity .15s; }
+  .hist-table{ display:flex; flex-direction:column; gap:6px; }
+  .hist-head, .hist-row{ display:grid; align-items:center; gap:12px; padding:0 16px; }
+  .hist-table.games .hist-head, .hist-table.games .hist-row{ grid-template-columns:1.35fr .8fr 1fr 1fr 1.25fr; }
+  .hist-table.txns .hist-head, .hist-table.txns .hist-row{ grid-template-columns:1.5fr 1.3fr .8fr 1fr; }
+  .hist-head{ font-size:11.5px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--text-dim); padding-bottom:6px; }
+  .hist-row{ min-height:52px; background:var(--bg-panel-2); border:1px solid var(--border); border-radius:10px; font-size:14px; }
+  .hist-game, .hist-type{ display:flex; align-items:center; gap:9px; font-weight:700; color:var(--text); min-width:0; }
+  .hist-type{ flex-direction:column; align-items:flex-start; gap:1px; }
+  .hist-type small{ font-weight:500; font-size:11.5px; color:var(--text-faint); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
+  .hist-game .icon-wrap{ color:var(--text-dim); flex-shrink:0; }
+  .hist-badge{ display:inline-block; padding:3px 9px; border-radius:6px; font-size:11.5px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; }
+  .hist-badge.won{ background:rgba(52,199,123,.14); color:#4ade80; }
+  .hist-badge.lost{ background:rgba(239,68,68,.14); color:#f87171; }
+  .hist-badge.even{ background:var(--bg-panel-3); color:var(--text-dim); }
+  .hist-amt{ display:inline-flex; align-items:center; gap:6px; font-weight:700; font-variant-numeric:tabular-nums; color:var(--text); white-space:nowrap; }
+  .hist-amt.pos{ color:#4ade80; } .hist-amt.neg{ color:#f87171; } .hist-amt.zero{ color:var(--text-dim); }
+  .hist-date{ font-size:13px; color:var(--text-dim); white-space:nowrap; }
+  .hist-bal{ font-size:13px; color:var(--text-dim); }
+  .hist-empty{ font-size:13.5px; color:var(--text-faint); padding:34px 18px; text-align:center; border:1px dashed var(--border); border-radius:10px; }
+  .hist-pager{ display:flex; justify-content:center; align-items:center; gap:6px; margin-top:22px; flex-wrap:wrap; }
+  .hist-pg{ min-width:38px; height:38px; padding:0 10px; border-radius:10px; border:1px solid var(--border); background:var(--bg-panel-2); color:var(--text); font:inherit; font-weight:800; font-size:14px; cursor:pointer; }
+  .hist-pg:hover:not(:disabled){ background:var(--bg-panel-3); }
+  .hist-pg.active{ background:var(--purple); border-color:var(--purple); color:#fff; }
+  .hist-pg:disabled{ opacity:.35; cursor:default; }
+  .hist-pg-gap{ color:var(--text-dim); padding:0 2px; }
+  @media (max-width: 720px){
+    .hist-filters{ flex-wrap:nowrap; overflow-x:auto; padding-bottom:4px; scrollbar-width:none; }
+    .hist-chip{ padding:8px 12px; font-size:13px; }
+    .hist-head{ display:none; }
+    .hist-table.games .hist-row{ grid-template-columns:1fr auto; grid-template-areas:"game profit" "date status"; padding:10px 12px; row-gap:6px; }
+    .hist-table.games .hist-row > :nth-child(1){ grid-area:game; }
+    .hist-table.games .hist-row > :nth-child(2){ grid-area:status; justify-self:end; }
+    .hist-table.games .hist-row > :nth-child(3){ display:none; }
+    .hist-table.games .hist-row > :nth-child(4){ grid-area:profit; justify-self:end; }
+    .hist-table.games .hist-row > :nth-child(5){ grid-area:date; }
+    .hist-table.txns .hist-row{ grid-template-columns:1fr auto; grid-template-areas:"type amount" "date bal"; padding:10px 12px; row-gap:6px; }
+    .hist-table.txns .hist-row > :nth-child(1){ grid-area:type; }
+    .hist-table.txns .hist-row > :nth-child(2){ grid-area:date; }
+    .hist-table.txns .hist-row > :nth-child(3){ grid-area:bal; justify-self:end; }
+    .hist-table.txns .hist-row > :nth-child(4){ grid-area:amount; justify-self:end; }
+    .hist-date{ font-size:12px; }
+    .hist-pg{ min-width:34px; height:34px; }
+  }
   /* Result overlay never wraps into the winner box */
   #cbnRoot .bv-result-banner{ white-space:nowrap; max-width:92%; overflow:hidden; text-overflow:ellipsis; font-size:13px !important; padding:6px 14px !important; }
   #cbnRoot .bv-result-summary{ top:56px !important; }
@@ -4896,8 +4986,8 @@ body.cbn-open #cbnRoot .backdrop { opacity: 1; pointer-events: auto; }
       <div class="acc-sidebar-title">Account</div>
       <button class="acc-nav-btn active" data-acc-tab="profile"><span class="nav-icon-slot" data-icon="user"></span> Profile</button>
       <button class="acc-nav-btn" data-acc-tab="sessions"><span class="nav-icon-slot" data-icon="monitor"></span> Sessions</button>
-      <button class="acc-nav-btn disabled" data-acc-tab="history"><span class="nav-icon-slot" data-icon="history"></span> Game History</button>
-      <button class="acc-nav-btn disabled" data-acc-tab="transactions"><span class="nav-icon-slot" data-icon="receipt"></span> Transaction History</button>
+      <button class="acc-nav-btn" data-acc-tab="history"><span class="nav-icon-slot" data-icon="history"></span> Game History</button>
+      <button class="acc-nav-btn" data-acc-tab="transactions"><span class="nav-icon-slot" data-icon="receipt"></span> Transaction History</button>
       <button class="acc-nav-btn" data-acc-tab="ignored"><span class="nav-icon-slot" data-icon="userX"></span> Ignored Users</button>
     </div>
     <div class="acc-body">
@@ -4905,6 +4995,7 @@ body.cbn-open #cbnRoot .backdrop { opacity: 1; pointer-events: auto; }
       <div class="acc-tab-content" id="accTabProfile"></div>
       <div class="acc-tab-content" id="accTabSessions" style="display:none;"></div>
       <div class="acc-tab-content" id="accTabIgnored" style="display:none;"></div>
+      <div class="acc-tab-content" id="accTabHistory" style="display:none;"></div>
       <div class="acc-tab-content" id="accTabComingSoon" style="display:none;">
         <div class="acc-empty">
           <span class="nav-icon-slot" data-icon="history"></span>
@@ -7862,7 +7953,18 @@ const MODE_CONFIGS = {
   'ffa-3': { count: 3, isTeam: false },
   'ffa-4': { count: 4, isTeam: false },
   'team-2v2': { count: 4, isTeam: true, teamSize: 2 },
+  'group-2': { count: 2, isTeam: false, isGroup: true },
+  'group-3': { count: 3, isTeam: false, isGroup: true },
+  'group-4': { count: 4, isTeam: false, isGroup: true },
 };
+const WIN_MODE_LABELS = { crazy: 'Crazy', jackpot: 'Jackpot', terminal: 'Terminal', coinflip: 'Coinflip' };
+// "2 Player FFA", "2v2", "3 Player Group", plus the win condition when it isn't Normal.
+function battleModeLabel(mode, count, winMode){
+  const cfg = MODE_CONFIGS[mode] || MODE_CONFIGS['ffa-2'];
+  let label = cfg.isTeam ? '2v2' : cfg.isGroup ? `${count || cfg.count} Player Group` : `${count || cfg.count} Player FFA`;
+  if (!cfg.isGroup && WIN_MODE_LABELS[winMode]) label += ` · ${WIN_MODE_LABELS[winMode]}`;
+  return label;
+}
 const BOT_POOL = ["Gu-Hin", "Mr. East", "Kayne", "Nova", "Shadow99", "Pixel", "Rook", "Bibiblessme19"];
 const AVATAR_COLORS = ["#9e84ff", "#ff6e96", "#64dcc8", "#ffb454", "#7aa2ff", "#ff8fd6"];
 const TEAM_COLORS = ["#9e84ff", "#ff6e96"];
@@ -10711,11 +10813,15 @@ function renderAccountTabs(){
   profileEl.style.display = accActiveTab === 'profile' ? 'block' : 'none';
   sessionsEl.style.display = accActiveTab === 'sessions' ? 'block' : 'none';
   ignoredEl.style.display = accActiveTab === 'ignored' ? 'block' : 'none';
-  comingSoonEl.style.display = (!['profile', 'sessions', 'ignored'].includes(accActiveTab)) ? 'block' : 'none';
+  const historyEl = document.getElementById('accTabHistory');
+  const isHistory = accActiveTab === 'history' || accActiveTab === 'transactions';
+  historyEl.style.display = isHistory ? 'block' : 'none';
+  comingSoonEl.style.display = (!['profile', 'sessions', 'ignored', 'history', 'transactions'].includes(accActiveTab)) ? 'block' : 'none';
 
   if(accActiveTab === 'profile') renderAccountProfile();
   else if(accActiveTab === 'sessions') renderAccountSessions();
   else if(accActiveTab === 'ignored') renderAccountIgnored();
+  else if(isHistory) openAccountHistory(accActiveTab === 'history' ? 'games' : 'transactions');
 }
 
 function connectDiscord(){
@@ -10729,6 +10835,161 @@ function unlinkDiscord(){
 // Server answers with Discord's sign-in page; going there and coming back
 // lands on ?discord=linked (or an error code), handled on page load below.
 mpOn('discord:authUrl', (msg) => { if (msg.url) window.location.href = msg.url; });
+
+// ---- Game History + Transaction History (server keeps the records) ----
+const HIST_GAME_FILTERS = [
+  { key:'all', label:'All', icon:null },
+  { key:'battles', label:'Battles', icon:'swords' },
+  { key:'cases', label:'Cases', icon:'package' },
+  { key:'coinflip', label:'Coinflip', icon:'coins' },
+  { key:'diceduel', label:'Dice Duel', icon:'dice' },
+  { key:'mines', label:'Mines', icon:'bomb' },
+  { key:'jackpot', label:'Jackpot', icon:'target' },
+  { key:'sink', label:'Sink', icon:'anchor' },
+];
+const HIST_TXN_FILTERS = [
+  { key:'all', label:'All' },
+  { key:'deposit', label:'Deposits' },
+  { key:'withdraw', label:'Withdrawals' },
+  { key:'tip', label:'Tips' },
+  { key:'exchange', label:'Exchange' },
+  { key:'rain', label:'Rain' },
+  { key:'other', label:'Other' },
+];
+const HIST_TXN_LABELS = {
+  deposit:'Deposit', tip_send:'Tip Sent', tip_receive:'Tip Received',
+  withdraw_fulfilled:'Withdrawal', withdraw_rejected:'Withdrawal Declined',
+  exchange_buy:'Bought Pets', exchange_sell:'Sold Pets',
+  rain_deposit:'Rain Added', rain_payout:'Rain Won',
+  admin_adjust:'Balance Adjustment', escrow_refund:'Refund',
+};
+const histState = { kind:'games', filter:'all', page:1, loading:false, data:null };
+
+function histFmtDate(at){
+  const d = new Date(at);
+  if (isNaN(d)) return '';
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const hh = String(d.getHours()).padStart(2,'0'), mm = String(d.getMinutes()).padStart(2,'0');
+  return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()} at ${hh}:${mm}`;
+}
+function histSigned(n){
+  const v = Math.round(Number(n) || 0);
+  const cls = v > 0 ? 'pos' : v < 0 ? 'neg' : 'zero';
+  const txt = (v > 0 ? '+' : v < 0 ? '-' : '') + Math.abs(v).toLocaleString();
+  return `<span class="hist-amt ${cls}">${coinIcon(15)}${txt}</span>`;
+}
+function openAccountHistory(kind){
+  if (histState.kind !== kind) { histState.kind = kind; histState.filter = 'all'; histState.page = 1; histState.data = null; }
+  renderAccountHistory();
+  requestHistoryPage();
+}
+function requestHistoryPage(){
+  if (mpMockMode) { histState.loading = false; histState.data = { total:0, rows:[], offline:true }; renderAccountHistory(); return; }
+  histState.loading = true;
+  renderAccountHistory();
+  mpSend({ type:'history:request', kind: histState.kind, filter: histState.filter, page: histState.page });
+}
+mpOn('history:result', (msg) => {
+  if (msg.kind !== histState.kind) return;
+  if (msg.filter && msg.filter !== histState.filter) return;   // an older click's answer
+  if (msg.page !== histState.page) return;
+  histState.loading = false;
+  histState.data = msg;
+  const open = document.getElementById('accountModalOverlay').classList.contains('open');
+  if (open && (accActiveTab === 'history' || accActiveTab === 'transactions')) renderAccountHistory();
+});
+function histPageList(page, pages){
+  // 1 2 3 4 … last, keeping the current page visible.
+  if (pages <= 6) return Array.from({ length: pages }, (_, i) => i + 1);
+  const set = new Set([1, pages, page - 1, page, page + 1]);
+  if (page <= 3) [2,3,4].forEach((n) => set.add(n));
+  if (page >= pages - 2) [pages-1, pages-2, pages-3].forEach((n) => set.add(n));
+  const list = [...set].filter((n) => n >= 1 && n <= pages).sort((a,b) => a-b);
+  const out = [];
+  list.forEach((n, i) => { if (i && n - list[i-1] > 1) out.push('…'); out.push(n); });
+  return out;
+}
+function renderAccountHistory(){
+  const el = document.getElementById('accTabHistory');
+  if (!el) return;
+  const games = histState.kind === 'games';
+  const filters = games ? HIST_GAME_FILTERS : HIST_TXN_FILTERS;
+  const d = histState.data;
+  const rows = d && Array.isArray(d.rows) ? d.rows : [];
+  const pages = d ? Math.max(1, Math.ceil((d.total || 0) / (d.pageSize || 10))) : 1;
+
+  let body;
+  if (histState.loading && !d) {
+    body = `<div class="hist-empty">Loading…</div>`;
+  } else if (d && d.offline) {
+    body = `<div class="hist-empty">History needs the live server (you're in offline practice mode).</div>`;
+  } else if (d && d.error) {
+    body = `<div class="hist-empty">Couldn't load your history. Try again in a moment.</div>`;
+  } else if (!rows.length) {
+    body = `<div class="hist-empty">${games ? 'No games here yet. Games you play from now on show up here.' : 'No transactions here yet.'}</div>`;
+  } else if (games) {
+    const meta = Object.fromEntries(HIST_GAME_FILTERS.map((f) => [f.key, f]));
+    body = `
+      <div class="hist-table games">
+        <div class="hist-head"><span>Game</span><span>Status</span><span>Amount</span><span>Profit</span><span>Date</span></div>
+        ${rows.map((r) => {
+          const m = meta[r.game] || { label: r.game, icon: null };
+          const profit = (r.payout || 0) - (r.wager || 0);
+          const status = profit > 0 ? 'won' : profit < 0 ? 'lost' : 'even';
+          return `<div class="hist-row">
+            <span class="hist-game">${m.icon ? icon(m.icon, 17) : ''}${escapeHtml(m.label)}</span>
+            <span><span class="hist-badge ${status}">${status === 'even' ? 'Even' : status === 'won' ? 'Won' : 'Lost'}</span></span>
+            <span class="hist-amt">${coinIcon(15)}${Math.round(r.wager || 0).toLocaleString()}</span>
+            <span>${histSigned(profit)}</span>
+            <span class="hist-date">${histFmtDate(r.at)}</span>
+          </div>`;
+        }).join('')}
+      </div>`;
+  } else {
+    body = `
+      <div class="hist-table txns">
+        <div class="hist-head"><span>Type</span><span>Date</span><span>Balance</span><span>Amount</span></div>
+        ${rows.map((r) => `<div class="hist-row">
+            <span class="hist-type">${escapeHtml(HIST_TXN_LABELS[r.type] || r.type)}${r.note ? `<small>${escapeHtml(r.note)}</small>` : ''}</span>
+            <span class="hist-date">${histFmtDate(r.at)}</span>
+            <span class="hist-bal">${escapeHtml(r.balance || '')}</span>
+            <span>${r.value === 0 && r.type === 'withdraw_rejected' ? '<span class="hist-amt zero">—</span>' : histSigned(r.value)}</span>
+          </div>`).join('')}
+      </div>`;
+  }
+
+  const pager = (d && rows.length && pages > 1) ? `
+    <div class="hist-pager">
+      <button class="hist-pg" data-pg="${histState.page - 1}" ${histState.page <= 1 ? 'disabled' : ''} aria-label="Previous page">‹</button>
+      ${histPageList(histState.page, pages).map((n) => n === '…'
+        ? `<span class="hist-pg-gap">…</span>`
+        : `<button class="hist-pg ${n === histState.page ? 'active' : ''}" data-pg="${n}">${n}</button>`).join('')}
+      <button class="hist-pg" data-pg="${histState.page + 1}" ${histState.page >= pages ? 'disabled' : ''} aria-label="Next page">›</button>
+    </div>` : '';
+
+  el.innerHTML = `
+    <div class="hist-title">
+      <span class="hist-title-icon">${icon(games ? 'history' : 'receipt', 20)}</span>
+      <h2>${games ? 'Game History' : 'Transaction History'}</h2>
+    </div>
+    <div class="hist-filters">
+      ${filters.map((f) => `<button class="hist-chip ${f.key === histState.filter ? 'active' : ''}" data-filter="${f.key}">${f.icon ? icon(f.icon, 15) : ''}${f.label}</button>`).join('')}
+    </div>
+    <div class="hist-body ${histState.loading && d ? 'is-loading' : ''}">${body}</div>
+    ${pager}`;
+
+  el.querySelectorAll('.hist-chip').forEach((b) => b.addEventListener('click', () => {
+    if (b.dataset.filter === histState.filter) return;
+    histState.filter = b.dataset.filter; histState.page = 1; histState.data = null;
+    requestHistoryPage();
+  }));
+  el.querySelectorAll('.hist-pg[data-pg]').forEach((b) => b.addEventListener('click', () => {
+    const n = Number(b.dataset.pg);
+    if (!n || n < 1 || n > pages || n === histState.page) return;
+    histState.page = n;
+    requestHistoryPage();
+  }));
+}
 
 // ---- Ignored users: their chat messages are hidden for you ----
 function myIgnoreList(){ return (currentUser && users[currentUser] && users[currentUser].ignored) || []; }
@@ -10749,6 +11010,9 @@ function setIgnored(name, on){
     applyIgnoreListToChat();
     return;
   }
+  // Unignore with the exact spelling stored on the account, not however the
+  // name happened to be written where it was clicked.
+  if (!on) name = myIgnoreList().find((n) => n.toLowerCase() === String(name).toLowerCase()) || name;
   mpSend({ type: on ? 'ignore:add' : 'ignore:remove', username: name });
 }
 function renderAccountIgnored(){
@@ -10774,7 +11038,12 @@ function renderAccountIgnored(){
     const v = document.getElementById('accIgnoreInput').value.trim();
     if (v) setIgnored(v, true);
   });
-  el.querySelectorAll('.acc-unignore').forEach((b) => b.addEventListener('click', () => setIgnored(b.dataset.name, false)));
+  el.querySelectorAll('.acc-unignore').forEach((b) => b.addEventListener('click', () => {
+    b.disabled = true; b.textContent = 'Removing...';
+    setIgnored(b.dataset.name, false);
+    // If the server doesn't answer (connection dropped), give the button back.
+    setTimeout(() => { if (b.isConnected) { b.disabled = false; b.textContent = 'Unignore'; } }, 4000);
+  }));
 }
 
 // Back from Discord's sign-in page
@@ -11679,6 +11948,15 @@ function renderAdminWithdrawList(){
         </div>
         <div class="bv-jackpot-legend" id="cbnBvJackpotLegend"></div>
       </div>
+      <div class="bv-cf-wrap" id="cbnBvCoinflipWrap" hidden>
+        <div class="bv-cf-sides">
+          <div class="bv-cf-side" id="cbnBvCfSideH"><span class="bv-cf-chip H">H</span><span class="bv-cf-name"></span></div>
+          <div class="bv-cf-vs">vs</div>
+          <div class="bv-cf-side" id="cbnBvCfSideT"><span class="bv-cf-chip T">T</span><span class="bv-cf-name"></span></div>
+        </div>
+        <div class="bv-cf-coin-stage"><div class="bv-cf-coin" id="cbnBvCoin"><div class="bv-cf-face H">H</div><div class="bv-cf-face T">T</div></div></div>
+        <div class="bv-cf-result" id="cbnBvCfResult">Flipping…</div>
+      </div>
       <div class="bv-result-banner" id="cbnBvResultBanner" hidden></div>
       <div class="bv-result-summary" id="cbnBvResultSummary" hidden>
         <div class="bv-result-summary-title" id="cbnBvResultSummaryTitle"></div>
@@ -11719,6 +11997,9 @@ function renderAdminWithdrawList(){
           <button class="bc-mode-btn" data-mode="ffa-3"><span class="bc-mode-name">1v1v1</span><span class="bc-mode-desc">3 players</span></button>
           <button class="bc-mode-btn" data-mode="ffa-4"><span class="bc-mode-name">1v1v1v1</span><span class="bc-mode-desc">4 players</span></button>
           <button class="bc-mode-btn" data-mode="team-2v2"><span class="bc-mode-name">2v2</span><span class="bc-mode-desc">Teams</span></button>
+          <button class="bc-mode-btn" data-mode="group-2"><span class="bc-mode-name">Group 2</span><span class="bc-mode-desc">Split equally</span></button>
+          <button class="bc-mode-btn" data-mode="group-3"><span class="bc-mode-name">Group 3</span><span class="bc-mode-desc">Split equally</span></button>
+          <button class="bc-mode-btn" data-mode="group-4"><span class="bc-mode-name">Group 4</span><span class="bc-mode-desc">Split equally</span></button>
         </div>
       </div>
       <div class="bc-config-block">
@@ -11728,7 +12009,9 @@ function renderAdminWithdrawList(){
           <button class="bc-mode-btn" data-winmode="crazy" title="Lowest total value wins"><span class="bc-mode-name">Crazy</span><span class="bc-mode-desc">Lowest</span></button>
           <button class="bc-mode-btn" data-winmode="jackpot" title="Odds match your share of the pot"><span class="bc-mode-name">Jackpot</span><span class="bc-mode-desc">By share</span></button>
           <button class="bc-mode-btn" data-winmode="terminal" title="Only the biggest pull on the final case counts"><span class="bc-mode-name">Terminal</span><span class="bc-mode-desc">Final case</span></button>
+          <button class="bc-mode-btn" data-winmode="coinflip" title="A coin flip decides the winner - 1v1 and 2v2 only"><span class="bc-mode-name">Coinflip</span><span class="bc-mode-desc">50/50 flip</span></button>
         </div>
+        <div class="bc-config-note" id="cbnBcWinNote" hidden></div>
       </div>
       <div class="bc-config-block bc-borrow-block">
         <div class="bc-borrow-head">
@@ -11923,6 +12206,9 @@ function renderAdminWithdrawList(){
     'ffa-3': { count: 3, isTeam: false },
     'ffa-4': { count: 4, isTeam: false },
     'team-2v2': { count: 4, isTeam: true, teamSize: 2 },
+    'group-2': { count: 2, isTeam: false, isGroup: true },
+    'group-3': { count: 3, isTeam: false, isGroup: true },
+    'group-4': { count: 4, isTeam: false, isGroup: true },
   };
   let selectedModeKey = 'team-2v2';
   let selectedWinModeKey = 'normal'; // 'normal' | 'crazy' | 'jackpot' | 'terminal' - sent to server as winMode, server decides the actual winner math
@@ -12064,8 +12350,14 @@ function renderAdminWithdrawList(){
       groups = b.players.map((p) => ({ key: p.username, label: p.username, total: p.total, lastPull: p.lastPull || 0, members: [p] }));
     }
 
-    let winningGroup, jackpotInfo = null;
-    if (winMode === 'crazy') {
+    let winningGroup, jackpotInfo = null, coinflipInfo = null;
+    if (winMode === 'group') {
+      winningGroup = { label: groups.map((g) => g.label).join(' & '), members: b.players };
+    } else if (winMode === 'coinflip' && groups.length === 2) {
+      const r = Math.random() < 0.5 ? 'H' : 'T';
+      coinflipInfo = { result: r, sides: groups.map((g, i) => ({ key: g.key, label: g.label, side: i === 0 ? 'H' : 'T' })) };
+      winningGroup = groups[r === 'H' ? 0 : 1];
+    } else if (winMode === 'crazy') {
       winningGroup = [...groups].sort((a, c) => a.total - c.total)[0];
     } else if (winMode === 'terminal') {
       winningGroup = [...groups].sort((a, c) => c.lastPull - a.lastPull)[0];
@@ -12109,7 +12401,7 @@ function renderAdminWithdrawList(){
     mockBroadcastBattles();
     const mockShare = Math.floor(winnerValue / winningTeamSize);
     mpDispatch({
-      type: 'casebattle:finished', battleId: b.id, winner, winnerValue, winMode, jackpotInfo,
+      type: 'casebattle:finished', battleId: b.id, winner, winnerValue, winMode, jackpotInfo, coinflipInfo,
       winners: winningGroup.members.map((p) => ({ username: p.username, earnings: mockShare, isBot: !!p.isBot })),
       players: b.players.map((p) => ({ username: p.username, total: p.total, lastPull: p.lastPull || 0 })),
     });
@@ -12135,8 +12427,14 @@ function renderAdminWithdrawList(){
     if (typeof trackWager === 'function') trackWager(cost);
     const id = 'mockbattle_' + Date.now();
     const caseNames = msg.caseQueue.map((i) => CASE_DATA[i].name);
-    const WIN_MODES = new Set(['normal', 'crazy', 'jackpot', 'terminal']);
-    const winMode = WIN_MODES.has(msg.winMode) ? msg.winMode : 'normal';
+    const WIN_MODES = new Set(['normal', 'crazy', 'jackpot', 'terminal', 'coinflip']);
+    let winMode = WIN_MODES.has(msg.winMode) ? msg.winMode : 'normal';
+    if ((MODE_CONFIGS[msg.mode] || {}).isGroup) winMode = 'group';
+    if (winMode === 'coinflip' && msg.mode !== 'ffa-2' && msg.mode !== 'team-2v2') {
+      if (typeof showToast === 'function') showToast('Coinflip battles can only be 1v1 or 2v2.', true);
+      if (typeof addCoins === 'function') addCoins(cost);
+      return;
+    }
     mockBattles.push({
       id, creator: currentUser, status: 'waiting', mode: msg.mode, winMode, borrow: mockBorrow,
       caseQueue: msg.caseQueue, caseNames, players: [{ username: currentUser, isBot: false, team: 0, total: 0, lastPull: 0 }],
@@ -12218,7 +12516,7 @@ function renderAdminWithdrawList(){
     area.innerHTML = sorted.map((b) => {
       const caseThumbs = b.caseNames.slice(0, 4).map((n) => `<span class="bh-case-chip">${n}</span>`).join('');
       const more = b.caseNames.length > 4 ? `<span class="bh-case-chip">+${b.caseNames.length - 4}</span>` : '';
-      const modeLabel = b.mode === 'team-2v2' ? '2v2' : `${b.players.length} Player FFA`;
+      const modeLabel = battleModeLabel(b.mode, (MODE_CONFIGS[b.mode] || {}).count, b.winMode);
       const isMine = b.creator === currentUser || b.players.some((p) => p.username === currentUser);
       const cap = { 'ffa-2': 2, 'ffa-3': 3, 'ffa-4': 4, 'team-2v2': 4 }[b.mode] || 2;
 
@@ -12681,12 +12979,38 @@ function renderAdminWithdrawList(){
     sync();
   })();
 
+  // Group modes have no winner (equal split), and Coinflip only works with
+  // exactly two sides (1v1 / 2v2) - grey out whatever doesn't fit.
+  const COINFLIP_OK_MODES = new Set(['ffa-2', 'team-2v2']);
+  function refreshBattleOptionCompat() {
+    const isGroup = !!(MODE_CONFIGS[selectedModeKey] || {}).isGroup;
+    const coinflip = selectedWinModeKey === 'coinflip';
+    bcModeButtons.forEach((btn) => {
+      const blocked = coinflip && !COINFLIP_OK_MODES.has(btn.dataset.mode);
+      btn.classList.toggle('bc-blocked', blocked);
+      btn.title = blocked ? 'Coinflip battles are 1v1 or 2v2 only' : '';
+    });
+    document.querySelectorAll('#cbnBcWinModeOptions .bc-mode-btn[data-winmode]').forEach((btn) => {
+      const blocked = isGroup || (btn.dataset.winmode === 'coinflip' && !COINFLIP_OK_MODES.has(selectedModeKey));
+      btn.classList.toggle('bc-blocked', blocked);
+    });
+    const note = document.getElementById('cbnBcWinNote');
+    if (note) {
+      note.hidden = !isGroup;
+      note.textContent = 'Group battle: no winner - the total is split equally between everyone.';
+    }
+  }
   function setSelectedMode(key) {
     if (!MODE_CONFIGS[key]) return;
     selectedModeKey = key;
+    // Picking a 3/4-player or group mode while Coinflip is chosen drops back to Normal.
+    if (typeof selectedWinModeKey !== 'undefined' && selectedWinModeKey === 'coinflip' && !COINFLIP_OK_MODES.has(key) && typeof setSelectedWinMode === 'function') {
+      setSelectedWinMode('normal');
+    }
     bcModeButtons.forEach((btn) => {
       btn.classList.toggle('active', btn.dataset.mode === key);
     });
+    refreshBattleOptionCompat();
   }
 
   bcModeButtons.forEach((btn) => {
@@ -12705,10 +13029,17 @@ function renderAdminWithdrawList(){
     bcWinModeButtons.forEach((btn) => {
       btn.classList.toggle('active', btn.dataset.winmode === key);
     });
+    refreshBattleOptionCompat();
   }
   bcWinModeButtons.forEach((btn) => {
-    btn.addEventListener('click', () => setSelectedWinMode(btn.dataset.winmode));
+    btn.addEventListener('click', () => {
+      if ((MODE_CONFIGS[selectedModeKey] || {}).isGroup) return; // group battles have no win condition
+      // Choosing Coinflip from a 3/4-player mode switches to 1v1 (or keeps 2v2).
+      if (btn.dataset.winmode === 'coinflip' && !COINFLIP_OK_MODES.has(selectedModeKey)) setSelectedMode('ffa-2');
+      setSelectedWinMode(btn.dataset.winmode);
+    });
   });
+  refreshBattleOptionCompat();
 
   bcGoldToggle.addEventListener('change', () => {
     goldSpinEnabled = bcGoldToggle.checked;
@@ -12778,7 +13109,7 @@ function renderAdminWithdrawList(){
     if (bvMarker) bvMarker.hidden = true;
     callBotsBtn.hidden = true; // replaced by the per-seat buttons rendered below
     const cfg = MODE_CONFIGS[b.mode] || MODE_CONFIGS['ffa-2'];
-    bvModeLabel.textContent = (cfg.isTeam ? '2v2' : `${cfg.count} Player FFA`) + (b.borrow ? ` · Borrow ${b.borrow}%` : '');
+    bvModeLabel.textContent = battleModeLabel(b.mode, cfg.count, b.winMode) + (b.borrow ? ` · Borrow ${b.borrow}%` : '');
     bvProgress.textContent = `Case 1 of ${b.caseQueue.length}`;
     renderWaitSlots(b);
   }
@@ -12905,7 +13236,7 @@ function renderAdminWithdrawList(){
     if (waitSlots) waitSlots.hidden = true;
     if (bvMarker) bvMarker.hidden = false;
     battleQueue = battle.caseQueue;
-    currentBattleConfig = { count: battle.players.length, isTeam: battle.mode === 'team-2v2', teamSize: 2 };
+    currentBattleConfig = { count: battle.players.length, isTeam: battle.mode === 'team-2v2', isGroup: !!(MODE_CONFIGS[battle.mode] || {}).isGroup, teamSize: 2, mode: battle.mode };
     currentBattleWinMode = battle.winMode || 'normal';
     currentBattleBorrow = battle.borrow || 0;
 
@@ -12918,7 +13249,7 @@ function renderAdminWithdrawList(){
     });
 
     const pct = (100 / battlePlayers.length).toFixed(1);
-    bvModeLabel.textContent = (currentBattleConfig.isTeam ? '2v2' : `${battlePlayers.length} Player FFA`) + (currentBattleBorrow ? ` · Borrow ${currentBattleBorrow}%` : '');
+    bvModeLabel.textContent = battleModeLabel(currentBattleConfig.mode, battlePlayers.length, currentBattleWinMode) + (currentBattleBorrow ? ` · Borrow ${currentBattleBorrow}%` : '');
 
     bvCaseStrip.innerHTML = '';
     battleQueue.forEach((caseIdx, i) => {
@@ -13556,6 +13887,53 @@ function renderAdminWithdrawList(){
     return battlePlayers.filter((p) => p.name === key);
   }
 
+  // Coinflip battles: show who is Heads / Tails, flip the coin, land on the
+  // side the server already picked (result.coinflipInfo).
+  async function runCoinflipReveal(result, runToken) {
+    const wrap = document.getElementById('cbnBvCoinflipWrap');
+    const coin = document.getElementById('cbnBvCoin');
+    const resEl = document.getElementById('cbnBvCfResult');
+    if (!wrap || !coin) return;
+    const info = result.coinflipInfo;
+    const sideOf = (s) => info.sides.find((x) => x.side === s) || { label: s === 'H' ? 'Heads' : 'Tails' };
+    const setSide = (id, s) => {
+      const el = document.getElementById(id);
+      el.querySelector('.bv-cf-name').textContent = sideOf(s).label;
+      el.classList.remove('won', 'lost');
+    };
+    setSide('cbnBvCfSideH', 'H'); setSide('cbnBvCfSideT', 'T');
+    resEl.textContent = 'Flipping…';
+    coin.getAnimations().forEach((a) => a.cancel());
+    coin.style.transform = 'rotateY(0deg)';
+    bvStage.classList.add('jp-on');
+    wrap.hidden = false;
+    let stopRoll = null;
+    try {
+      await wait(500);
+      if (isStaleRun(runToken)) return;
+      const end = 360 * 6 + (info.result === 'T' ? 180 : 0);
+      stopRoll = startRollSound(2600);
+      const anim = coin.animate([{ transform: 'rotateY(0deg)' }, { transform: `rotateY(${end}deg)` }],
+        { duration: 2600, easing: 'cubic-bezier(0.15, 0.6, 0.2, 1)', fill: 'forwards' });
+      await anim.finished;
+      if (stopRoll) { stopRoll(); stopRoll = null; }
+      if (isStaleRun(runToken)) return;
+      anim.cancel();
+      coin.style.transform = `rotateY(${end}deg)`;
+      playLand();
+      const winSide = info.result;
+      document.getElementById(winSide === 'H' ? 'cbnBvCfSideH' : 'cbnBvCfSideT').classList.add('won');
+      document.getElementById(winSide === 'H' ? 'cbnBvCfSideT' : 'cbnBvCfSideH').classList.add('lost');
+      resEl.textContent = `${winSide === 'H' ? 'Heads' : 'Tails'} - ${sideOf(winSide).label} wins`;
+      await wait(1800);
+    } finally {
+      if (stopRoll) stopRoll();
+      coin.getAnimations().forEach((a) => a.cancel());
+      wrap.hidden = true;
+      bvStage.classList.remove('jp-on');
+    }
+  }
+
   async function runJackpotWheel(result, runToken) {
     // Defensive reset first: if a *previous* jackpot wheel got interrupted
     // (view left mid-spin, reconnect, etc.) any early-return below could
@@ -13724,6 +14102,12 @@ function renderAdminWithdrawList(){
       await runJackpotWheel(result, runToken);
       if (isStaleRun(runToken)) return;
     }
+    if (result.winMode === 'coinflip' && result.coinflipInfo) {
+      if (isStaleRun(runToken)) return;
+      await runCoinflipReveal(result, runToken);
+      if (isStaleRun(runToken)) return;
+    }
+    const isGroupBattle = result.winMode === 'group';
 
     // b.winner can be "A & B" on a tie (Normal/Crazy/Terminal ties now split
     // the pot - see server runBattle) - match against membership in that
@@ -13740,7 +14124,9 @@ function renderAdminWithdrawList(){
     });
 
     bvResultBanner.hidden = false;
-    bvResultBanner.textContent = winnerIsMe
+    bvResultBanner.textContent = isGroupBattle
+      ? `🤝 Group battle - everyone gets ${commas((result.winners && result.winners[0] && result.winners[0].earnings) || 0)}`
+      : winnerIsMe
       ? (winnerLabels.length > 1 ? `🤝 Tied! You split ${commas(result.winnerValue)} in value!` : `🏆 You won ${commas(result.winnerValue)} in value!`)
       : (winnerLabels.length > 1 ? `🤝 ${result.winner} tied and split the pot` : `🏆 ${result.winner} won the battle`);
 
@@ -13751,7 +14137,11 @@ function renderAdminWithdrawList(){
     if (Array.isArray(result.winners) && result.winners.length) {
       const isSplit = winnerLabels.length > 1;
       let title;
-      if (result.winMode === 'jackpot') {
+      if (isGroupBattle) {
+        title = '🤝 GROUP SPLIT';
+      } else if (result.winMode === 'coinflip') {
+        title = '🪙 COINFLIP WINNER';
+      } else if (result.winMode === 'jackpot') {
         title = '🎡 JACKPOT WINNER';
       } else if (currentBattleConfig.isTeam) {
         title = isSplit ? '🤝 TEAMS TIED' : `🏆 ${result.winner.toUpperCase()} WINS`;
@@ -13762,7 +14152,7 @@ function renderAdminWithdrawList(){
 
       bvResultSummaryList.innerHTML = result.winners.map((w) => `
         <div class="bv-result-summary-row ${w.username === currentUser ? 'you' : ''}">
-          <span class="bv-result-summary-name">${w.username}${w.username === currentUser ? ' (You)' : ''}${w.isBot ? ' 🤖' : ''}</span>
+          <span class="bv-result-summary-name">${escapeHtml(w.username)}${w.username === currentUser ? ' (You)' : ''}${w.isBot ? ' 🤖' : ''}</span>
           <span class="bv-result-summary-earn">${COIN_ICON_HTML} ${commas(w.earnings)}</span>
         </div>
       `).join('');
@@ -13770,7 +14160,7 @@ function renderAdminWithdrawList(){
       if (result.winners.length > 1) {
         const teamTotal = result.winners.reduce((s, w) => s + w.earnings, 0);
         bvResultSummaryTotal.hidden = false;
-        bvResultSummaryTotal.innerHTML = `Total team winnings: <b>${commas(teamTotal)}</b>`;
+        bvResultSummaryTotal.innerHTML = `${isGroupBattle ? 'Total pot' : 'Total team winnings'}: <b>${commas(teamTotal)}</b>`;
       } else {
         bvResultSummaryTotal.hidden = true;
       }

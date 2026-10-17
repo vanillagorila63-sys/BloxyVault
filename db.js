@@ -209,6 +209,22 @@ async function initSchema() {
     );
   `);
 
+  // One row per finished game per player, for the Game History page.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS game_history (
+      id          BIGSERIAL PRIMARY KEY,
+      username    TEXT NOT NULL,
+      game        TEXT NOT NULL,
+      wager       BIGINT NOT NULL DEFAULT 0,
+      payout      BIGINT NOT NULL DEFAULT 0,
+      created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+  `);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_game_history_user ON game_history(username, created_at DESC);`);
+  // Total value (coins + pets) of a transaction, so pet tips/withdrawals can
+  // show a real number in Transaction History. Older rows leave it empty.
+  await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS value BIGINT;`);
+
   console.log('[db] Schema ready.');
 }
 
@@ -358,8 +374,8 @@ async function persistUserState(username, user, txn) {
 
     if (txn) {
       await client.query(
-        `INSERT INTO transactions (username, type, amount, balance_before, balance_after, items_delta, reason, admin_username)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+        `INSERT INTO transactions (username, type, amount, balance_before, balance_after, items_delta, reason, admin_username, value)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
         [
           username,
           txn.type,
@@ -369,8 +385,17 @@ async function persistUserState(username, user, txn) {
           txn.itemsTouched && txn.itemsTouched.length ? JSON.stringify(txn.itemsTouched) : null,
           txn.reason || null,
           txn.adminUsername || null,
+          Number.isFinite(txn.value) ? Math.trunc(txn.value) : null,
         ]
       );
+      // A finished game: one Game History row, in the same DB transaction
+      // as the payout itself.
+      if (txn.game && txn.game.game) {
+        await client.query(
+          `INSERT INTO game_history (username, game, wager, payout) VALUES ($1,$2,$3,$4)`,
+          [username, String(txn.game.game), Math.max(0, Math.trunc(txn.game.wager || 0)), Math.max(0, Math.trunc(txn.game.payout || 0))]
+        );
+      }
     }
 
     await client.query('COMMIT');
@@ -678,6 +703,37 @@ async function setDiscordLink(username, discord) {
 async function clearDiscordLink(username) {
   await pool.query(`UPDATE users SET discord_id = NULL, discord_username = NULL, discord_avatar = NULL WHERE username = $1`, [username]);
 }
+// ---------------------------------------------------------------------------
+// Account history pages (always filtered to the requesting player).
+// ---------------------------------------------------------------------------
+async function loadGameHistory(username, game, limit, offset) {
+  const params = [username];
+  let where = 'username = $1';
+  if (game) { params.push(game); where += ` AND game = $${params.length}`; }
+  const total = Number((await pool.query(`SELECT COUNT(*)::bigint AS n FROM game_history WHERE ${where}`, params)).rows[0].n);
+  params.push(limit, offset);
+  const res = await pool.query(
+    `SELECT game, wager, payout, created_at FROM game_history WHERE ${where}
+     ORDER BY created_at DESC, id DESC LIMIT $${params.length - 1} OFFSET $${params.length}`, params);
+  return { total, rows: res.rows.map((r) => ({ game: r.game, wager: Number(r.wager), payout: Number(r.payout), at: r.created_at })) };
+}
+
+async function loadTransactionHistory(username, types, excludeTypes, limit, offset) {
+  const params = [username];
+  let where = 'username = $1';
+  if (types && types.length) { params.push(types); where += ` AND type = ANY($${params.length})`; }
+  if (excludeTypes && excludeTypes.length) { params.push(excludeTypes); where += ` AND NOT (type = ANY($${params.length}))`; }
+  const total = Number((await pool.query(`SELECT COUNT(*)::bigint AS n FROM transactions WHERE ${where}`, params)).rows[0].n);
+  params.push(limit, offset);
+  const res = await pool.query(
+    `SELECT type, amount, value, items_delta, reason, created_at FROM transactions WHERE ${where}
+     ORDER BY created_at DESC, id DESC LIMIT $${params.length - 1} OFFSET $${params.length}`, params);
+  return { total, rows: res.rows.map((r) => ({
+    type: r.type, amount: Number(r.amount), value: r.value == null ? null : Number(r.value),
+    items: Array.isArray(r.items_delta) ? r.items_delta : [], reason: r.reason, at: r.created_at,
+  })) };
+}
+
 async function loadAllIgnores() {
   const res = await pool.query(`SELECT username, ignored FROM ignored_users`);
   const map = new Map();
@@ -691,7 +747,7 @@ async function addIgnore(username, ignored) {
   await pool.query(`INSERT INTO ignored_users (username, ignored) VALUES ($1,$2) ON CONFLICT DO NOTHING`, [username, ignored]);
 }
 async function removeIgnore(username, ignored) {
-  await pool.query(`DELETE FROM ignored_users WHERE username = $1 AND ignored = $2`, [username, ignored]);
+  await pool.query(`DELETE FROM ignored_users WHERE username = $1 AND LOWER(ignored) = LOWER($2)`, [username, ignored]);
 }
 
 async function loadEscrows() {
@@ -745,6 +801,8 @@ module.exports = {
   setDiscordLink,
   clearDiscordLink,
   loadAllIgnores,
+  loadGameHistory,
+  loadTransactionHistory,
   addIgnore,
   removeIgnore,
   loadEscrows,
