@@ -1722,6 +1722,21 @@
     .sink-ship-bob, .sink-wave, .sink-cloud, .sink-stars, .sink-reflect, .sink-rays, .sink-weed path, .sink-smoke span{ animation:none !important; }
   }
   .sink-payout{ font-family:var(--font-display); font-weight:700; font-size:13.5px; color:var(--gold); min-height:17px; }
+  #view-sink .jackpot-stage{ max-width:100%; }
+  .sink-history{ width:100%; display:flex; align-items:center; gap:10px; margin-bottom:4px; min-width:0; }
+  .sink-history[hidden]{ display:none; }
+  .sink-history-label{ flex-shrink:0; font-family:var(--font-display); font-weight:800; font-size:10.5px; letter-spacing:1px; text-transform:uppercase; color:var(--text-faint); }
+  .sink-history-list{ display:flex; gap:6px; overflow-x:auto; scrollbar-width:none; min-width:0; width:0; flex:1 1 0;
+    -webkit-mask-image:linear-gradient(90deg, #000 85%, transparent); mask-image:linear-gradient(90deg, #000 85%, transparent); }
+  .sink-history-list::-webkit-scrollbar{ display:none; }
+  .sink-hist-chip{ flex-shrink:0; padding:5px 9px; border-radius:8px; font-family:var(--font-display); font-weight:800; font-size:12px; font-variant-numeric:tabular-nums;
+    background:var(--bg-panel-2); border:1px solid var(--border); color:var(--text-dim); }
+  .sink-hist-chip.low{ color:#f87171; background:rgba(248,113,113,.08); border-color:rgba(248,113,113,.25); }
+  .sink-hist-chip.mid{ color:#e5e7eb; }
+  .sink-hist-chip.good{ color:#4ade80; background:rgba(74,222,128,.08); border-color:rgba(74,222,128,.25); }
+  .sink-hist-chip.big{ color:#fbbf24; background:rgba(251,191,36,.10); border-color:rgba(251,191,36,.35); }
+  .sink-hist-chip.fresh{ animation:sinkChipIn .45s ease-out; }
+  @keyframes sinkChipIn{ from{ transform:translateX(-10px) scale(.85); opacity:0; } to{ transform:none; opacity:1; } }
 
   @media (max-width: 760px){
     .jackpot-panel{ flex-direction:column; padding:18px; }
@@ -4290,6 +4305,51 @@ body.cbn-open #cbnRoot .backdrop { opacity: 1; pointer-events: auto; }
     #cbnRoot .bv-action, #cbnRoot .bv-back{ padding:6px 9px !important; font-size:12px !important; }
     #cbnRoot .bv-coins{ font-size:12px !important; }
   }
+
+  /* ---------- iPhone / iPad: navigation always reachable ---------- */
+  /* Safari on iPhone/iPad treats 100vh as taller than the visible screen,
+     which let the whole page slide up and take the top bar (and its menu
+     button) off screen. Use the real visible height where supported. */
+  #dashboardScreen{ height:100vh; height:100dvh; }
+  html, body{ overscroll-behavior:none; }
+  .sidenav{ -webkit-overflow-scrolling:touch; }
+  .main-content{ -webkit-overflow-scrolling:touch; overscroll-behavior:contain; }
+
+  .mobile-tabbar{ display:none; }
+  @media (max-width: 640px){
+    .mobile-tabbar{
+      display:flex; position:fixed; left:0; right:0; bottom:0; z-index:262;
+      height:calc(58px + env(safe-area-inset-bottom, 0px)); padding:0 4px env(safe-area-inset-bottom, 0px);
+      background:rgba(15,12,18,.96); border-top:1px solid var(--border);
+      backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+      overflow-x:auto; scrollbar-width:none;
+    }
+    .mobile-tabbar::-webkit-scrollbar{ display:none; }
+    .mtb-btn{
+      flex:1 0 42px; min-width:42px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
+      background:none; border:none; color:var(--text-faint); cursor:pointer; padding:6px 0 4px; position:relative;
+      -webkit-tap-highlight-color:transparent; font:inherit;
+    }
+    .mtb-ico{ width:22px; height:22px; display:flex; align-items:center; justify-content:center; font-size:19px; line-height:1; }
+    .mtb-ico svg{ width:22px; height:22px; }
+    .mtb-label{ font-size:9.5px; font-weight:700; letter-spacing:.1px; white-space:nowrap; }
+    .mtb-btn.active{ color:#fff; }
+    .mtb-btn.active .mtb-ico{ color:var(--purple-bright, #ff8a2a); }
+    .mtb-btn.active::before{ content:""; position:absolute; top:0; left:22%; right:22%; height:2px; border-radius:0 0 2px 2px; background:var(--purple); }
+    /* Room for the bar under everything else */
+    .main-content{ padding-bottom:calc(84px + env(safe-area-inset-bottom, 0px)) !important; }
+    #cbnRoot .battle-view, #cbnRoot .battle-creation{ bottom:calc(58px + env(safe-area-inset-bottom, 0px)) !important; }
+    .mobile-chat-toggle{ bottom:calc(70px + env(safe-area-inset-bottom, 0px)) !important; right:12px !important; }
+    #cbnRoot .selector-footer{ bottom:14px !important; }
+    .sidenav, .sidenav.collapsed{ height:100vh; height:100dvh; }
+  }
+  @media (max-width: 370px){
+    .mtb-label{ display:none; }
+    .mtb-btn{ flex:1 0 32px; min-width:32px; }
+    .mtb-ico, .mtb-ico svg{ width:20px; height:20px; }
+    .mobile-tabbar{ height:calc(50px + env(safe-area-inset-bottom, 0px)); }
+    #cbnRoot .battle-view, #cbnRoot .battle-creation{ bottom:calc(50px + env(safe-area-inset-bottom, 0px)) !important; }
+  }
   /* Result overlay never wraps into the winner box */
   #cbnRoot .bv-result-banner{ white-space:nowrap; max-width:92%; overflow:hidden; text-overflow:ellipsis; font-size:13px !important; padding:6px 14px !important; }
   #cbnRoot .bv-result-summary{ top:56px !important; }
@@ -4839,6 +4899,10 @@ body.cbn-open #cbnRoot .backdrop { opacity: 1; pointer-events: auto; }
 
           <div class="jackpot-stage">
             <div class="sink-stage-wrap">
+              <div class="sink-history" id="sinkHistory" hidden>
+                <span class="sink-history-label">Last sinks</span>
+                <div class="sink-history-list" id="sinkHistoryList"></div>
+              </div>
               <div class="sink-phase-label" id="sinkPhaseLabel">JOINING</div>
               <div class="sink-multiplier" id="sinkMultiplierDisplay">1.00x</div>
               <div class="sink-ship-scene" id="sinkShipScene">
@@ -5128,6 +5192,17 @@ body.cbn-open #cbnRoot .backdrop { opacity: 1; pointer-events: auto; }
 </div>
 
 <!-- ============ MY ITEMS MODAL (read-only, no exchange UI) ============ -->
+  <nav class="mobile-tabbar" id="mobileTabbar" aria-label="Games">
+    <button class="mtb-btn" data-view="home" data-icon="house" type="button"><span class="mtb-ico"></span><span class="mtb-label">Home</span></button>
+    <button class="mtb-btn" data-view="battles" data-icon="swords" type="button"><span class="mtb-ico"></span><span class="mtb-label">Battles</span></button>
+    <button class="mtb-btn" data-view="cases" data-icon="package" type="button"><span class="mtb-ico"></span><span class="mtb-label">Cases</span></button>
+    <button class="mtb-btn" data-view="coinflip" data-icon="coins" type="button"><span class="mtb-ico"></span><span class="mtb-label">Coinflip</span></button>
+    <button class="mtb-btn" data-view="diceduel" data-icon="dice" type="button"><span class="mtb-ico"></span><span class="mtb-label">Dice</span></button>
+    <button class="mtb-btn" data-view="mines" data-icon="bomb" type="button"><span class="mtb-ico"></span><span class="mtb-label">Mines</span></button>
+    <button class="mtb-btn" data-view="jackpot" data-icon="target" type="button"><span class="mtb-ico"></span><span class="mtb-label">Jackpot</span></button>
+    <button class="mtb-btn" data-view="sink" data-icon="anchor" type="button"><span class="mtb-ico"></span><span class="mtb-label">Sink</span></button>
+    <button class="mtb-btn mtb-more" id="mobileTabMore" type="button" aria-label="More"><span class="mtb-ico">☰</span><span class="mtb-label">More</span></button>
+  </nav>
 <div class="modal-overlay" id="myItemsModalOverlay">
   <div class="exchange-modal" style="max-width:800px;">
     <div class="inv-header">
@@ -6777,6 +6852,7 @@ function switchView(name){
   // active-state toggle here rather than being covered by the loop above.
   const homeLabel = document.getElementById('sidenavHomeLabel');
   if(homeLabel) homeLabel.classList.toggle('active', name === 'home');
+  document.querySelectorAll('#mobileTabbar .mtb-btn[data-view]').forEach(b => b.classList.toggle('active', b.dataset.view === name));
   document.getElementById('view-' + name).classList.add('active');
   if(name === 'battles' && typeof window.openCaseBattlesWindow === 'function') window.openCaseBattlesWindow();
   if(name === 'leaderboard') requestLeaderboard();
@@ -6796,6 +6872,24 @@ document.querySelectorAll('.tg-card').forEach(card => {
   card.addEventListener('click', () => switchView(card.dataset.view));
 });
 document.getElementById('sidenavHomeLabel').addEventListener('click', () => switchView('home'));
+// Phone bottom bar: one tap to any game, always on screen.
+(function initMobileTabbar(){
+  const bar = document.getElementById('mobileTabbar');
+  if(!bar) return;
+  bar.querySelectorAll('.mtb-btn[data-icon]').forEach(b => {
+    const ico = b.querySelector('.mtb-ico');
+    if(ico && typeof ICONS !== 'undefined' && ICONS[b.dataset.icon]) ico.innerHTML = ICONS[b.dataset.icon];
+  });
+  bar.querySelectorAll('.mtb-btn[data-view]').forEach(b => b.addEventListener('click', () => {
+    switchView(b.dataset.view);
+    const mc = document.querySelector('.main-content'); if(mc) mc.scrollTop = 0;
+  }));
+  const more = document.getElementById('mobileTabMore');
+  const menuBtn = document.getElementById('mobileNavBtn');
+  if(more && menuBtn) more.addEventListener('click', () => menuBtn.click());
+  const cur = (typeof currentViewName === 'string' && currentViewName) || 'home';
+  bar.querySelectorAll('.mtb-btn[data-view]').forEach(b => b.classList.toggle('active', b.dataset.view === cur));
+})();
 document.getElementById('sidenavProfileBtn').addEventListener('click', () => {
   if(!currentUser) return;
   openAccountModal('profile');
@@ -9536,6 +9630,24 @@ function sinkApplyApproach(t){
   iceberg.style.transform = `translate(-50%, 0) scale(${0.45 + t * 0.55})`;
 }
 
+// Row of where the last rounds sank (newest first), coloured by how far it got.
+let sinkHistoryShown = '';
+function sinkRenderHistory(points){
+  const wrap = document.getElementById('sinkHistory');
+  const list = document.getElementById('sinkHistoryList');
+  if (!wrap || !list) return;
+  const pts = Array.isArray(points) ? points.filter((n) => typeof n === 'number' && isFinite(n)).slice(0, 10) : [];
+  wrap.hidden = pts.length === 0;
+  const key = pts.join(',');
+  if (key === sinkHistoryShown) return;
+  const isNewRound = sinkHistoryShown !== '' && pts.length && key !== sinkHistoryShown;
+  sinkHistoryShown = key;
+  list.innerHTML = pts.map((m, i) => {
+    const cls = m < 1.5 ? 'low' : m < 2 ? 'mid' : m < 10 ? 'good' : 'big';
+    return `<span class="sink-hist-chip ${cls}${i === 0 && isNewRound ? ' fresh' : ''}" title="Sank at ${m.toFixed(2)}x">${m.toFixed(2)}x</span>`;
+  }).join('');
+}
+
 function sinkMyEntry(){
   if(!sinkState || !currentUser) return null;
   return (sinkState.players || []).find(p => p.username === currentUser) || null;
@@ -9781,6 +9893,7 @@ mpOn('sink:state', (msg) => {
   sinkPrevPhase = msg.phase;
   sinkPrevMyCashedOutAt = mine ? mine.cashedOutAt : undefined;
   sinkState = msg;
+  sinkRenderHistory(msg.history);
   sinkRenderPlayerList();
   sinkRenderControls();
   sinkStartTicking();

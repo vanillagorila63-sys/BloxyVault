@@ -1857,24 +1857,70 @@ const SINK_MAX_BET = 500000;
 const SINK_JOIN_MS = 30000;
 const SINK_SUNK_PAUSE_MS = 6000; // how long the result stays up before the next round's joining phase starts
 const SINK_GROWTH_K = 0.13; // multiplier(t) = e^(SINK_GROWTH_K * t), t in seconds - reaches ~5x around t=12-13s
-const SINK_INSTANT_CHANCE = 0.03; // 3% of rounds sink immediately at 1.00x - this is where the house edge lives
 
 let sinkRound = null; // set by startSinkJoiningPhase() at boot - see server startup below
+// Where the last few rounds sank (newest first), shown above the game. Saved
+// so it survives restarts.
+const SINK_HISTORY_SIZE = 10;
+let sinkHistory = [];
 let sinkTimer = null; // whichever timeout is currently driving the round forward
 
 function sinkMultiplierAt(elapsedSeconds) {
   return Math.exp(SINK_GROWTH_K * elapsedSeconds);
 }
 
-// Standard "Crash"-style long-tail distribution: mostly low multipliers,
-// occasionally very high ones, with a flat instant-sink chance baked in on
-// top for the house edge. 0.99 (rather than 1.00) as the numerator is what
-// gives the game its edge on top of the instant-sink chance above.
+// ---------------------------------------------------------------------------
+// SINK ODDS - edit this table to change how far the ship tends to go.
+// Each row is [multiplier, % chance the ship gets PAST that multiplier]
+// (= the chance a player who cashes out there wins). Rows must go up in
+// multiplier and down in chance. Between rows the chance changes smoothly.
+// Every round that doesn't get past the first row sinks at 1.00x.
+// 1.00x-2.00x keep the previous odds; 5x/10x/20x/100x are set by the owner.
+// ---------------------------------------------------------------------------
+const SINK_ODDS = [
+  [1.00, 95.21],
+  [1.02, 93.49],
+  [1.05, 90.89],
+  [1.10, 86.36],
+  [1.20, 78.25],
+  [1.30, 71.14],
+  [1.40, 64.84],
+  [1.50, 59.18],
+  [1.75, 50.78],
+  [2.00, 44.46],
+  [5.00, 2.9],
+  [10.00, 0.7],
+  [20.00, 0.01],
+  [100.00, 0.001],
+];
+const SINK_MAX_POINT = 1000; // absolute ceiling for a round
+
+function sinkChanceAbove(m) {
+  // % chance the ship gets past multiplier m (used by tests / for reference).
+  if (m < SINK_ODDS[0][0]) return 100;
+  for (let i = 0; i < SINK_ODDS.length - 1; i++) {
+    const [m1, p1] = SINK_ODDS[i], [m2, p2] = SINK_ODDS[i + 1];
+    if (m <= m2) return p1 * Math.pow(p2 / p1, Math.log(m / m1) / Math.log(m2 / m1));
+  }
+  const [mA, pA] = SINK_ODDS[SINK_ODDS.length - 2], [mB, pB] = SINK_ODDS[SINK_ODDS.length - 1];
+  return pB * Math.pow(m / mB, Math.log(pB / pA) / Math.log(mB / mA)); // keep the last slope past the end
+}
+
 function generateSinkPoint() {
-  if (Math.random() < SINK_INSTANT_CHANCE) return 1.00;
-  const r = Math.random(); // (0, 1)
-  const raw = 0.99 / (1 - r);
-  return Math.max(1.00, Math.floor(raw * 100) / 100);
+  // u = % chance to beat the result. Walk the table to find where the ship sinks.
+  const u = (crypto.randomInt(0, 2 ** 48 - 1) + 0.5) / 2 ** 48 * 100;
+  if (u >= SINK_ODDS[0][1]) return 1.00;
+  let point = null;
+  for (let i = 0; i < SINK_ODDS.length - 1 && point == null; i++) {
+    const [m1, p1] = SINK_ODDS[i], [m2, p2] = SINK_ODDS[i + 1];
+    if (u >= p2) point = m1 * Math.pow(m2 / m1, Math.log(u / p1) / Math.log(p2 / p1));
+  }
+  if (point == null) {
+    const [mA, pA] = SINK_ODDS[SINK_ODDS.length - 2], [mB, pB] = SINK_ODDS[SINK_ODDS.length - 1];
+    point = mB * Math.pow(u / pB, Math.log(mB / mA) / Math.log(pB / pA));
+  }
+  // Round UP to the cent, so "gets past 2.00x" happens exactly as often as the table says.
+  return Math.min(SINK_MAX_POINT, Math.max(1.00, Math.ceil(point * 100 - 1e-9) / 100));
 }
 
 function sinkPublicState(round) {
@@ -1889,7 +1935,7 @@ function sinkPublicState(round) {
   // this, any clock drift between the two gets amplified exponentially into
   // the displayed multiplier (a client running behind the server's clock
   // shows a slower climb than what's actually being computed server-side).
-  const base = { phase: round.phase, players, now: Date.now() };
+  const base = { phase: round.phase, players, now: Date.now(), history: sinkHistory };
   if (round.phase === 'joining') return { ...base, joinEndsAt: round.joinEndsAt };
   if (round.phase === 'active') return { ...base, activeStartAt: round.activeStartAt, growthRate: SINK_GROWTH_K };
   // 'sunk' - safe to reveal the actual sink point now that the round is fully over
@@ -1928,6 +1974,8 @@ function startSinkActivePhase() {
 function resolveSinkRound(round) {
   if (!round || round.phase !== 'active' || round !== sinkRound) return;
   round.phase = 'sunk';
+  sinkHistory = [round.sinkPoint, ...sinkHistory].slice(0, SINK_HISTORY_SIZE);
+  db.saveServerState('sinkHistory', { points: sinkHistory }).catch((err) => console.error('[db] Failed to persist sink history:', err.message));
 
   for (const [username, p] of round.players.entries()) {
     if (p.cashedOutAt == null) {
@@ -3684,6 +3732,12 @@ process.on('unhandledRejection', (err) => {
 
     Object.assign(shopStock, await db.loadShopStock());
     console.log(`[boot] Loaded exchange stock (${Object.keys(shopStock).length} pet type(s)).`);
+    try {
+      const savedSink = await db.loadServerState('sinkHistory');
+      if (savedSink && Array.isArray(savedSink.points)) {
+        sinkHistory = savedSink.points.map(Number).filter((n) => Number.isFinite(n) && n >= 1).slice(0, SINK_HISTORY_SIZE);
+      }
+    } catch (err) { console.error('[boot] Could not load sink history:', err.message); }
     const savedRain = await db.loadServerState('rainPool');
     if (savedRain && Number.isFinite(Number(savedRain.pool))) rainPool = Math.max(RAIN_BASE, Math.floor(Number(savedRain.pool)));
 
