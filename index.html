@@ -4104,6 +4104,86 @@ body.cbn-open #cbnRoot .backdrop { opacity: 1; pointer-events: auto; }
     .hist-date{ font-size:12px; }
     .hist-pg{ min-width:34px; height:34px; }
   }
+
+  /* ---------- All-devices pass ---------- */
+  /* The top bar's glow used to stick out past the right edge on phones,
+     which let the whole page be dragged sideways. */
+  .topnav::before{ width:min(320px, 80%) !important; }
+
+  /* Tablets (portrait): keep the top bar on one row instead of wrapping. */
+  @media (min-width: 641px) and (max-width: 860px){
+    .topnav{ flex-wrap:nowrap !important; }
+    .nav-right{ gap:8px !important; margin-left:auto; flex-wrap:nowrap; min-width:0; }
+    #profileBtn{ display:none !important; }
+    #logoutBtn{ padding:8px !important; font-size:0 !important; gap:0 !important; }
+    #logoutBtn .nav-icon-slot{ width:16px !important; height:16px !important; }
+    #navUsername{ max-width:96px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  }
+  /* Very small phones (iPhone SE 1st gen, small Androids): tighter top bar. */
+  @media (max-width: 370px){
+    .topnav{ padding:8px 8px !important; gap:5px !important; }
+    .topnav .logo{ display:none !important; }
+    .nav-right{ gap:4px !important; }
+    .balance-pill{ padding:6px 8px !important; }
+    .topnav .logout-btn, #logoutBtn{ padding:7px !important; }
+    .user-chip{ padding:3px !important; }
+  }
+
+  /* Jackpot + Sink stages had a fixed 380px minimum, wider than most phones. */
+  .jackpot-stage{ min-width:min(380px, 100%) !important; }
+  @media (max-width: 700px){ .jackpot-stage{ min-width:0 !important; } }
+  .jp-wheel-wrap{ width:min(clamp(260px, 32vw, 440px), calc(100vw - 72px)) !important; height:auto !important; aspect-ratio:1 / 1; }
+
+  /* Exchange / Deposit pop-ups: close button pinned top-right, empty message full width. */
+  .item-grid > .empty-note{ grid-column:1 / -1; }
+  @media (max-width: 640px){
+    .exchange-header{ position:relative; padding-right:56px !important; }
+    .exchange-header > .close-x{ position:absolute !important; top:14px; right:14px; margin:0 !important; }
+    .exchange-header .search-box{ flex:1 1 100%; }
+    .exchange-header .toggle-group{ display:flex; width:100%; }
+    .exchange-header .toggle-group .toggle-btn{ flex:1; justify-content:center; }
+    #modalOverlay .exchange-header{ padding-right:20px !important; }
+    #modalOverlay .exchange-header .search-box{ flex:1 1 auto; margin-right:40px; }
+    .exchange-footer{ flex-wrap:wrap; gap:10px; }
+    .exchange-footer .exchange-btn{ width:100%; justify-content:center; }
+  }
+  @media (max-width: 400px){
+    .dep-account-card{ flex-wrap:wrap; }
+    .dep-account-text{ flex:1; min-width:0; }
+    .dep-account-card .dep-copy-btn{ flex-basis:100%; justify-content:center; }
+  }
+
+  /* Battle case picker on phones: bottom bar sits above the cards, and the
+     picker fills the screen height instead of stopping short. */
+  #cbnRoot .selector-footer{ z-index:5; box-shadow:0 -10px 24px rgba(0,0,0,.45); }
+  @media (max-width: 720px){
+    #cbnRoot .window:has(#cbnSelectorScreen:not([hidden])){ min-height:calc(100dvh - var(--shell-top, 64px) - 24px); }
+    #cbnRoot #cbnSelectorScreen{ padding:16px 14px !important; }
+    #cbnRoot .selector-footer{ left:14px !important; right:14px !important; bottom:14px !important; flex-direction:row !important; align-items:center !important; padding:10px 14px !important; }
+    #cbnRoot .selector-footer .footer-stats{ flex-direction:column; gap:2px !important; }
+    #cbnRoot .selector-footer .btn-done{ margin:0 !important; }
+    #cbnRoot .case-grid{ padding-bottom:84px !important; }
+    #cbnRoot .selector-top{ flex-wrap:wrap; gap:10px; }
+    #cbnRoot .selector-top .search-box{ flex:1 1 160px; min-width:0; }
+  }
+  /* Player cards line up one per reel column (a 4-player battle used to show 3 + 1). */
+  #cbnRoot #cbnBattleView{ container-type:inline-size; container-name:bview; }
+  @container bview (min-width: 721px){
+    #cbnRoot .bv-players:not(.bv-players-teams){ grid-template-columns:repeat(var(--bv-cols, 2), minmax(0, 1fr)) !important; }
+  }
+  @container bview (min-width: 421px) and (max-width: 720px){
+    #cbnRoot .bv-players:not(.bv-players-teams){ grid-template-columns:repeat(var(--bv-cols-half, 2), minmax(0, 1fr)) !important; }
+  }
+  /* The floating chat button would sit on top of the picker's Done button. */
+  @media (max-width: 720px){
+    body:has(#cbnSelectorScreen:not([hidden])) #mobileChatToggle{ display:none !important; }
+  }
+  /* Battle header: let the buttons wrap instead of running off the edge. */
+  #cbnRoot .bv-topbar{ flex-wrap:wrap; row-gap:8px; }
+  @media (max-width: 380px){
+    #cbnRoot .bv-action, #cbnRoot .bv-back{ padding:6px 9px !important; font-size:12px !important; }
+    #cbnRoot .bv-coins{ font-size:12px !important; }
+  }
   /* Result overlay never wraps into the winner box */
   #cbnRoot .bv-result-banner{ white-space:nowrap; max-width:92%; overflow:hidden; text-overflow:ellipsis; font-size:13px !important; padding:6px 14px !important; }
   #cbnRoot .bv-result-summary{ top:56px !important; }
@@ -13294,6 +13374,8 @@ function renderAdminWithdrawList(){
       });
     } else {
       bvPlayers.classList.remove('bv-players-teams');
+      bvPlayers.style.setProperty('--bv-cols', String(Math.max(1, battlePlayers.length)));
+      bvPlayers.style.setProperty('--bv-cols-half', String(Math.max(1, Math.ceil(battlePlayers.length / 2))));
       battlePlayers.forEach((p, i) => {
         const card = document.createElement('div');
         card.className = 'bv-player-card';
