@@ -16347,5 +16347,23 @@ function renderAdminWithdrawList(){
   }, 1000);
 })();
 </script>
+<script>
+// Pet pictures: if one fails to load (e.g. a stale "Not found" left over
+// from before a deploy), quietly retry it a couple of times with a fresh
+// request instead of leaving a broken image on screen.
+(function(){
+  document.addEventListener('error', function(e){
+    var img = e.target;
+    if (!img || img.tagName !== 'IMG') return;
+    var src = img.getAttribute('src') || '';
+    if (src.indexOf('/assets/img/bgsi/') === -1) return;
+    var tries = Number(img.dataset.bvRetry || 0);
+    if (tries >= 3) return;
+    img.dataset.bvRetry = String(tries + 1);
+    var clean = src.split('?')[0];
+    setTimeout(function(){ img.src = clean + '?r=' + Date.now(); }, 400 * (tries + 1));
+  }, true);
+})();
+</script>
 </body>
 </html>

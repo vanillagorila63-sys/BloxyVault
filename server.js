@@ -3605,8 +3605,12 @@ function serveImageAsset(pathname, res) {
   }
   fs.readFile(path.join(ASSET_IMG_DIR, filename), (err, data) => {
     if (err) {
-      res.writeHead(404, { 'Content-Type': 'text/plain' });
-      res.end('Not found.');
+      // Never let a browser or cache in between remember a failure - the
+      // file may well be there on the next try (e.g. right after a deploy).
+      const missing = err.code === 'ENOENT';
+      if (!missing) console.error('[assets] could not read', filename, err.code);
+      res.writeHead(missing ? 404 : 503, { 'Content-Type': 'text/plain', 'Cache-Control': 'no-store' });
+      res.end(missing ? 'Not found.' : 'Busy, try again.');
       return;
     }
     res.writeHead(200, {
