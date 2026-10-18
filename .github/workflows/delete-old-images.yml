@@ -1,0 +1,18 @@
+name: Delete old pet images
+on:
+  push:
+    paths: ['.github/workflows/delete-old-images.yml']
+permissions:
+  contents: write
+jobs:
+  clean:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          xargs -a unused-images.txt git rm --quiet --ignore-unmatch
+          git rm --quiet unused-images.txt .github/workflows/delete-old-images.yml
+          git config user.name "cleanup-bot"
+          git config user.email "cleanup-bot@users.noreply.github.com"
+          git commit -m "Delete old pet images"
+          git push
