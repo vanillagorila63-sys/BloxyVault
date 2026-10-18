@@ -3590,10 +3590,15 @@ const ASSET_IMG_DIR = path.join(__dirname, 'assets', 'img');
 // below, so a request can never escape this directory via '..', absolute
 // paths, or anything else.
 const SAFE_ASSET_FILENAME = /^[a-f0-9]{16,64}\.(png|webp)$/;
+// Pet pictures for the new game live in assets/img/bgsi/<pet-slug>.webp
+// (slug = lowercase letters, digits and dashes only - still no way out of
+// the folder).
+const SAFE_PET_FILENAME = /^bgsi\/[a-z0-9]+(?:-[a-z0-9]+)*\.webp$/;
 
 function serveImageAsset(pathname, res) {
-  const filename = decodeURIComponent(pathname.slice('/assets/img/'.length));
-  if (!SAFE_ASSET_FILENAME.test(filename)) {
+  let filename;
+  try { filename = decodeURIComponent(pathname.slice('/assets/img/'.length)); } catch (e) { filename = ''; }
+  if (!SAFE_ASSET_FILENAME.test(filename) && !SAFE_PET_FILENAME.test(filename)) {
     res.writeHead(400, { 'Content-Type': 'text/plain' });
     res.end('Bad asset request.');
     return;
@@ -3608,7 +3613,9 @@ function serveImageAsset(pathname, res) {
       'Content-Type': filename.endsWith('.webp') ? 'image/webp' : 'image/png',
       // Safe to cache forever, unconditionally - see the comment above on
       // why a given filename's content can never change.
-      'Cache-Control': 'public, max-age=31536000, immutable',
+      // Pet pictures keep their name if they're ever replaced, so those
+      // only cache for a day.
+      'Cache-Control': filename.startsWith('bgsi/') ? 'public, max-age=86400' : 'public, max-age=31536000, immutable',
     });
     res.end(data);
   });
