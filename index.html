@@ -4402,6 +4402,94 @@ body.cbn-open #cbnRoot .backdrop { opacity: 1; pointer-events: auto; }
     .lb-spot-avatar{ width:72px; height:72px; font-size:24px; }
     .lb-spot-crown{ top:-17px; font-size:22px; }
   }
+
+  /* ---------- Chat on phones/tablets ---------- */
+  /* The chat drawer must sit above the bottom icon bar (262) and the floating
+     chat button, and use the real visible height so the message box isn't
+     hidden under Safari's toolbar. */
+  @media (max-width: 900px){
+    .chat-panel{ z-index:276 !important; height:100vh; height:100dvh !important; padding-bottom:env(safe-area-inset-bottom, 0px); }
+    .chat-panel-backdrop.open{ z-index:275 !important; }
+    body:has(.chat-panel.mobile-open) #mobileChatToggle{ display:none !important; }
+    #chatInput{ font-size:16px !important; } /* stops iPhone from zooming in when you tap the box */
+    .chat-input-row, .rain-deposit-row{ min-width:0; }
+    .chat-input-row #chatInput, .rain-deposit-row #rainDepositInput{ flex:1 1 auto; min-width:0 !important; width:auto !important; }
+    .chat-input-row > button, .rain-deposit-row > button{ flex-shrink:0; }
+  }
+  @media (max-width: 400px){ .chat-panel{ width:92vw !important; } }
+
+  /* ---------- Pet Notifier ---------- */
+  .pw-open-btn{ position:relative; }
+  .cf-toolbar{ flex-wrap:wrap; }
+  @media (max-width: 640px){
+    .cf-toolbar{ display:grid !important; grid-template-columns:1fr 1fr; gap:8px !important; }
+    .cf-toolbar .cf-create-btn{ grid-column:1 / -1; justify-content:center; }
+    .cf-toolbar .cf-history-btn{ justify-content:center; white-space:nowrap; }
+    #view-diceduel .cf-toolbar{ grid-template-columns:1fr; }
+  }
+  .pw-count{ margin-left:6px; min-width:18px; height:18px; padding:0 5px; border-radius:999px; background:#f4c430; color:#1a1306; font-size:11px; font-weight:900; display:inline-flex; align-items:center; justify-content:center; }
+  .pw-count[hidden]{ display:none; }
+  .cf-lobby-row.pw-hit{
+    border-color:#f4c430 !important;
+    box-shadow:0 0 0 1px rgba(244,196,48,.55), 0 0 22px -4px rgba(244,196,48,.45), inset 0 0 30px -18px rgba(244,196,48,.6) !important;
+    background:linear-gradient(155deg, rgba(244,196,48,.10), var(--bg-panel-2) 45%, var(--bg-deep)) !important;
+    position:relative;
+  }
+  .cf-lobby-row.pw-hit::before{ content:"🔔 Watched pet"; position:absolute; top:-9px; left:14px; padding:2px 8px; border-radius:6px; background:#f4c430; color:#1a1306; font-size:10.5px; font-weight:900; letter-spacing:.3px; }
+  .cf-thumb.pw-thumb{ box-shadow:0 0 0 2px #f4c430, 0 0 10px rgba(244,196,48,.6) !important; border-color:#f4c430 !important; }
+  .cf-lobby-row.pw-flash{ animation:pwFlash 1.6s ease-out 1; }
+  @keyframes pwFlash{ 0%,40%{ box-shadow:0 0 0 3px #f4c430, 0 0 36px rgba(244,196,48,.8); } 100%{ } }
+
+  .pw-modal{ background:var(--bg-panel); border:1px solid var(--border); border-radius:16px; width:100%; max-width:760px; max-height:88vh; display:flex; flex-direction:column; overflow:hidden; }
+  .pw-head{ display:flex; align-items:flex-start; gap:14px; padding:20px 20px 14px; border-bottom:1px solid var(--border); }
+  .pw-head-icon{ width:42px; height:42px; border-radius:12px; background:rgba(244,196,48,.12); border:1px solid rgba(244,196,48,.35); display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0; }
+  .pw-head-text{ flex:1; min-width:0; }
+  .pw-title{ font-family:var(--font-display); font-weight:800; font-size:18px; }
+  .pw-sub{ font-size:12.5px; color:var(--text-dim); margin-top:3px; line-height:1.45; }
+  .pw-tools{ display:flex; align-items:center; gap:12px; padding:14px 20px; flex-wrap:wrap; }
+  .pw-tools .search-box{ flex:1 1 220px; }
+  .pw-only{ display:inline-flex; align-items:center; gap:7px; font-size:12.5px; color:var(--text-dim); cursor:pointer; user-select:none; }
+  .pw-grid{ flex:1; overflow-y:auto; padding:4px 20px 16px; display:grid; grid-template-columns:repeat(auto-fill, minmax(118px, 1fr)); gap:10px; align-content:start; -webkit-overflow-scrolling:touch; }
+  .pw-pet{ position:relative; display:flex; flex-direction:column; align-items:center; gap:6px; padding:12px 8px 10px; border-radius:12px; cursor:pointer;
+    background:var(--bg-panel-2); border:1px solid var(--border); color:var(--text); font:inherit; transition:border-color .12s, background .12s, transform .08s; }
+  .pw-pet:hover{ border-color:rgba(244,196,48,.45); }
+  .pw-pet:active{ transform:scale(.97); }
+  .pw-pet.on{ border-color:#f4c430; background:linear-gradient(160deg, rgba(244,196,48,.16), var(--bg-panel-2)); box-shadow:0 0 0 1px rgba(244,196,48,.5); }
+  .pw-pet-check{ position:absolute; top:7px; right:7px; width:18px; height:18px; border-radius:50%; border:1.5px solid var(--border); font-size:11px; font-weight:900; color:transparent; display:flex; align-items:center; justify-content:center; }
+  .pw-pet.on .pw-pet-check{ background:#f4c430; border-color:#f4c430; color:#1a1306; }
+  .pw-pet-img{ width:56px; height:56px; display:flex; align-items:center; justify-content:center; font-size:34px; }
+  .pw-pet-img img{ max-width:100%; max-height:100%; object-fit:contain; }
+  .pw-pet-name{ font-size:12px; font-weight:700; text-align:center; line-height:1.25; max-width:100%; overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
+  .pw-pet-val{ display:inline-flex; align-items:center; gap:4px; font-size:11px; font-weight:800; color:var(--gold); }
+  .pw-empty{ grid-column:1/-1; text-align:center; color:var(--text-faint); font-size:13px; padding:30px 10px; }
+  .pw-foot{ display:flex; align-items:center; gap:10px; padding:14px 20px; border-top:1px solid var(--border); }
+  .pw-foot > span{ flex:1; font-size:13px; font-weight:700; color:var(--text-dim); }
+  .pw-foot .ghost-btn{ padding:9px 14px; font-size:12.5px; }
+  .pw-foot .exchange-btn{ height:38px; }
+
+  .pw-toasts{ position:fixed; right:18px; bottom:18px; z-index:320; display:flex; flex-direction:column; gap:10px; width:min(360px, calc(100vw - 24px)); pointer-events:none; }
+  .pw-toast{ pointer-events:auto; display:flex; align-items:center; gap:12px; padding:12px 12px 12px 12px; border-radius:14px;
+    background:linear-gradient(150deg, #2a2110, var(--bg-panel) 60%); border:1px solid #f4c430;
+    box-shadow:0 0 0 1px rgba(244,196,48,.25), 0 18px 40px -12px rgba(0,0,0,.75), 0 0 30px -8px rgba(244,196,48,.45);
+    animation:pwIn .35s cubic-bezier(.2,.9,.3,1.2); }
+  .pw-toast.out{ opacity:0; transform:translateX(20px); transition:opacity .22s, transform .22s; }
+  @keyframes pwIn{ from{ opacity:0; transform:translateY(16px) scale(.96); } to{ opacity:1; transform:none; } }
+  .pw-toast-pet{ width:52px; height:52px; flex-shrink:0; border-radius:12px; background:rgba(244,196,48,.1); display:flex; align-items:center; justify-content:center; font-size:30px; }
+  .pw-toast-pet img{ max-width:46px; max-height:46px; object-fit:contain; }
+  .pw-toast-body{ flex:1; min-width:0; }
+  .pw-toast-kicker{ font-size:10.5px; font-weight:900; letter-spacing:.5px; text-transform:uppercase; color:#f4c430; }
+  .pw-toast-title{ font-family:var(--font-display); font-weight:800; font-size:15px; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .pw-toast-sub{ font-size:12px; color:var(--text-dim); display:flex; align-items:center; gap:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .pw-toast-actions{ display:flex; flex-direction:column; gap:6px; flex-shrink:0; align-items:flex-end; }
+  .pw-toast-view{ background:#f4c430; color:#1a1306; border:none; border-radius:9px; padding:8px 14px; font:inherit; font-weight:800; font-size:12.5px; cursor:pointer; }
+  .pw-toast-x{ background:none; border:none; color:var(--text-faint); font-size:12px; cursor:pointer; padding:2px 4px; }
+  @media (max-width: 640px){
+    .pw-toasts{ left:12px; right:12px; width:auto; top:calc(70px + env(safe-area-inset-top, 0px)); bottom:auto; }
+    .pw-grid{ grid-template-columns:repeat(auto-fill, minmax(96px, 1fr)); padding:4px 14px 14px; gap:8px; }
+    .pw-head, .pw-tools, .pw-foot{ padding-left:14px; padding-right:14px; }
+    .pw-pet-img{ width:46px; height:46px; }
+    .pw-modal{ max-height:92vh; }
+  }
   /* Result overlay never wraps into the winner box */
   #cbnRoot .bv-result-banner{ white-space:nowrap; max-width:92%; overflow:hidden; text-overflow:ellipsis; font-size:13px !important; padding:6px 14px !important; }
   #cbnRoot .bv-result-summary{ top:56px !important; }
@@ -4659,6 +4747,7 @@ body.cbn-open #cbnRoot .backdrop { opacity: 1; pointer-events: auto; }
         <div class="cf-toolbar">
           <button class="cf-create-btn" id="cfCreateLobbyBtn"><span class="nav-icon-slot" data-icon="plus" style="width:15px;height:15px;"></span> Create Lobby</button>
           <button class="cf-history-btn" id="cfHistoryBtn"><span class="nav-icon-slot" data-icon="history" style="width:14px;height:14px;"></span> History</button>
+          <button class="cf-history-btn pw-open-btn" type="button" data-pw-open="1"><span class="nav-icon-slot" data-icon="bell" style="width:14px;height:14px;"></span> Pet Notifier<span class="pw-count" hidden></span></button>
         </div>
 
         <div class="cf-lobby-list" id="cfLobbyList"></div>
@@ -4861,6 +4950,7 @@ body.cbn-open #cbnRoot .backdrop { opacity: 1; pointer-events: auto; }
 
         <div class="cf-toolbar">
           <button class="cf-create-btn" id="ddCreateLobbyBtn"><span class="nav-icon-slot" data-icon="plus" style="width:15px;height:15px;"></span> Create Dice Duel</button>
+          <button class="cf-history-btn pw-open-btn" type="button" data-pw-open="1"><span class="nav-icon-slot" data-icon="bell" style="width:14px;height:14px;"></span> Pet Notifier<span class="pw-count" hidden></span></button>
         </div>
 
         <div class="cf-lobby-list" id="ddLobbyList"></div>
@@ -5256,6 +5346,29 @@ body.cbn-open #cbnRoot .backdrop { opacity: 1; pointer-events: auto; }
     <button class="mtb-btn" data-view="sink" data-icon="anchor" type="button"><span class="mtb-ico"></span><span class="mtb-label">Sink</span></button>
     <button class="mtb-btn mtb-more" id="mobileTabMore" type="button" aria-label="More"><span class="mtb-ico">☰</span><span class="mtb-label">More</span></button>
   </nav>
+<div class="modal-overlay" id="petWatchOverlay">
+  <div class="pw-modal" role="dialog" aria-labelledby="pwTitle">
+    <div class="pw-head">
+      <div class="pw-head-icon">🔔</div>
+      <div class="pw-head-text">
+        <div class="pw-title" id="pwTitle">Pet Notifier</div>
+        <div class="pw-sub">Pick pets. When someone posts a Coinflip or Dice Duel with one of them, you get a pop-up and the lobby glows gold.</div>
+      </div>
+      <button class="close-x" id="pwCloseBtn" aria-label="Close"><span class="nav-icon-slot" data-icon="x" style="width:16px;height:16px;"></span></button>
+    </div>
+    <div class="pw-tools">
+      <div class="search-box"><span class="nav-icon-slot" data-icon="search" style="width:16px;height:16px;"></span><input type="text" id="pwSearch" placeholder="Search pets..." autocomplete="off"></div>
+      <label class="pw-only"><input type="checkbox" id="pwOnlyWatched"> Watching only</label>
+    </div>
+    <div class="pw-grid" id="pwGrid"></div>
+    <div class="pw-foot">
+      <span id="pwFootCount">Watching 0 pets</span>
+      <button class="ghost-btn" id="pwClearBtn" type="button">Clear all</button>
+      <button class="exchange-btn" id="pwDoneBtn" type="button" style="width:auto; padding:0 22px;">Done</button>
+    </div>
+  </div>
+</div>
+<div class="pw-toasts" id="pwToasts" aria-live="polite"></div>
 <div class="modal-overlay" id="myItemsModalOverlay">
   <div class="exchange-modal" style="max-width:800px;">
     <div class="inv-header">
@@ -8451,6 +8564,7 @@ mpOn('coinflip:lobbies', (msg) => {
     avatarColor: colorForUsername(l.creator),
     status: 'waiting',
   }));
+  petWatchScan('coinflip', msg.lobbies.map((l) => ({ id: l.id, owner: l.creator, items: l.items || [] })));
   renderCfLobbies();
 });
 
@@ -8811,6 +8925,123 @@ mpOnSend('game:resolve', (msg) => {
   }
 });
 
+// ===========================================================
+// PET NOTIFIER - pick pets; get a pop-up when someone posts a Coinflip or
+// Dice Duel with one, and those lobbies glow gold. Saved in this browser.
+// ===========================================================
+const PW_KEY = 'bv_pet_watch';
+let petWatch = new Set();
+try { const saved = JSON.parse(localStorage.getItem(PW_KEY) || '[]'); if (Array.isArray(saved)) petWatch = new Set(saved.filter((id) => typeof id === 'string')); } catch (e) {}
+const petWatchSeen = { coinflip: null, diceduel: null }; // lobby ids already seen (null = first list not received yet)
+function petWatchSave(){ try { localStorage.setItem(PW_KEY, JSON.stringify([...petWatch])); } catch (e) {} petWatchUpdateCounts(); }
+function petWatchHas(id){ return petWatch.has(id); }
+function petWatchHits(items){ return [...new Set((items || []).filter((id) => petWatch.has(id)))]; }
+// Watched pets first, so they're the ones visible in the 4 thumbnails.
+function petWatchOrder(items){ return [...(items || [])].sort((a, b) => (petWatch.has(b) ? 1 : 0) - (petWatch.has(a) ? 1 : 0)); }
+function petWatchUpdateCounts(){
+  document.querySelectorAll('.pw-count').forEach((el) => { el.hidden = petWatch.size === 0; el.textContent = petWatch.size; });
+  const foot = document.getElementById('pwFootCount');
+  if (foot) foot.textContent = `Watching ${petWatch.size} pet${petWatch.size === 1 ? '' : 's'}`;
+}
+function petWatchScan(game, lobbies){
+  const ids = new Set(lobbies.map((l) => l.id));
+  const firstTime = petWatchSeen[game] === null;
+  const seen = petWatchSeen[game] || new Set();
+  if (!firstTime && petWatch.size) {
+    lobbies.forEach((l) => {
+      if (seen.has(l.id) || !l.owner || l.owner === currentUser) return;
+      if (typeof isIgnoredUser === 'function' && isIgnoredUser(l.owner)) return;
+      const hits = petWatchHits(l.items);
+      if (hits.length) petWatchPopup(game, l, hits);
+    });
+  }
+  petWatchSeen[game] = ids; // forget lobbies that are gone
+}
+function petWatchPopup(game, lobby, hits){
+  const box = document.getElementById('pwToasts');
+  if (!box) return;
+  const pet = CATALOG_BY_ID[hits[0]] || { name: hits[0] };
+  const value = (lobby.items || []).reduce((s, id) => s + ((CATALOG_BY_ID[id] && CATALOG_BY_ID[id].value) || 0), 0);
+  const gameName = game === 'coinflip' ? 'Coinflip' : 'Dice Duel';
+  const extra = hits.length > 1 ? ` +${hits.length - 1} more` : '';
+  const card = document.createElement('div');
+  card.className = 'pw-toast';
+  card.innerHTML = `
+    <div class="pw-toast-pet">${itemIcon(pet)}</div>
+    <div class="pw-toast-body">
+      <div class="pw-toast-kicker">🔔 Pet alert · ${gameName}</div>
+      <div class="pw-toast-title">${escapeHtml(pet.name)}${extra}</div>
+      <div class="pw-toast-sub">${escapeHtml(lobby.owner)} posted ${(lobby.items || []).length} pet${(lobby.items || []).length === 1 ? '' : 's'} · ${coinIcon(12)} ${fmtCompact(value)}</div>
+    </div>
+    <div class="pw-toast-actions">
+      <button class="pw-toast-view" type="button">View</button>
+      <button class="pw-toast-x" type="button" aria-label="Dismiss">✕</button>
+    </div>`;
+  const close = () => { card.classList.add('out'); setTimeout(() => card.remove(), 250); };
+  card.querySelector('.pw-toast-x').addEventListener('click', close);
+  card.querySelector('.pw-toast-view').addEventListener('click', () => {
+    close();
+    switchView(game === 'coinflip' ? 'coinflip' : 'diceduel');
+    setTimeout(() => {
+      const row = document.querySelector(`#${game === 'coinflip' ? 'cfLobbyList' : 'ddLobbyList'} .cf-lobby-row[data-lobby-id="${CSS.escape(lobby.id)}"]`);
+      if (row) { row.scrollIntoView({ behavior: 'smooth', block: 'center' }); row.classList.remove('pw-flash'); void row.offsetWidth; row.classList.add('pw-flash'); }
+      else showToast('That lobby is already gone.', true);
+    }, 120);
+  });
+  box.prepend(card);
+  while (box.children.length > 3) box.lastElementChild.remove();
+  setTimeout(close, 15000);
+}
+function renderPetWatchGrid(){
+  const grid = document.getElementById('pwGrid');
+  if (!grid) return;
+  const q = (document.getElementById('pwSearch').value || '').trim().toLowerCase();
+  const onlyWatched = document.getElementById('pwOnlyWatched').checked;
+  const pets = PET_CATALOG
+    .filter((p) => (!q || String(p.name).toLowerCase().includes(q)) && (!onlyWatched || petWatch.has(p.id)))
+    .sort((a, b) => (petWatch.has(b.id) - petWatch.has(a.id)) || ((b.value || 0) - (a.value || 0)));
+  grid.innerHTML = pets.length ? pets.slice(0, 300).map((p) => `
+    <button class="pw-pet${petWatch.has(p.id) ? ' on' : ''}" type="button" data-pet="${escapeHtml(p.id)}" title="${escapeHtml(p.name)}">
+      <span class="pw-pet-check">✓</span>
+      <span class="pw-pet-img">${itemIcon(p)}</span>
+      <span class="pw-pet-name">${escapeHtml(p.name)}</span>
+      <span class="pw-pet-val">${coinIcon(11)} ${fmtCompact(p.value || 0)}</span>
+    </button>`).join('') : `<div class="pw-empty">${onlyWatched ? "You're not watching any pets yet." : 'No pets match that search.'}</div>`;
+  petWatchUpdateCounts();
+}
+function openPetWatch(){
+  document.getElementById('pwSearch').value = '';
+  document.getElementById('pwOnlyWatched').checked = false;
+  renderPetWatchGrid();
+  document.getElementById('petWatchOverlay').classList.add('open');
+  setTimeout(() => { if (window.matchMedia('(min-width: 700px)').matches) document.getElementById('pwSearch').focus(); }, 50);
+}
+function closePetWatch(){
+  document.getElementById('petWatchOverlay').classList.remove('open');
+  if (typeof renderCfLobbies === 'function') renderCfLobbies();
+  if (typeof renderDdLobbies === 'function') renderDdLobbies();
+}
+(function initPetWatch(){
+  const ready = () => {
+    document.querySelectorAll('[data-pw-open]').forEach((b) => b.addEventListener('click', openPetWatch));
+    document.getElementById('pwCloseBtn').addEventListener('click', closePetWatch);
+    document.getElementById('pwDoneBtn').addEventListener('click', closePetWatch);
+    document.getElementById('petWatchOverlay').addEventListener('click', (e) => { if (e.target.id === 'petWatchOverlay') closePetWatch(); });
+    document.getElementById('pwSearch').addEventListener('input', renderPetWatchGrid);
+    document.getElementById('pwOnlyWatched').addEventListener('change', renderPetWatchGrid);
+    document.getElementById('pwClearBtn').addEventListener('click', () => { petWatch.clear(); petWatchSave(); renderPetWatchGrid(); });
+    document.getElementById('pwGrid').addEventListener('click', (e) => {
+      const b = e.target.closest('.pw-pet'); if (!b) return;
+      const id = b.dataset.pet;
+      if (petWatch.has(id)) petWatch.delete(id); else petWatch.add(id);
+      b.classList.toggle('on', petWatch.has(id));
+      petWatchSave();
+    });
+    petWatchUpdateCounts();
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', ready); else ready();
+})();
+
 function renderCfLobbies(){
   const list = document.getElementById('cfLobbyList');
   list.innerHTML = '';
@@ -8827,8 +9058,10 @@ function renderCfLobbies(){
     if(lob.status !== 'completed'){ totalValue += val; totalItems += lob.items.length; }
     const row = document.createElement('div');
     row.className = 'cf-lobby-row';
+    row.dataset.lobbyId = lob.id;
     const allStakeItems = lob.status === 'completed' ? [...lob.resultData.left.items, ...lob.resultData.right.items] : lob.items;
-    const thumbs = allStakeItems.slice(0,4).map(id => `<div class=\"cf-thumb\">${itemIcon(CATALOG_BY_ID[id])}</div>`).join('');
+    if (lob.status !== 'completed' && !lob.isYou && petWatchHits(allStakeItems).length) row.classList.add('pw-hit');
+    const thumbs = petWatchOrder(allStakeItems).slice(0,4).map(id => `<div class=\"cf-thumb${petWatchHas(id) ? ' pw-thumb' : ''}\">${itemIcon(CATALOG_BY_ID[id])}</div>`).join('');
     const more = allStakeItems.length>4 ? `<div class=\"cf-thumb-more\">+${allStakeItems.length-4}</div>` : '';
     const lo = Math.floor(val*0.9), hi = Math.ceil(val*1.1);
 
@@ -10146,6 +10379,7 @@ let ddWatchingDuelId = null;     // the duel currently shown in the battle modal
 
 mpOn('diceduel:list', (msg) => {
   ddLobbies = msg.duels || [];
+  petWatchScan('diceduel', ddLobbies.filter((d) => d.status === 'waiting').map((d) => ({ id: d.id, owner: d.creator, items: d.creatorItems || [] })));
   const liveIds = new Set(ddLobbies.map((d) => d.id));
   for (const id of [...ddRevealedDuels]) if (!liveIds.has(id)) ddRevealedDuels.delete(id);
   for (const [id, timer] of [...ddRevealTimers]) if (!liveIds.has(id)) { clearTimeout(timer); ddRevealTimers.delete(id); }
@@ -10206,8 +10440,10 @@ function renderDdLobbies(){
     if (d.status !== 'finished') { totalValue += val; totalItems += d.creatorItems.length + (d.joinerItems ? d.joinerItems.length : 0); }
     const row = document.createElement('div');
     row.className = 'cf-lobby-row';
+    row.dataset.lobbyId = d.id;
     const allItems = d.status === 'waiting' ? d.creatorItems : [...d.creatorItems, ...(d.joinerItems || [])];
-    const thumbs = allItems.slice(0,4).map(id => `<div class="cf-thumb">${itemIcon(CATALOG_BY_ID[id])}</div>`).join('');
+    if (d.status === 'waiting' && d.creator !== currentUser && petWatchHits(allItems).length) row.classList.add('pw-hit');
+    const thumbs = petWatchOrder(allItems).slice(0,4).map(id => `<div class="cf-thumb${petWatchHas(id) ? ' pw-thumb' : ''}">${itemIcon(CATALOG_BY_ID[id])}</div>`).join('');
     const more = allItems.length>4 ? `<div class="cf-thumb-more">+${allItems.length-4}</div>` : '';
 
     let avatarHtml, actionHtml;
