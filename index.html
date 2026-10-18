@@ -4637,13 +4637,24 @@ body.cbn-open #cbnRoot .backdrop { opacity: 1; pointer-events: auto; }
   /* ---------- Admin promo ---------- */
   .adm-promo{ margin:6px 20px 0; padding:12px; border-radius:12px; background:var(--bg-panel-2); border:1px solid var(--border); }
   .adm-promo-title{ font-weight:800; font-size:13px; margin-bottom:8px; }
-  .adm-promo-form{ display:grid; grid-template-columns:1fr 1fr 1fr 1.4fr auto; gap:8px; }
+  .adm-promo-form{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .adm-promo-form .amount-input{ width:100% !important; min-width:0 !important; box-sizing:border-box; }
+  .adm-promo-form button{ grid-column:1 / -1; height:38px; }
   .adm-promo-list{ margin-top:10px; display:flex; flex-direction:column; gap:6px; max-height:200px; overflow-y:auto; }
   .adm-promo-row{ display:grid; grid-template-columns:1.1fr 1fr .8fr 1.3fr auto auto; align-items:center; gap:8px; font-size:12px; color:var(--text-dim); padding:6px 8px; border-radius:8px; background:var(--bg-panel); }
   .adm-promo-row b{ color:#fff; letter-spacing:1px; } .adm-promo-row span{ display:flex; align-items:center; gap:4px; }
   .adm-promo-row .ghost-btn{ padding:5px 10px; font-size:11px; }
   .adm-promo-state{ font-weight:800; } .adm-promo-state.live{ color:#4ade80; } .adm-promo-state.off, .adm-promo-state.expired, .adm-promo-state.usedup{ color:var(--text-faint); }
-  @media (max-width: 720px){ .adm-promo-form{ grid-template-columns:1fr 1fr; } .adm-promo-row{ grid-template-columns:1fr 1fr; } }
+  @media (max-width: 720px){ .adm-promo-row{ grid-template-columns:1fr 1fr; } }
+
+  .adm-danger{ margin:4px 20px 18px; padding:14px; border-radius:12px; background:rgba(239,68,68,.06); border:1px solid rgba(239,68,68,.45); }
+  .adm-danger-title{ font-weight:900; font-size:13.5px; color:#fca5a5; margin-bottom:6px; }
+  .adm-danger-text{ font-size:12.5px; color:var(--text-dim); line-height:1.5; margin-bottom:10px; }
+  .adm-danger-text b{ color:#fecaca; }
+  .adm-danger-form{ display:flex; gap:8px; flex-wrap:wrap; }
+  .adm-danger-form input{ flex:1 1 220px; }
+  .adm-danger-btn{ padding:0 16px; height:38px; border:none; border-radius:9px; background:#dc2626; color:#fff; font:inherit; font-weight:900; font-size:12.5px; cursor:pointer; }
+  .adm-danger-btn:disabled{ opacity:.4; cursor:default; }
   /* Result overlay never wraps into the winner box */
   #cbnRoot .bv-result-banner{ white-space:nowrap; max-width:92%; overflow:hidden; text-overflow:ellipsis; font-size:13px !important; padding:6px 14px !important; }
   #cbnRoot .bv-result-summary{ top:56px !important; }
@@ -5713,6 +5724,14 @@ body.cbn-open #cbnRoot .backdrop { opacity: 1; pointer-events: auto; }
       <div class="adm-promo-list" id="admPromoList"><div class="cf-empty-note">No codes yet.</div></div>
     </div>
     <div id="adminWithdrawList" style="padding:14px 20px; max-height:420px; overflow-y:auto;"></div>
+    <div class="adm-danger">
+      <div class="adm-danger-title">⚠️ Danger zone: delete everything (new game)</div>
+      <div class="adm-danger-text">Deletes <b>every account</b> (including yours), every pet, coin, vault, stat, level, game history, transaction history, notification, promo code and pending withdraw. Everyone is logged out and starts as a brand-new player. Cases are kept. <b>No backup. This cannot be undone.</b></div>
+      <form class="adm-danger-form" id="admWipeForm" autocomplete="off">
+        <input class="amount-input" id="admWipeInput" placeholder="Type DELETE EVERYTHING to confirm">
+        <button class="adm-danger-btn" id="admWipeBtn" type="submit" disabled>Delete everything</button>
+      </form>
+    </div>
   </div>
 </div>
 
@@ -7384,1176 +7403,118 @@ const BATTLE_CASES = [
 const CATALOG_BY_ID = {
   'new493': { name:"Alien Overlord", value:0, rarity:'secret', image:'/assets/img/c60f54d53b274b33e33f.webp' },
   'new492': { name:"Leprechaun Doggy", value:1, rarity:'common', image:'/assets/img/97bf077407f1d7e72032.webp' },
-  'new400': { name:"Shiny Mythic Sinister Lord 2.0", value:160000000, rarity:'secret', image:'/assets/img/f994c65388d6006a9778.png' },
   'b4_0': { name:"Mythic Sinister Lord 2.0", value:80000000, rarity:'secret', image:'/assets/img/db7a45a424732c2fb804.webp' },
   'b0_0': { name:"Shiny Levithan", value:46000000, rarity:'secret', image:'/assets/img/1e3565b008a59ec439b2.png' },
-  'new82': { name:"Shiny Mythic Almighty Pumpkin", value:40000000, rarity:'secret', image:'/assets/img/4f0a8e6fd25edbd18306.webp' },
   'b1_0': { name:"Shiny Giant Robot", value:34500000, rarity:'secret', image:'/assets/img/11760a581e4f1a1dc376.webp' },
-  'new407': { name:"Shiny Mythic King Skull", value:30000000, rarity:'secret', image:'/assets/img/1d426baa9d0830398ffe.png' },
   'b0_2': { name:"Levithan", value:20000000, rarity:'mythic', image:'/assets/img/470a8765b45a54276a95.png' },
   'b3_0': { name:"Levithan", value:20000000, rarity:'mythic', image:'/assets/img/a14681767005fc5b931c.webp' },
   'b4_1': { name:"Mythic Almighty Pumpkin", value:20000000, rarity:'mythic', image:'/assets/img/cf66b061bdc5d8a7bad1.webp' },
-  'new408': { name:"Shiny Mythic Sinister Skull", value:20000000, rarity:'secret', image:'/assets/img/c9f64f1518b1ee39d6ab.png' },
-  'new338': { name:"Shiny Mythic Peppermint Leviathan", value:18000000, rarity:'secret', image:'/assets/img/5490888b582e1eab06a4.png' },
-  'new405': { name:"Shiny Mythic Wolf Skull", value:17000000, rarity:'secret', image:'/assets/img/848e89e774f15dc44ebc.png' },
-  'new311': { name:"Shiny Mythic Lucky Pyramidium", value:16000000, rarity:'secret', image:'/assets/img/996e413e43273583afd2.png' },
-  'new404': { name:"Shiny Mythic Angelic Skull", value:16000000, rarity:'secret', image:'/assets/img/904f0cb3754f0bd228d7.png' },
-  'new406': { name:"Shiny Mythic Guardian Skull", value:16000000, rarity:'secret', image:'/assets/img/c892d184bd52d1c18f21.png' },
   'b1_1': { name:"Giant Robot", value:15000000, rarity:'mythic', image:'/assets/img/54edc2961e82097aa69d.webp' },
   'b2_1': { name:"Shiny Mythic Dream Catcher", value:15000000, rarity:'epic', image:'/assets/img/973e6df75b8853ebd5b1.png' },
   'b3_1': { name:"Giant Robot", value:15000000, rarity:'legendary', image:'/assets/img/54edc2961e82097aa69d.webp' },
   'b4_3': { name:"Mythic King Skull", value:15000000, rarity:'mythic', image:'/assets/img/fcd07fd93b7518e99c68.webp' },
-  'new346': { name:"Shiny Mythic Plasma Wolflord", value:14000000, rarity:'secret', image:'/assets/img/64433e352cc621988364.png' },
   'b4_2': { name:"Mythic Sinister Skull", value:10000000, rarity:'legendary', image:'/assets/img/df909b58f3826438ca46.webp' },
-  'new132': { name:"Shiny Dementor", value:11500000, rarity:'secret', image:'/assets/img/a636df8db3da572b6f06.webp' },
   'b0_1': { name:"Mythic Peppermint Leviathan", value:9000000, rarity:'legendary', image:'/assets/img/b03684cc27bba9590666.webp' },
   'b4_4': { name:"Mythic Wolf Skull", value:8500000, rarity:'mythic', image:'/assets/img/ae91ffb8e96a1437187e.webp' },
   'b2_0': { name:"Mythic Lucky Pyramidium", value:8000000, rarity:'mythic', image:'/assets/img/1f19b033d1684e0c7b79.webp' },
   'b4_5': { name:"Mythic Angelic Skull", value:8000000, rarity:'epic', image:'/assets/img/e9539599dc0f17218689.webp' },
   'b4_6': { name:"Mythic Guardian Skull", value:8000000, rarity:'epic', image:'/assets/img/57e59acf2a8c508e6755.webp' },
-  'new276': { name:"Shiny Mythic Godly Shamrock", value:8000000, rarity:'secret', image:'/assets/img/91315e2d631dbf562ad7.png' },
   'b0_3': { name:"Mythic Plasma Wolflord", value:7000000, rarity:'legendary', image:'/assets/img/cd6c72c1d5610ad003ca.webp' },
   'b1_3': { name:"Shiny Robot 2.0", value:3500000, rarity:'rare', image:'/assets/img/4df53adfb40de8852d97.webp' },
-  'new268': { name:"Shiny Godly Gem", value:6900000, rarity:'secret', image:'/assets/img/1be36ef9befaec335a68.png' },
   'b1_2': { name:"Shiny Mythic Christmas Robot", value:5000000, rarity:'legendary', image:'/assets/img/6637ecb55a8613e5ec55.webp' },
   'b3_2': { name:"Dementor", value:5000000, rarity:'epic', image:'/assets/img/ce3b41b5521fa4a9c3d7.webp' },
-  'new189': { name:"Shiny Mythic Fire Basilisk", value:5000000, rarity:'secret', image:'/assets/img/63bee8fd72706e6910bb.png' },
-  'new475': { name:"Shiny Shadow One", value:11500000, rarity:'secret', image:'/assets/img/0164fed535b7bab0ff62.png' },
   'b2_2': { name:"Mythic Godly Shamrock", value:4000000, rarity:'epic', image:'/assets/img/7d0c37acf96255bfb497.webp' },
-  'new200': { name:"Shiny Mythic 1B Trophy", value:4000000, rarity:'secret', image:'/assets/img/8882613747ae1b77c377.png' },
   'b1_4': { name:"Robot 2.0", value:1000000, rarity:'rare', image:'/assets/img/63116a78c0848a8195cf.webp' },
-  'new10': { name:"Godly Gem", value:3000000, rarity:'secret', image:"/assets/img/45a073369f678bd39929.webp" },
-  'new490': { name:"Shiny Dark Serpent", value:6900000, rarity:'secret', image:'/assets/img/bd3f8862a1e1f233369a.webp' },
   'b4_8': { name:"Mythic Fire Basilisk", value:2500000, rarity:'legendary', image:'/assets/img/d6e91c1364e9b6a67d18.webp' },
-  'new67': { name:"Shadow One", value:5000000, rarity:'secret', image:'/assets/img/bf0c6ec352e4ac6816e4.webp' },
-  'new384': { name:"Shiny Shadow Luminance", value:5750000, rarity:'secret', image:'/assets/img/1bf22f754668328bdbd7.png' },
   'b0_5': { name:"Shiny Tophat (F)", value:1200000, rarity:'legendary', image:'/assets/img/c7a8b82efc1e095345b9.webp' },
   'b4_7': { name:"Mythic 1B Trophy", value:2000000, rarity:'rare', image:'/assets/img/5a709568b443a6434c2e.webp' },
-  'new230': { name:"Shiny Developer Trophy", value:4025000, rarity:'secret', image:'/assets/img/94a5d126b04c7e17393f.png' },
-  'new441': { name:"Shiny Tophat (C)", value:1150000, rarity:'secret', image:'/assets/img/6e0c5a87264188aba7ba.png' },
-  'new63': { name:"Shiny Immortal One", value:805000, rarity:'secret', image:'/assets/img/786d6ac6689f4c40f90a.webp' },
-  'new443': { name:"Shiny Tophat (E)", value:3910000, rarity:'secret', image:'/assets/img/2d2be74382372e00f1f4.png' },
-  'new491': { name:"Dark Serpent", value:3000000, rarity:'secret', image:'/assets/img/b3293787aa26d7002a88.webp' },
-  'new399': { name:"Shiny Sinister Lord", value:1725000, rarity:'secret', image:'/assets/img/1b21c325e992acc48b34.webp' },
-  'new468': { name:"Shiny Dowodle", value:3450000, rarity:'secret', image:'/assets/img/a18d5c4249c0a4b0ade7.webp' },
-  'new439': { name:"Shiny Tophat (A)", value:1035000, rarity:'secret', image:'/assets/img/3503ff5ea62d1fd4fa78.png' },
-  'new447': { name:"Shiny Wolflord", value:1035000, rarity:'secret', image:'/assets/img/eb43ff235b945a29e44c.webp' },
   'b2_3': { name:"Shiny Almighty Hexarium", value:1300000, rarity:'rare', image:'/assets/img/d48f1d0c25db864f4f5e.webp' },
-  'new68': { name:"Shadow Luminance", value:2500000, rarity:'secret', image:'/assets/img/2ce532986bc0aa2b5941.webp' },
-  'new327': { name:"Shiny Patriotic Robot", value:1380000, rarity:'secret', image:'/assets/img/09fafd16d2889024b2e4.webp' },
-  'p18': { name:"Tophat (F)", value:950000, rarity:'secret', image:'/assets/img/68dfe9e06729e347a3ae.webp' },
-  'new362': { name:"Shiny Mythic Pot O' Doggy", value:1100000, rarity:'secret', image:'/assets/img/5685754fd2db04199807.png' },
-  'new444': { name:"Shiny Trophy", value:2530000, rarity:'secret', image:'/assets/img/c9e355f8966d65d1417b.webp' },
-  'new298': { name:"Shiny King Kitty", value:2300000, rarity:'secret', image:'/assets/img/3d1c944fb94a0ed703c2.png' },
-  'new367': { name:"Shiny Radiance", value:2300000, rarity:'secret', image:'/assets/img/7deb3d132dced23486d7.webp' },
-  'new396': { name:"Shiny Shadow Wolflord", value:2300000, rarity:'secret', image:'/assets/img/41e723153b65b9c58d23.png' },
-  'new467': { name:"Shiny Beta TV", value:2300000, rarity:'secret', image:'/assets/img/d625f6afa04fdca5f5e7.webp' },
-  'new488': { name:"Shiny Infernus", value:2300000, rarity:'secret', image:'/assets/img/4384cb30f578e99b821d.webp' },
-  'new271': { name:"Shiny Giant Choco Chicken", value:632500, rarity:'secret', image:'/assets/img/34f8412e7a2d9b8487e0.webp' },
-  'new154': { name:"Shiny Frost Sentinel", value:862500, rarity:'secret', image:'/assets/img/aad88084da04b3e4a10c.webp' },
-  'new127': { name:"Developer Trophy", value:1750000, rarity:'secret', image:'/assets/img/33e8269d5ec1e1e09b35.webp' },
-  'p16': { name:"Tophat (C)", value:500000, rarity:'secret', image:'/assets/img/60263135a9df13a4edd7.webp' },
-  'new11': { name:"Immortal One", value:350000, rarity:'secret', image:"/assets/img/626233baf88632199aba.webp" },
-  'p36': { name:"Tophat (E)", value:1700000, rarity:'secret', image:'/assets/img/a6b62c1a4500c98b7115.webp' },
-  'new301': { name:"Shiny Lord Shock", value:949900, rarity:'secret', image:'/assets/img/e4fa7d8340f6c23e34eb.webp' },
-  'new283': { name:"Shiny Infinity Gem", value:1840000, rarity:'secret', image:'/assets/img/19faa235c177da67b6ef.png' },
-  'new442': { name:"Shiny Tophat (D)", value:1840000, rarity:'secret', image:'/assets/img/160656f05ab3edda5d5f.png' },
   'b4_9': { name:"Sinister Lord", value:750000, rarity:'common', image:'/assets/img/229bbd3511e656f2a726.webp' },
-  'p34': { name:"Dowodle", value:1500000, rarity:'secret', image:'/assets/img/25765d0b3aed0df2b5a2.webp' },
-  'new117': { name:"Shiny Easter Basket", value:862500, rarity:'secret', image:'/assets/img/93176c693b910350e72b.webp' },
-  'new146': { name:"Shiny Elite Challenger", value:1610000, rarity:'secret', image:'/assets/img/aa1e0facc26302635304.webp' },
-  'new242': { name:"Shiny Easter Robot", value:1610000, rarity:'secret', image:'/assets/img/d367a48a5f6837f68720.png' },
-  'new360': { name:"Shiny Pot O' Gold", value:782000, rarity:'secret', image:'/assets/img/b62b5cb0ca4889272bbe.webp' },
-  'new19': { name:"Wolflord", value:450000, rarity:'secret', image:"/assets/img/d52eb44a2eb506b00233.webp" },
-  'p35': { name:"Tophat (A)", value:450000, rarity:'secret', image:'/assets/img/41b924ab3451180ab47a.webp' },
-  'p25': { name:"Almighty Hexarium", value:1300000, rarity:'secret', image:'/assets/img/3c39dfed937b6888f173.webp' },
-  'p44': { name:"Shiny Kraken", value:1495000, rarity:'secret', image:'/assets/img/ae050f78133c3f2f573a.webp' },
-  'new237': { name:"Shiny Elite Wolflord", value:1495000, rarity:'secret', image:'/assets/img/bad2348280c7fc03c1e9.png' },
   'b1_5': { name:"Patriotic Robot", value:600000, rarity:'rare', image:'/assets/img/ebff5a82044470c429e5.webp' },
-  'new144': { name:"Shiny Elite Fallen Angel", value:1380000, rarity:'secret', image:'/assets/img/80db4f0348d2054a0bf7.webp' },
-  'new414': { name:"Shiny Soul Heart", value:690000, rarity:'secret', image:'/assets/img/607bd086a05c97812718.webp' },
-  'new435': { name:"Shiny Tophat G", value:1380000, rarity:'secret', image:'/assets/img/a60b072e831f1fe9c416.png' },
-  'new482': { name:"Shiny Electra Hydra", value:1380000, rarity:'secret', image:'/assets/img/0f7433401a74ca3b8d57.webp' },
-  'new113': { name:"Shiny Dark Guardian", value:276000, rarity:'secret', image:'/assets/img/e8f3df0c8bf3a86edea5.webp' },
   'b2_4': { name:"Mythic Pot O' Doggy", value:550000, rarity:'common', image:'/assets/img/7d32dc4de7448a63ee5c.webp' },
-  'new37': { name:"Trophy", value:1100000, rarity:'secret', image:"/assets/img/3fb6859857553e04e5c1.webp" },
-  'p47': { name:"Shiny Sinister Lord 2.0", value:1207500, rarity:'secret', image:'/assets/img/e420000f1a95a7b8ae98.webp' },
-  'new16': { name:"Radiance", value:1000000, rarity:'secret', image:"/assets/img/461e19aa2c1f912ff511.webp" },
-  'new26': { name:"King Kitty", value:1000000, rarity:'secret', image:"/assets/img/0b4ae0931f2b1b172c81.webp" },
-  'p3': { name:"Beta TV", value:1000000, rarity:'secret', image:'/assets/img/d66f6c9f7f76b54a5d06.webp' },
-  'new69': { name:"Shadow Wolflord", value:1000000, rarity:'secret', image:'/assets/img/c9a50535104ba2a9b9f2.webp' },
-  'new489': { name:"Infernus", value:1000000, rarity:'secret', image:'/assets/img/b907df1fc0dd28920152.webp' },
-  'new413': { name:"Shiny Wolf Skull", value:1150000, rarity:'secret', image:'/assets/img/3b64bfa17eaca85c2ee5.png' },
-  'new440': { name:"Shiny Tophat (B)", value:1150000, rarity:'secret', image:'/assets/img/cdc148e8d3a71e461d14.png' },
-  'new486': { name:"Shiny Enraged Phoenix", value:1150000, rarity:'secret', image:'/assets/img/34bc15bd668976f26253.webp' },
-  'new24': { name:"Giant Choco Chicken", value:275000, rarity:'secret', image:"/assets/img/d12d0cdacb55325bc88a.webp" },
-  'new8': { name:"Frost Sentinel", value:375000, rarity:'secret', image:"/assets/img/68c87d3d508e11c12376.webp" },
-  'new180': { name:"Shiny Holy Bell", value:1035000, rarity:'secret', image:'/assets/img/5f8c26e528e2eb53303b.webp' },
-  'new409': { name:"Shiny Sinister Skull", value:1035000, rarity:'secret', image:'/assets/img/602438b079d73812ec71.png' },
-  'new410': { name:"Shiny Angelic Skull", value:1035000, rarity:'secret', image:'/assets/img/9bec4de321fb18d54a8b.png' },
   'b3_3': { name:"Lord Shock", value:413000, rarity:'epic', image:'/assets/img/45e2be5fa5520acabb45.webp' },
-  'p8': { name:"Infinity Gem", value:800000, rarity:'secret', image:'/assets/img/62a573d591499d7871c0.webp' },
-  'p17': { name:"Tophat (D)", value:800000, rarity:'secret', image:'/assets/img/d034b24c1ceec027d9f1.webp' },
-  'new142': { name:"Shiny Elite Lord Shock", value:920000, rarity:'secret', image:'/assets/img/6f40a7b09f917c1bb2c2.webp' },
-  'new331': { name:"Shiny New Year Champion", value:920000, rarity:'secret', image:'/assets/img/a3612a6ec8237b5336fb.png' },
-  'new484': { name:"Shiny Christmas Elemental", value:920000, rarity:'secret', image:'/assets/img/fc5227e3d60bf67f72ae.webp' },
-  'new411': { name:"Shiny King Skull", value:897000, rarity:'secret', image:'/assets/img/6a7d1e7d1ca7812c3d50.png' },
   'b3_4': { name:"Easter Basket", value:375000, rarity:'rare', image:'/assets/img/b37cc125823dc83d7c33.webp' },
-  'new412': { name:"Shiny Guardian Skull", value:862500, rarity:'secret', image:'/assets/img/824ef27b10c136974b86.png' },
-  'p52': { name:"Easter Robot", value:700000, rarity:'secret', image:'/assets/img/dc5f39f1fc1852a7df1d.webp' },
-  'new145': { name:"Elite Challenger", value:700000, rarity:'secret', image:'/assets/img/8c0ccc486ed874354ac8.webp' },
-  'new388': { name:"Shiny Shadow Sundae Champion", value:805000, rarity:'secret', image:'/assets/img/b3af8f7880f64858cb32.png' },
   'b2_5': { name:"Pot O' Gold", value:340000, rarity:'rare', image:'/assets/img/1fdedf9f6cf6515c9b77.webp' },
-  'new369': { name:"Shiny Radiant One", value:759000, rarity:'secret', image:'/assets/img/9c3bbf71201ec6040e79.png' },
-  'new29': { name:"Kraken", value:650000, rarity:'secret', image:"/assets/img/0b2c790be88eea891cc6.webp" },
-  'new139': { name:"Elite Wolflord", value:650000, rarity:'secret', image:'/assets/img/97cbac8aab9231361804.webp' },
   'b3_5': { name:"Soul Heart", value:300000, rarity:'common', image:'/assets/img/a83a2c58379948f29118.webp' },
-  'p59': { name:"Elite Fallen Angel", value:600000, rarity:'secret', image:'/assets/img/be6ba9736fb8ad2b5368.webp' },
-  'new437': { name:"Tophat G", value:600000, rarity:'secret', image:'/assets/img/76bc1f11969527e03cd0.webp' },
-  'new483': { name:"Electra Hydra", value:600000, rarity:'secret', image:'/assets/img/72ee6ad40d428d35f3e3.webp' },
-  'new232': { name:"Shiny Fairy Koi", value:690000, rarity:'secret', image:'/assets/img/188bfd2d078fc6a9572d.png' },
-  'new238': { name:"Shiny Elite Sentinel", value:690000, rarity:'secret', image:'/assets/img/4094d7be8a68531d3dcb.png' },
-  'new239': { name:"Shiny Elite Pot O' Gold", value:690000, rarity:'secret', image:'/assets/img/9fd432c82737db726ca3.png' },
-  'new255': { name:"Shiny Galactic Paladin", value:690000, rarity:'secret', image:'/assets/img/3b5691edb51f1de7adbb.png' },
-  'new313': { name:"Shiny Lucky Pyramidium", value:690000, rarity:'secret', image:'/assets/img/96c24b64cbb3947b1564.png' },
-  'new445': { name:"Shiny Ultimate Trophy", value:230000, rarity:'secret', image:'/assets/img/17f85a89237e8fa01167.webp' },
-  'new44': { name:"Dark Guardian", value:120000, rarity:'secret', image:"/assets/img/3a2afcf7d8c362f7cfdc.webp" },
-  'new62': { name:"Shiny Eternal Heart", value:184000, rarity:'secret', image:'/assets/img/d071e199da65cbee6c75.webp' },
   'b0_4': { name:"Shiny Peppermint Leviathan", value:275000, rarity:'legendary', image:'/assets/img/688406bfe5aad24058ec.webp' },
-  'new34': { name:"Sinister Lord 2.0", value:525000, rarity:'secret', image:"/assets/img/0fc146d36205563d419b.webp" },
-  'p15': { name:"Tophat (B)", value:500000, rarity:'secret', image:'/assets/img/ecdf5ecf7e84b285fccf.webp' },
-  'p20': { name:"Wolf Skull", value:500000, rarity:'secret', image:'/assets/img/c28890a8164e59b96725.webp' },
-  'new487': { name:"Enraged Phoenix", value:500000, rarity:'secret', image:'/assets/img/53caefb9fe0ab40cf00a.webp' },
-  'new102': { name:"Shiny Christmas Robot", value:575000, rarity:'secret', image:'/assets/img/4fb1b7132c51bed02536.webp' },
-  'new151': { name:"Shiny Eternal Star", value:575000, rarity:'secret', image:'/assets/img/f6e432d1b3b6fdd10add.webp' },
-  'new178': { name:"Shiny Hellshard", value:575000, rarity:'secret', image:'/assets/img/212aed91f845b2b3638e.png' },
-  'new274': { name:"Shiny Immortal Trophy", value:575000, rarity:'secret', image:'/assets/img/4b9acc67beb2c145b07c.webp' },
-  'new309': { name:"Shiny Luminance", value:575000, rarity:'secret', image:'/assets/img/2d593d61bf4e5b6c62a1.png' },
-  'new25': { name:"Holy Bell", value:450000, rarity:'secret', image:"/assets/img/ad30a052e69197a59e5a.webp" },
-  'p11': { name:"Sinister Skull", value:450000, rarity:'secret', image:'/assets/img/18ef77f141eece947d2f.webp' },
-  'p32': { name:"Angelic Skull", value:450000, rarity:'secret', image:'/assets/img/c7e110d84a0b5ac7ffb6.webp' },
-  'new143': { name:"Elite Lord Shock", value:400000, rarity:'secret', image:'/assets/img/d06b45e10757c373bde7.webp' },
-  'new333': { name:"New Year Champion", value:400000, rarity:'secret', image:'/assets/img/fa40c93440ea1148af25.webp' },
-  'new485': { name:"Christmas Elemental", value:400000, rarity:'secret', image:'/assets/img/badbd23282f416ca8f03.webp' },
-  'p45': { name:"Shiny King Doggy", value:460000, rarity:'secret', image:'/assets/img/a5f46bcb9246cda1c1f7.webp' },
-  'new375': { name:"Shiny Radioactive Radiance", value:460000, rarity:'secret', image:'/assets/img/c1b225e56e889cebb047.png' },
-  'new427': { name:"Shiny Chocolate Sundae Champion", value:460000, rarity:'secret', image:'/assets/img/e819ce67f014683e0805.png' },
-  'p9': { name:"King Skull", value:390000, rarity:'secret', image:'/assets/img/888f79568e05f96d22f5.webp' },
-  'p28': { name:"Guardian Skull", value:375000, rarity:'secret', image:'/assets/img/ba4f0e19acc9f3713734.webp' },
-  'new348': { name:"Shiny Plasma Wolflord", value:414000, rarity:'secret', image:'/assets/img/8c6629de3589b217891a.webp' },
-  'new390': { name:"Shadow Sundae Champion", value:350000, rarity:'secret', image:'/assets/img/f482082bca9e627d4c7c.webp' },
-  'new364': { name:"Shiny Pyramidium", value:402500, rarity:'secret', image:'/assets/img/43275c93a8c46c2e36b1.webp' },
-  'new303': { name:"Shiny Koi", value:391000, rarity:'secret', image:'/assets/img/8cfe57a61c02e2b9f20e.webp' },
-  'new417': { name:"Shiny Vanilla Sundae Champion", value:391000, rarity:'secret', image:'/assets/img/535f2aa6a5b521c93f7b.webp' },
-  'new32': { name:"Radiant One", value:330000, rarity:'secret', image:"/assets/img/446e17729ae465918dd1.webp" },
-  'new251': { name:"Shiny Ghosdeeri", value:368000, rarity:'secret', image:'/assets/img/cd7e3bdfb3089dc5b0f1.png' },
-  'new38': { name:"Ultimate Clover", value:80000, rarity:'secret', image:"/assets/img/227f9e2d6d9f35219528.webp" },
-  'new47': { name:"Galactic Paladin", value:300000, rarity:'secret', image:"/assets/img/91a5c81f9ad56859a8e1.webp" },
-  'p57': { name:"Lucky Pyramidium", value:300000, rarity:'secret', image:'/assets/img/d5468c54899095a0e80c.webp' },
-  'new140': { name:"Elite Sentinel", value:300000, rarity:'secret', image:'/assets/img/48f8f912e0863c3ab633.webp' },
-  'new141': { name:"Elite Pot O' Gold", value:300000, rarity:'secret', image:'/assets/img/4c860a7c492c137743cd.webp' },
-  'new150': { name:"Fairy Koi", value:300000, rarity:'secret', image:'/assets/img/f09fe3564a12436fd8b2.webp' },
-  'new118': { name:"Shiny Duality", value:345000, rarity:'secret', image:'/assets/img/b9fb1d1e943b55da4e50.webp' },
-  'new121': { name:"Shiny Dragonfruit", value:345000, rarity:'secret', image:'/assets/img/ff186d3a5b25c6ed27b6.webp' },
-  'new273': { name:"Shiny Inferno Gem", value:345000, rarity:'secret', image:'/assets/img/6be234dc672c3ed632a8.png' },
-  'new428': { name:"Shiny Mint Sundae Champion", value:345000, rarity:'secret', image:'/assets/img/e7b0491dbe559b519f59.png' },
-  'new469': { name:"Shiny Frosted Duality", value:345000, rarity:'secret', image:'/assets/img/dfa4a44400a56f32adf5.png' },
-  'new39': { name:"Ultimate Trophy", value:100000, rarity:'secret', image:"/assets/img/51f52b16549f1cae8f6a.webp" },
-  'new446': { name:"Ultimate Trophy", value:100000, rarity:'secret', image:'/assets/img/a80ee046f24117ce2969.webp' },
-  'new395': { name:"Shiny Shard", value:322000, rarity:'secret', image:'/assets/img/72046fa71d46a52f77ad.webp' },
-  'new7': { name:"Eternal Heart", value:80000, rarity:'secret', image:"/assets/img/34b5fad820bc5375a440.webp" },
   'b0_6': { name:"Peppermint Leviathan", value:137500, rarity:'common', image:'/assets/img/859e81dd2d97adba71fd.webp' },
-  'new426': { name:"Shiny Strawberry Sundae Champion", value:310500, rarity:'secret', image:'/assets/img/dd2610356f3ffb463d68.png' },
-  'new23': { name:"Eternal Star", value:250000, rarity:'secret', image:"/assets/img/b28b48438a19cd357610.webp" },
-  'new52': { name:"Luminance", value:250000, rarity:'secret', image:"/assets/img/ba7c883c64dd5b507297.webp" },
-  'p5': { name:"Christmas Robot", value:250000, rarity:'secret', image:'/assets/img/9256cc41200c77088fd3.webp' },
-  'new157': { name:"Hellshard", value:250000, rarity:'secret', image:'/assets/img/a61cc666666487ee8d8d.webp' },
-  'new275': { name:"Immortal Trophy", value:250000, rarity:'secret', image:'/assets/img/ada39c6cd5eb7e326418.webp' },
-  'new335': { name:"Shiny Patronus", value:276000, rarity:'secret', image:'/assets/img/a5e0455362b1774c0286.png' },
-  'new322': { name:"Shiny Money Mouth", value:264500, rarity:'secret', image:'/assets/img/29d2af522414d3fed74c.png' },
-  'new13': { name:"King Doggy", value:200000, rarity:'secret', image:"/assets/img/a68df789cc56834c2f5f.webp" },
-  'p46': { name:"Chocolate Sundae Champion", value:200000, rarity:'secret', image:'/assets/img/37a6978e8914a19c7e70.webp' },
-  'new376': { name:"Radioactive Radiance", value:200000, rarity:'secret', image:'/assets/img/a462d65cdf36180cab21.webp' },
-  'new88': { name:"Shiny 1B Trophy", value:230000, rarity:'secret', image:'/assets/img/7ba0fd3187c080b517a2.webp' },
-  'new187': { name:"Shiny Electric Basilisk", value:230000, rarity:'secret', image:'/assets/img/6a4c29762d38dc567847.png' },
-  'new188': { name:"Shiny Ice Basilisk", value:230000, rarity:'secret', image:'/assets/img/01b65b690301b63a0160.png' },
-  'new278': { name:"Shiny Godly Shamrock", value:230000, rarity:'secret', image:'/assets/img/5a0919a113f3fbaa8743.png' },
-  'new15': { name:"Plasma Wolflord", value:180000, rarity:'secret', image:"/assets/img/d729bf432a3f94b05df3.webp" },
-  'new204': { name:"Shiny Cardinal Bunny", value:207000, rarity:'secret', image:'/assets/img/b20345f5847681c668ea.png' },
-  'new391': { name:"Shiny Shattered Soul", value:207000, rarity:'secret', image:'/assets/img/3e403f4b345d165a3e78.png' },
-  'new31': { name:"Pyramidium", value:175000, rarity:'secret', image:"/assets/img/3eb0e7f5c90106451acf.webp" },
-  'new349': { name:"Shiny Sylently Plushie", value:201250, rarity:'secret', image:'/assets/img/b20f3755fc0c2e2d9761.png' },
-  'new28': { name:"Koi", value:170000, rarity:'secret', image:"/assets/img/dc29f98a24ba97b953a6.webp" },
-  'p19': { name:"Vanilla Sundae Champion", value:170000, rarity:'secret', image:'/assets/img/4a31f13bf12cbd7c40a6.webp' },
-  'p58': { name:"Shiny Overlord Plushie", value:195500, rarity:'secret', image:'/assets/img/f72784ea5a50df7b3147.webp' },
-  'new253': { name:"Ghosdeeri", value:160000, rarity:'secret', image:'/assets/img/159668f14d92a01fef93.webp' },
-  'new247': { name:"Shiny Frost Shard", value:184000, rarity:'secret', image:'/assets/img/32fbe9d331c5703bbc6f.png' },
-  'new345': { name:"Shiny Sircfenner Plushie", value:184000, rarity:'secret', image:'/assets/img/97dcb4ec5205edfb0eb4.webp' },
-  'new202': { name:"Shiny Candycorn Shard", value:178250, rarity:'secret', image:'/assets/img/c1b79e863bd6a8bbac92.png' },
-  'new5': { name:"Duality", value:150000, rarity:'secret', image:"/assets/img/f2651fbec5f3ee2c2f77.webp" },
-  'new22': { name:"Dragonfruit", value:150000, rarity:'secret', image:"/assets/img/20ea7adcace3f2a4b570.webp" },
-  'p27': { name:"Frosted Duality", value:150000, rarity:'secret', image:'/assets/img/ea6b9f064c3be018acd7.webp' },
-  'p54': { name:"Mint Sundae Champion", value:150000, rarity:'secret', image:'/assets/img/9959b869bd1a4e98d8d5.webp' },
-  'new90': { name:"Inferno Gem", value:150000, rarity:'secret', image:'/assets/img/28dc300368b7ef16894f.webp' },
-  'new221': { name:"Shiny Earth Champion", value:172500, rarity:'secret', image:'/assets/img/0b82ae6f9590935a7f02.png' },
-  'new17': { name:"Shard", value:140000, rarity:'secret', image:"/assets/img/d7bb349752012cf60722.webp" },
-  'new198': { name:"Shiny All Seeing Eye", value:161000, rarity:'secret', image:'/assets/img/e65b03e32ff73c8addb8.png' },
-  'new212': { name:"Shiny Dark Basilisk", value:161000, rarity:'secret', image:'/assets/img/b0aead9927434aa9f130.png' },
-  'new319': { name:"Shiny Love Thief", value:161000, rarity:'secret', image:'/assets/img/50e8cfae97ab166b4374.png' },
-  'new350': { name:"Shiny Obscure Entity Plushie", value:161000, rarity:'secret', image:'/assets/img/28a529f8678ff907b1e1.png' },
-  'p13': { name:"Strawberry Sundae Champion", value:135000, rarity:'secret', image:'/assets/img/43dd8671a2f8f4806326.webp' },
-  'new361': { name:"Shiny Pot O' Doggy", value:155250, rarity:'secret', image:'/assets/img/6ca3d6c566bddc230ea6.png' },
-  'new465': { name:"Shiny Soulflake", value:155250, rarity:'secret', image:'/assets/img/0f33818c92ccb5a13c7d.png' },
-  'new111': { name:"Shiny Dark Champion", value:149500, rarity:'secret', image:'/assets/img/eff64755d0b872535d21.webp' },
-  'new163': { name:"Shiny Harmonic Harp", value:143750, rarity:'secret', image:'/assets/img/7029e003bebabb4961c6.png' },
-  'new337': { name:"Patronus", value:120000, rarity:'secret', image:'/assets/img/767ada1436cafbb73d2b.webp' },
-  'new159': { name:"Shiny Hellfire", value:138000, rarity:'secret', image:'/assets/img/9a73035a6d14bc16b598.png' },
-  'new186': { name:"Shiny Fire Basilisk", value:138000, rarity:'secret', image:'/assets/img/b8d52f2012fe8df02b45.png' },
-  'new196': { name:"Shiny Almighty Pumpkin", value:138000, rarity:'secret', image:'/assets/img/d8628f3e7623885be27e.png' },
-  'new222': { name:"Shiny Fire Champion", value:138000, rarity:'secret', image:'/assets/img/83953c72fe01e5dd5570.png' },
-  'new373': { name:"Shiny Rainbow Gryphon", value:138000, rarity:'secret', image:'/assets/img/1eabab12e0da72d06496.webp' },
-  'new324': { name:"Money Mouth", value:115000, rarity:'secret', image:'/assets/img/b0002e462e327873da19.webp' },
-  'new79': { name:"Shiny Angelic Spirit", value:132250, rarity:'secret', image:'/assets/img/eaf050e7e5425490e893.webp' },
-  'new40': { name:"Air Basilisk", value:100000, rarity:'secret', image:"/assets/img/67ba82fca9ed546d0e1c.webp" },
-  'new49': { name:"Ice Basilisk", value:100000, rarity:'secret', image:"/assets/img/692d0f1e7d39371b1b86.webp" },
-  'p1': { name:"1B Trophy", value:100000, rarity:'secret', image:'/assets/img/0384871132d6aee3bab6.webp' },
-  'p39': { name:"Electric Basilisk", value:100000, rarity:'secret', image:'/assets/img/f2415a6d113d8d2d91af.webp' },
-  'p55': { name:"Godly Shamrock", value:100000, rarity:'secret', image:'/assets/img/a67b49cbf780979b9cf6.webp' },
-  'new214': { name:"Shiny Curse of Kings", value:115000, rarity:'secret', image:'/assets/img/11864b49d49720f6f5c8.png' },
-  'new220': { name:"Shiny Sky Champion", value:115000, rarity:'secret', image:'/assets/img/4fdfd2e1a12027476779.png' },
   'p22': { name:"Shattered Soul", value:90000, rarity:'secret', image:'/assets/img/63d4cf3599442e3c4d88.webp' },
-  'new110': { name:"Cardinal Bunny", value:90000, rarity:'secret', image:'/assets/img/06216f54608681874494.webp' },
-  'new263': { name:"Shiny Demonic Ghost Spirit", value:103500, rarity:'secret', image:'/assets/img/92076a61047fa207c60c.png' },
-  'new265': { name:"Shiny Angelic Ghost Spirit", value:103500, rarity:'secret', image:'/assets/img/8c86208b44d0b9ce6b0b.png' },
-  'p14': { name:"Sylently Plushie", value:87500, rarity:'secret', image:'/assets/img/7cf211f3906ff8a6ae9c.webp' },
-  'new55': { name:"Overlord Plushie", value:85000, rarity:'secret', image:"/assets/img/ba2acb3a6512af529153.webp" },
-  'p33': { name:"Sircfenner Plushie", value:80000, rarity:'secret', image:'/assets/img/67340f594a905a363818.webp' },
-  'new249': { name:"Frost Shard", value:80000, rarity:'secret', image:'/assets/img/69248069fd8d41ddf5d7.webp' },
-  'p43': { name:"Shiny Gryphon", value:92000, rarity:'secret', image:'/assets/img/8d80e0bf6c56e1e7ddbc.webp' },
-  'new119': { name:"Shiny Dogcat", value:92000, rarity:'secret', image:'/assets/img/b72c1c894e4165f8151e.webp' },
-  'new226': { name:"Shiny Dream Catcher", value:92000, rarity:'secret', image:'/assets/img/6d4de033b2e457973f7a.png' },
-  'new401': { name:"Shiny Sinister Shard", value:92000, rarity:'secret', image:'/assets/img/3729f8f8a27e26ae506f.png' },
-  'new42': { name:"Candycorn Shard", value:77500, rarity:'secret', image:"/assets/img/62786bc0842ac80f0650.webp" },
-  'p30': { name:"Earth Champion", value:75000, rarity:'secret', image:'/assets/img/2a78d76e91dee5831bb8.webp' },
-  'new124': { name:"Shiny Diamond Ring", value:86250, rarity:'secret', image:'/assets/img/c47f461b689c33ec9017.webp' },
-  'p10': { name:"Obscure Entity Plushie", value:70000, rarity:'secret', image:'/assets/img/13ddbc4eef0be025792c.webp' },
-  'p42': { name:"All Seeing Eye", value:70000, rarity:'secret', image:'/assets/img/fb7c725856bea9d3aa5e.webp' },
-  'p48': { name:"Love Thief", value:70000, rarity:'secret', image:'/assets/img/fd434d9063cfe12cda7c.webp' },
-  'new116': { name:"Dark Basilisk", value:70000, rarity:'secret', image:'/assets/img/7fcfb2a601722edc2823.webp' },
-  'new155': { name:"Shiny Firecracker", value:80500, rarity:'secret', image:'/assets/img/bbeda07e7f01ab901abf.webp' },
-  'new235': { name:"Shiny Eternal Carrot", value:80500, rarity:'secret', image:'/assets/img/2f0dd4ad31efc658cda9.png' },
-  'p12': { name:"Soulflake", value:67500, rarity:'secret', image:'/assets/img/ba1626c972c424885a6b.webp' },
-  'p23': { name:"Pot O' Doggy", value:67500, rarity:'secret', image:'/assets/img/8208df0d2e23f4c076da.webp' },
-  'p37': { name:"Dark Champion", value:65000, rarity:'secret', image:'/assets/img/82606c8f8f2e323fcea4.webp' },
-  'new162': { name:"Harmonic Harp", value:62500, rarity:'secret', image:'/assets/img/4635270766494421f273.webp' },
-  'new1': { name:"Almighty Pumpkin", value:60000, rarity:'secret', image:"/assets/img/810064cdb784d5a34b61.webp" },
-  'new56': { name:"Rainbow Gryphon", value:60000, rarity:'secret', image:"/assets/img/89648794d47745859515.webp" },
-  'p29': { name:"Fire Champion", value:60000, rarity:'secret', image:'/assets/img/7bf914a7ac13e98fea3e.webp' },
-  'p50': { name:"Fire Basilisk", value:60000, rarity:'secret', image:'/assets/img/4c3c134424d4b4f98738.webp' },
-  'new158': { name:"Hellfire", value:60000, rarity:'secret', image:'/assets/img/1499add9faed7dcb4358.webp' },
-  'new60': { name:"Shiny Fallen Angel", value:69000, rarity:'secret', image:'/assets/img/f75d1e1e01f78399648f.webp' },
-  'new94': { name:"Shiny Archangel", value:69000, rarity:'secret', image:'/assets/img/2c4fb070935de34111cb.webp' },
-  'new280': { name:"Shiny Giant Pearl", value:69000, rarity:'secret', image:'/assets/img/873f0a4a49f943f4839f.webp' },
-  'new372': { name:"Shiny Rainbow Dogcat", value:69000, rarity:'secret', image:'/assets/img/22dc8724c7230369633c.png' },
-  'new381': { name:"Shiny Sea Star", value:69000, rarity:'secret', image:'/assets/img/85d4f668550fec735a75.webp' },
-  'new41': { name:"Angelic Spirit", value:57500, rarity:'secret', image:"/assets/img/1aae803fef486388e9b2.webp" },
-  'new184': { name:"Shiny Holy Egg", value:63250, rarity:'secret', image:'/assets/img/58fa8fc3fc8d29ece8b3.png' },
-  'p38': { name:"Sky Champion", value:50000, rarity:'secret', image:'/assets/img/5f8452cd30f61c831f14.webp' },
-  'new98': { name:"Curse of Kings", value:50000, rarity:'secret', image:'/assets/img/a07165a15900f1f1e507.webp' },
-  'new152': { name:"Shiny Eternal Cucumber", value:57500, rarity:'secret', image:'/assets/img/434e491a8ed25a64ae3b.webp' },
-  'new293': { name:"Shiny King Penguin", value:57500, rarity:'secret', image:'/assets/img/80757594e88f7de22811.png' },
-  'new433': { name:"Shiny OwOLord", value:57500, rarity:'secret', image:'/assets/img/8501c7d2e416d426c42d.webp' },
-  'new2': { name:"Angelic Ghost Spirit", value:45000, rarity:'secret', image:"/assets/img/deba09a4b83f529946de.webp" },
-  'new20': { name:"Demonic Ghost Spirit", value:45000, rarity:'secret', image:"/assets/img/1dd5e84ccfcafcb6467d.webp" },
-  'new326': { name:"Shiny Morning Star", value:51750, rarity:'secret', image:'/assets/img/9b034aa7c35014ccad86.png' },
-  'new21': { name:"Dogcat", value:40000, rarity:'secret', image:"/assets/img/da6c82f5eed4b3163132.webp" },
-  'new58': { name:"Sinister Shard", value:40000, rarity:'secret', image:"/assets/img/3b404dcec3ca45398825.webp" },
-  'p24': { name:"Dream Catcher", value:40000, rarity:'secret', image:'/assets/img/cd8cf987cf1d5ec1a9d1.webp' },
-  'new174': { name:"Gryphon", value:40000, rarity:'secret', image:'/assets/img/66a1aaeeb7df198a4d4d.webp' },
-  'new100': { name:"Shiny Christmas Bell", value:46000, rarity:'secret', image:'/assets/img/772f72df387c324b0385.webp' },
-  'new167': { name:"Shiny Angelic Golf Ball", value:46000, rarity:'secret', image:'/assets/img/4a74a7eb6bcbe647d630.png' },
-  'new216': { name:"Shiny Crystal Teddy", value:46000, rarity:'secret', image:'/assets/img/2e606de295c0022e5bfc.png' },
-  'new307': { name:"Shiny Magic Marshmallow", value:46000, rarity:'secret', image:'/assets/img/741eb452f44a784f3980.webp' },
-  'new454': { name:"Shiny UFO", value:46000, rarity:'secret', image:'/assets/img/2b1ab638ce96c48ff469.png' },
-  'new171': { name:"Shiny Demonic Golf Ball", value:43700, rarity:'secret', image:'/assets/img/fa0e67531aacdac5bd8b.png' },
-  'p6': { name:"Diamond Ring", value:37500, rarity:'secret', image:'/assets/img/4cc3ecc5978814693d54.webp' },
-  'p7': { name:"Firecracker", value:35000, rarity:'secret', image:'/assets/img/d67974661112efe91d0a.webp' },
-  'p56': { name:"Eternal Carrot", value:35000, rarity:'secret', image:'/assets/img/2fe4ee1a2f3dc077cc54.webp' },
-  'new218': { name:"Shiny Corrupt Glitch", value:40250, rarity:'secret', image:'/assets/img/a396dbf2b3732d3081aa.png' },
-  'new317': { name:"Shiny Lovely Rose", value:40250, rarity:'secret', image:'/assets/img/a4e47938da8553c19ed5.webp' },
-  'new450': { name:"Shiny Wisplord", value:40250, rarity:'secret', image:'/assets/img/4004eb3458a51b4066e5.png' },
-  'new472': { name:"Shiny Peppermint Heart", value:40250, rarity:'secret', image:'/assets/img/c48fa24ff841f72ca50d.png' },
-  'new33': { name:"Rainbow Dogcat", value:30000, rarity:'secret', image:"/assets/img/9cc8901a0e03e11a62c2.webp" },
-  'new46': { name:"Fallen Angel", value:30000, rarity:'secret', image:"/assets/img/3c94974c688cd4bbe4e2.webp" },
-  'new48': { name:"Giant Pearl", value:30000, rarity:'secret', image:"/assets/img/87e9b3871fd391f00d7f.webp" },
-  'new57': { name:"Sea Star", value:30000, rarity:'secret', image:"/assets/img/6a950e3256f647966c67.webp" },
-  'new96': { name:"Archangel", value:30000, rarity:'secret', image:'/assets/img/7f765836b631c8be018c.webp' },
-  'new374': { name:"Rainbow Dogcat", value:30000, rarity:'secret', image:'/assets/img/37e2a2d4ffb6378f4d14.webp' },
-  'new342': { name:"Shiny Pixie Queen", value:34500, rarity:'secret', image:'/assets/img/41957cfdb7450011b6b8.png' },
-  'p51': { name:"Holy Egg", value:27500, rarity:'secret', image:'/assets/img/2cb44b4c5397f1858843.webp' },
-  'new6': { name:"Eternal Cucumber", value:25000, rarity:'secret', image:"/assets/img/117ecd297e8fa7c8117a.webp" },
-  'new36': { name:"The OwOlord", value:25000, rarity:'secret', image:"/assets/img/7bb4ef47707bd82f40f8.webp" },
-  'new295': { name:"King Penguin", value:25000, rarity:'secret', image:'/assets/img/56761a97413e0608b182.webp' },
-  'new54': { name:"Morning Star", value:22500, rarity:'secret', image:"/assets/img/4bf601325117094589a3.webp" },
-  'new43': { name:"Crystal Teddy", value:20000, rarity:'secret', image:"/assets/img/d9d96517d24d2b25f4e5.webp" },
-  'new53': { name:"Magic Marshmallow", value:20000, rarity:'secret', image:"/assets/img/5a944a6dc7dc8d8f2890.webp" },
-  'p4': { name:"Christmas Bell", value:20000, rarity:'secret', image:'/assets/img/4109e59c0dc2192bdccd.webp' },
-  'new166': { name:"Angelic Golf Ball", value:20000, rarity:'secret', image:'/assets/img/8671c5beb5ca6283c2dc.webp' },
   'new455': { name:"UFO", value:20000, rarity:'secret', image:'/assets/img/7e6a75e3f8f319ffb794.webp' },
-  'new123': { name:"Shiny Dice Split", value:23000, rarity:'secret', image:'/assets/img/1d0ed8e89b37162bacd3.webp' },
-  'new194': { name:"Shiny Angelic Shard", value:23000, rarity:'secret', image:'/assets/img/8bbc8ecc3c8df65143bc.png' },
-  'new240': { name:"Shiny Easter Spirit", value:23000, rarity:'secret', image:'/assets/img/0a9ca9db57870997f731.png' },
-  'new286': { name:"Shiny Slime King", value:23000, rarity:'secret', image:'/assets/img/bcb8edae65adba436445.webp' },
-  'new357': { name:"Shiny Prisma Cube", value:23000, rarity:'secret', image:'/assets/img/f49de6bdfb84d7009d9c.webp' },
-  'new415': { name:"Shiny Spring Spirit", value:23000, rarity:'secret', image:'/assets/img/2a7a16977ef439f8e840.webp' },
-  'new170': { name:"Demonic Golf Ball", value:19000, rarity:'secret', image:'/assets/img/d017b9866d0f303a23e6.webp' },
-  'new201': { name:"Shiny BGS Plaque", value:20700, rarity:'secret', image:'/assets/img/5e90715717c57f02d911.png' },
-  'new257': { name:"Shiny Frosted Dreamer", value:20700, rarity:'secret', image:'/assets/img/996ceffb7d032602494e.png' },
-  'new30': { name:"Lovely Rose", value:17500, rarity:'secret', image:"/assets/img/900205cac63730a1f448.webp" },
-  'p26': { name:"Peppermint Heart", value:17500, rarity:'secret', image:'/assets/img/7132bc1f6e0ff65063fc.webp' },
-  'new105': { name:"Corrupt Glitch", value:17500, rarity:'secret', image:'/assets/img/53a07264e9cf079dcb00.webp' },
-  'new451': { name:"Wisplord", value:17500, rarity:'secret', image:'/assets/img/8adbc9da90f1b6a9d389.webp' },
-  'new344': { name:"Pixie Queen", value:15000, rarity:'secret', image:'/assets/img/0fc410e829c5d2121a1e.webp' },
-  'new340': { name:"Shiny Phantom", value:17250, rarity:'secret', image:'/assets/img/a0ce60adf02658d205d6.webp' },
-  'new270': { name:"Shiny Gingerbread Shard", value:16100, rarity:'secret', image:'/assets/img/95d9fb502560e95b11ab.webp' },
-  'new296': { name:"Shiny King Mush", value:16100, rarity:'secret', image:'/assets/img/77f6b06a333b83f14aab.webp' },
-  'new4': { name:"Dice Split", value:10000, rarity:'secret', image:"/assets/img/cc543131c4ec81f5051d.webp" },
   'new14': { name:"King Slime", value:10000, rarity:'secret', image:"/assets/img/b7229c1f602fbd305497.webp" },
-  'new45': { name:"Easter Spirit", value:10000, rarity:'secret', image:"/assets/img/437d7b529af43eea4103.webp" },
-  'new359': { name:"Prisma Cube", value:10000, rarity:'secret', image:'/assets/img/f6b202b92483e9271fa9.webp' },
-  'new81': { name:"Angelic Shard", value:10000, rarity:'secret', image:'/assets/img/dc860410fc94ad8143c8.webp' },
-  'new416': { name:"Spring Spirit", value:10000, rarity:'secret', image:'/assets/img/d8ed2b97cb502477d00a.webp' },
-  'new382': { name:"Shiny Shadow Challenger", value:11500, rarity:'secret', image:'/assets/img/464fc67af9ffbb2cd486.png' },
-  'new430': { name:"Shiny The Overlord", value:11500, rarity:'secret', image:'/assets/img/b7ec3b69a40a69c90a59.webp' },
-  'new3': { name:"BGS Plaque", value:9000, rarity:'secret', image:"/assets/img/fcfd0b168ee10abfe96c.webp" },
-  'new259': { name:"Frosted Dreamer", value:9000, rarity:'secret', image:'/assets/img/7890e6281e3a71a3abfa.webp' },
-  'new87': { name:"Shiny ACE", value:9200, rarity:'secret', image:'/assets/img/3692d96e7f53dcf5cdf4.webp' },
-  'new339': { name:"Phantom", value:7500, rarity:'secret', image:'/assets/img/d4757e8869cedf49f742.webp' },
-  'new9': { name:"Gingerbread Shard", value:7000, rarity:'secret', image:"/assets/img/d98b76e8af1a852a934c.webp" },
-  'new27': { name:"King Mush", value:7000, rarity:'secret', image:"/assets/img/4dce7038ecc30436c9c9.webp" },
-  'new35': { name:"The Overlord", value:5000, rarity:'secret', image:"/assets/img/e58ab0e14d707a6e6d94.webp" },
-  'new383': { name:"Shadow Challenger", value:5000, rarity:'secret', image:'/assets/img/4c9b3aa9c44212fe4629.webp' },
-  'p2': { name:"Ace", value:4000, rarity:'secret', image:'/assets/img/0daf1f04b98e3ded3317.webp' },
-  'new72': { name:"Shiny King Leviathan", value:4600, rarity:'secret', image:'/assets/img/33b1187f07c91b008c63.webp' },
-  'new206': { name:"Shiny Demonic One", value:4600, rarity:'secret', image:'/assets/img/5325542b7adaa0d8a153.png' },
-  'new207': { name:"Shiny Demonic Dogcat", value:4600, rarity:'secret', image:'/assets/img/42abc62f7cbf548fb47f.png' },
-  'new133': { name:"Shiny Dark Radiance", value:3450, rarity:'secret', image:'/assets/img/5b563da2dc4fdb98b516.webp' },
-  'new136': { name:"Shiny Dark Lord", value:3450, rarity:'secret', image:'/assets/img/dbe405f40f5aacaffd56.webp' },
-  'new365': { name:"Shiny Radiant Challenger", value:3450, rarity:'secret', image:'/assets/img/7b45df4c2e74ad28148e.png' },
-  'new51': { name:"King Leviathan", value:2000, rarity:'secret', image:"/assets/img/30214ed76d8abdfc2e49.webp" },
-  'new128': { name:"Demonic One", value:2000, rarity:'secret', image:'/assets/img/800e2d4f37bb6f34eb39.webp' },
-  'new129': { name:"Demonic Dogcat", value:2000, rarity:'secret', image:'/assets/img/20b1aabfafa84e1fa226.webp' },
-  'new112': { name:"Dark Lord", value:1500, rarity:'secret', image:'/assets/img/9c4b0f9a637d72ca8343.webp' },
-  'new134': { name:"Dark Radiance", value:1500, rarity:'secret', image:'/assets/img/42b09a02baddac74eff0.webp' },
-  'new366': { name:"Radiant Challenger", value:1500, rarity:'secret', image:'/assets/img/0b9bec98553c960de788.webp' },
-  'new12': { name:"King Dogcat", value:0, rarity:'secret', image:"/assets/img/6ba262ccdbb24afb7c2f.webp" },
-  'new18': { name:"Sylentlys pet", value:0, rarity:'secret', image:"/assets/img/651173df0a5d6422e126.webp" },
-  'new50': { name:"Isaac's Creation 2.0", value:0, rarity:'secret', image:"/assets/img/777dc24e938a220113c7.webp" },
-  'new59': { name:"Spring Dragon", value:0, rarity:'secret', image:"/assets/img/a50f485881f4d1bc6c1e.webp" },
-  'p21': { name:"Mythic Shard", value:0, rarity:'secret', image:'/assets/img/381207989c30fbc35643.webp' },
-  'p31': { name:"Mythic Pyramidium", value:0, rarity:'secret', image:'/assets/img/3444574901366b6c029f.webp' },
-  'p40': { name:"Mythic Radiant One", value:0, rarity:'secret', image:'/assets/img/288a870efed63b4861ed.webp' },
-  'p41': { name:"Mythic Koi", value:0, rarity:'secret', image:'/assets/img/95704c4c639eb6b4d4e5.webp' },
-  'p49': { name:"Shiny Ultimate Clover", value:184000, rarity:'secret', image:'/assets/img/c93573fc8da8e7ad6936.webp' },
-  'p53': { name:"Mythic Galactic Paladin", value:4000000, rarity:'secret', image:'/assets/img/4fb3e251bd7701697db9.webp' },
-  'p60': { name:"Mythic Lucid Leaf", value:2000000, rarity:'secret', image:'/assets/img/d79bb8567ed62d175040.webp' },
-  'new61': { name:"Shiny Sylently's Pet", value:0, rarity:'secret', image:'/assets/img/217d6c704fc2f72b71e1.webp' },
-  'new64': { name:"Mythic Duality", value:0, rarity:'secret', image:'/assets/img/193de6f40b80e9462d32.webp' },
-  'new65': { name:"Mythic Air Basilisk", value:0, rarity:'secret', image:'/assets/img/fe68fc820d42bfb32cd2.webp' },
   'new66': { name:"Mythic King Kitty", value:60000000, rarity:'secret', image:'/assets/img/ba980fe3535c20e18e93.webp' },
-  'new71': { name:"Mythic Crystal Teddy", value:700000, rarity:'secret', image:'/assets/img/24b33efc4f2903770559.webp' },
-  'new73': { name:"Shiny Lucid Leaf", value:0, rarity:'secret', image:'/assets/img/428af82dc0451e0783ab.webp' },
-  'new74': { name:"Mythic Dice Split", value:650000, rarity:'secret', image:'/assets/img/0f34ba8db5a175f5380b.webp' },
-  'new75': { name:"Mythic Sircfenner Plushie", value:2500000, rarity:'secret', image:'/assets/img/e34281fce191dc961208.webp' },
-  'new76': { name:"Mythic Gingerbread Shard", value:150000, rarity:'secret', image:'/assets/img/39251c04bf5a8c972fad.webp' },
-  'new77': { name:"Shiny Mythic Angelic Spirit", value:0, rarity:'secret', image:'/assets/img/7355a39fe30dfcef69d8.webp' },
-  'new78': { name:"Mythic Angelic Spirit", value:0, rarity:'secret', image:'/assets/img/1fa07f025cfbe7ce08c3.webp' },
-  'new80': { name:"Mythic Angelic Shard", value:0, rarity:'secret', image:'/assets/img/6db07c25ebb4e6dab929.webp' },
-  'new83': { name:"Mythic Almighty Hexarium", value:0, rarity:'secret', image:'/assets/img/6ac31b0670d6beae3047.webp' },
-  'new84': { name:"Mythic All Seeing Eye", value:2500000, rarity:'secret', image:'/assets/img/14d78d22001c277acf29.webp' },
-  'new85': { name:"Shiny Mythic ACE", value:0, rarity:'secret', image:'/assets/img/60fef5e47074513bd1a8.webp' },
-  'new86': { name:"Mythic ACE", value:80000, rarity:'secret', image:'/assets/img/847a7053ee7adf154cef.webp' },
-  'new89': { name:"Mythic Inferno Gem", value:0, rarity:'secret', image:'/assets/img/70728d7eeab2adec40ba.webp' },
-  'new91': { name:"Mythic Ice Basilisk", value:0, rarity:'secret', image:'/assets/img/e10f5a822ebfd80b1440.webp' },
-  'new92': { name:"Mythic Electric Basilisk", value:0, rarity:'secret', image:'/assets/img/bff2c37d2af229fbe558.webp' },
-  'new93': { name:"Mythic Air Basilisk", value:0, rarity:'secret', image:'/assets/img/fe68fc820d42bfb32cd2.webp' },
-  'new95': { name:"Mythic Archangel", value:0, rarity:'secret', image:'/assets/img/1227bc9d4e63630bcb17.webp' },
-  'new97': { name:"Mythic Curse of Kings", value:0, rarity:'secret', image:'/assets/img/de870ac039e7fa814801.webp' },
-  'new99': { name:"Shiny Mythic Christmas Bell", value:0, rarity:'secret', image:'/assets/img/c2cdf0c68cd0e06173b3.webp' },
-  'new101': { name:"Mythic Christmas Bell", value:1000000, rarity:'secret', image:'/assets/img/c63d9fa11ab1e4a801e3.webp' },
-  'new103': { name:"Mythic Christmas Robot", value:0, rarity:'secret', image:'/assets/img/70412d8b47add0c49beb.webp' },
-  'new104': { name:"Mythic Corrupt Glitch", value:550000, rarity:'secret', image:'/assets/img/6c8f3eb0b859f41967ee.webp' },
-  'new106': { name:"Shiny Mythic BGS Plaque", value:0, rarity:'secret', image:'/assets/img/1c285e2295b173ee954f.webp' },
-  'new107': { name:"Mythic BGS Plaque", value:500000, rarity:'secret', image:'/assets/img/c1ed88379d16fa5c1d0a.webp' },
-  'new108': { name:"Mythic Candycorn Shard", value:0, rarity:'secret', image:'/assets/img/2805b90843b53f151e44.webp' },
-  'new109': { name:"Mythic Cardinal Bunny", value:5000000, rarity:'secret', image:'/assets/img/1749284648b744b528b3.webp' },
-  'new114': { name:"Dark Dementor", value:0, rarity:'secret', image:'/assets/img/723b6d3342b6c89eb4ba.webp' },
-  'new115': { name:"Mythic Dark Basilisk", value:0, rarity:'secret', image:'/assets/img/5a16ac5fa5de72ccb4de.webp' },
-  'new120': { name:"Mythic Dogcat", value:0, rarity:'secret', image:'/assets/img/07ffb41858bf1e22b5b6.webp' },
-  'new122': { name:"Mythic Dragonfruit", value:0, rarity:'secret', image:'/assets/img/8fa5aa9ddad7b1c4ea87.webp' },
-  'new125': { name:"Mythic Diamond Ring", value:0, rarity:'secret', image:'/assets/img/1886ab7f2f3ada84f14f.webp' },
-  'new126': { name:"Mythic Developer Trophy", value:0, rarity:'secret', image:'/assets/img/fcf02180792d3fef8e39.webp' },
-  'new130': { name:"Mythic Demon Reaper", value:0, rarity:'secret', image:'/assets/img/61d665c8f5e04160a4ff.webp' },
-  'new131': { name:"Demon Reaper", value:0, rarity:'secret', image:'/assets/img/ac6b90acb27fd99ae810.webp' },
-  'new135': { name:"Dark Lord Shock", value:0, rarity:'secret', image:'/assets/img/5c492c9a42a2cd8a287b.webp' },
-  'new137': { name:"Mythic Easter Robot", value:0, rarity:'secret', image:'/assets/img/4cac74b22d8b88845950.webp' },
-  'new138': { name:"Mythic Eternal Carrot", value:850000, rarity:'secret', image:'/assets/img/9298cf84f075541b6ef2.webp' },
-  'new147': { name:"Mythic Easter Spirit", value:940000, rarity:'secret', image:'/assets/img/794da2d5b7c403709c69.webp' },
-  'new148': { name:"Mythic Fallen Angel", value:0, rarity:'secret', image:'/assets/img/821dd54fa98e07c8d31d.webp' },
-  'new149': { name:"Mythic Fairy Koi", value:0, rarity:'secret', image:'/assets/img/484a1407f85d1b2c824b.webp' },
-  'new153': { name:"Mythic Eternal Cucumber", value:2400000, rarity:'secret', image:'/assets/img/c27d907923616c5edf17.webp' },
-  'new156': { name:"Mythic Firecracker", value:1700000, rarity:'secret', image:'/assets/img/7a5a2568914edc1edf84.webp' },
-  'new160': { name:"Mythic Hellfire", value:2000000, rarity:'secret', image:'/assets/img/e26417a68c1adf44271f.webp' },
-  'new161': { name:"Shiny Mythic Hellfire", value:0, rarity:'secret', image:'/assets/img/a8ea902349a78ca1ebde.png' },
   'new164': { name:"Mythic Harmonic Harp", value:0, rarity:'secret', image:'/assets/img/2a88b674dec215e9a11b.webp' },
-  'new165': { name:"Shiny Mythic Harmonic Harp", value:0, rarity:'secret', image:'/assets/img/9746c71b560c0902fbaf.png' },
-  'new168': { name:"Mythic Angelic Golf Ball", value:175000, rarity:'secret', image:'/assets/img/ba2f6f48717c1ef60748.webp' },
-  'new169': { name:"Shiny Mythic Angelic Golf Ball", value:0, rarity:'secret', image:'/assets/img/7ea0a216f7f4a3511827.png' },
-  'new172': { name:"Mythic Demonic Golf Ball", value:150000, rarity:'secret', image:'/assets/img/95ea1ac83bc5da382bae.webp' },
-  'new173': { name:"Shiny Mythic Demonic Golf Ball", value:0, rarity:'secret', image:'/assets/img/bc28ca435b5ee7ee3b46.png' },
-  'new175': { name:"Mythic Gryphon", value:0, rarity:'secret', image:'/assets/img/7da98ada439d0d3789a0.webp' },
-  'new176': { name:"Shiny Mythic Gryphon", value:0, rarity:'secret', image:'/assets/img/55a0ff6aff8f86bd3baa.png' },
-  'new177': { name:"Mythic Hellshard", value:0, rarity:'secret', image:'/assets/img/19d9dc069f72b31708c1.webp' },
-  'new179': { name:"Shiny Mythic Hellshard", value:0, rarity:'secret', image:'/assets/img/e8d405dd69251e3dd4a3.png' },
-  'new181': { name:"Holy Star", value:0, rarity:'secret', image:'/assets/img/ac2539e9d4838d68c285.webp' },
-  'new182': { name:"Shiny Holy Star", value:0, rarity:'secret', image:'/assets/img/6d29455cd0bf67b2c197.png' },
-  'new183': { name:"Mythic Holy Egg", value:1600000, rarity:'secret', image:'/assets/img/dcca5a66a9b98eac4540.webp' },
-  'new185': { name:"Shiny Mythic Holy Egg", value:0, rarity:'secret', image:'/assets/img/0aade089c3f9333fb741.png' },
-  'new190': { name:"Shiny Mythic Air Basilisk", value:0, rarity:'secret', image:'/assets/img/517c505e578bba6fc0aa.png' },
-  'new191': { name:"Shiny Mythic Electric Basilisk", value:0, rarity:'secret', image:'/assets/img/e691a306255073cb8e5d.png' },
-  'new192': { name:"Shiny Mythic Ice Basilisk", value:0, rarity:'secret', image:'/assets/img/75da5d54d1bbf00c82a2.png' },
-  'new193': { name:"Shiny Mythic Archangel", value:0, rarity:'secret', image:'/assets/img/f8bcdfa12f8b7fd35a9b.png' },
-  'new195': { name:"Shiny Mythic Angelic Shard", value:0, rarity:'secret', image:'/assets/img/f04834b3fc738f705dd1.png' },
-  'new197': { name:"Shiny Mythic Almighty Hexarium", value:0, rarity:'secret', image:'/assets/img/0cba4e1e7c7aa5ae322f.png' },
-  'new199': { name:"Shiny Mythic All Seeing Eye", value:0, rarity:'secret', image:'/assets/img/f43a96836834ca2e10ab.png' },
-  'new203': { name:"Shiny Mythic Candycorn Shard", value:0, rarity:'secret', image:'/assets/img/c73354c72cbb28cf62d5.png' },
-  'new205': { name:"Shiny Mythic Cardinal Bunny", value:0, rarity:'secret', image:'/assets/img/a11a5eb4038af97af526.png' },
-  'new208': { name:"Shiny Demon Reaper", value:0, rarity:'secret', image:'/assets/img/a2e98a32f85d82e1ab7d.png' },
-  'new209': { name:"Shiny Mythic Demon Reaper", value:0, rarity:'secret', image:'/assets/img/95f202c9ed037410c9c8.png' },
-  'new210': { name:"Shiny Dark Lord Shock", value:0, rarity:'secret', image:'/assets/img/c3f2362f5170c17d010d.png' },
-  'new211': { name:"Shiny Dark Dementor", value:0, rarity:'secret', image:'/assets/img/5cd55d7e632311b0e498.png' },
-  'new213': { name:"Shiny Mythic Dark Basilisk", value:0, rarity:'secret', image:'/assets/img/183029ba4f73ec738faf.png' },
-  'new215': { name:"Shiny Mythic Curse of Kings", value:0, rarity:'secret', image:'/assets/img/fc718d77398d14b0c899.png' },
-  'new217': { name:"Shiny Mythic Crystal Teddy", value:0, rarity:'secret', image:'/assets/img/baad8ff64c0b72430928.png' },
-  'new219': { name:"Shiny Mythic Corrupt Glitch", value:0, rarity:'secret', image:'/assets/img/9d4f91111a1da8033758.png' },
-  'new223': { name:"Demonic Sentinel", value:0, rarity:'secret', image:'/assets/img/b6fceae8d31cb6bc2516.webp' },
-  'new224': { name:"Shiny Demonic Sentinel", value:0, rarity:'secret', image:'/assets/img/5681610d244f1cb6838e.png' },
-  'new225': { name:"Mythic Dream Catcher", value:20000000, rarity:'secret', image:'/assets/img/78a819ea3732fe29d232.webp' },
-  'new227': { name:"Shiny Mythic Dragonfruit", value:0, rarity:'secret', image:'/assets/img/0d3116aea80896cb796c.png' },
-  'new228': { name:"Shiny Mythic Dice Split", value:0, rarity:'secret', image:'/assets/img/638688a49a457b993b99.png' },
-  'new229': { name:"Shiny Mythic Diamond Ring", value:0, rarity:'secret', image:'/assets/img/8873c32b5c34e918e050.png' },
-  'new231': { name:"Shiny Mythic Developer Trophy", value:0, rarity:'secret', image:'/assets/img/1adbb2c409a7c6730752.png' },
-  'new233': { name:"Shiny Mythic Fairy Koi", value:0, rarity:'secret', image:'/assets/img/9fdf2aaad78d0434e166.png' },
   'new234': { name:"Shiny Mythic Eternal Cucumber", value:0, rarity:'secret', image:'/assets/img/22512e8f3183505af73b.png' },
   'new236': { name:"Shiny Mythic Eternal Carrot", value:0, rarity:'secret', image:'/assets/img/43d38f55243dbd90585b.png' },
-  'new241': { name:"Shiny Mythic Easter Spirit", value:0, rarity:'secret', image:'/assets/img/9d3b5d27f3ab4b18b9a6.png' },
-  'new243': { name:"Shiny Mythic Easter Robot", value:0, rarity:'secret', image:'/assets/img/7bccc3b1b4504d5351f3.png' },
-  'new244': { name:"Shiny Mythic Fallen Angel", value:0, rarity:'secret', image:'/assets/img/c94e31f7da5bb53ee753.png' },
   'new245': { name:"Shiny Mythic Firecracker", value:0, rarity:'secret', image:'/assets/img/8d2663be5241b826db8d.png' },
-  'new246': { name:"Shiny Mythic Duality", value:0, rarity:'secret', image:'/assets/img/afda2cee53dcbc9e5c3e.png' },
-  'new248': { name:"Shiny Mythic Dogcat", value:0, rarity:'secret', image:'/assets/img/e362c3733d579728fd2a.png' },
-  'new250': { name:"Shiny Mythic Ghosdeeri", value:0, rarity:'secret', image:'/assets/img/a5ac3afcfd875cfaf7e7.png' },
-  'new252': { name:"Mythic Ghosdeeri", value:0, rarity:'secret', image:'/assets/img/23b4d59db1fbee46666f.webp' },
-  'new254': { name:"Shiny Mythic Galactic Paladin", value:0, rarity:'secret', image:'/assets/img/4f4a1788f612b60a8544.png' },
-  'new256': { name:"Shiny Mythic Frosted Dreamer", value:0, rarity:'secret', image:'/assets/img/4895d42ca37116a5cf55.png' },
   'new258': { name:"Mythic Frosted Dreamer", value:125000, rarity:'secret', image:'/assets/img/f3feac08c69b46232e7b.webp' },
-  'new260': { name:"Shiny Mythic Frost Shard", value:0, rarity:'secret', image:'/assets/img/941e1603a7f81943017f.png' },
-  'new261': { name:"Mythic Frost Shard", value:800000, rarity:'secret', image:'/assets/img/c5198af58c2f56ac6b70.webp' },
-  'new262': { name:"Mythic Angelic Ghost Spirit", value:1500000, rarity:'secret', image:'/assets/img/4f2633b34c8aa2725e5c.webp' },
-  'new264': { name:"Shiny Mythic Demonic Ghost Spirit", value:0, rarity:'secret', image:'/assets/img/8ed65cf820b5785b9b89.png' },
-  'new266': { name:"Shiny Mythic Angelic Ghost Spirit", value:0, rarity:'secret', image:'/assets/img/f56d4bf02aaf3ae01cf5.png' },
-  'new267': { name:"Mythic Demonic Ghost Spirit", value:2000000, rarity:'secret', image:'/assets/img/378e0bf1429e17857f11.webp' },
-  'new269': { name:"Shiny Mythic Gingerbread Shard", value:0, rarity:'secret', image:'/assets/img/2714a991608b65bb35b3.webp' },
-  'new272': { name:"Shiny Mythic Inferno Gem", value:0, rarity:'secret', image:'/assets/img/a426890276bb5bfd2829.png' },
-  'new277': { name:"Mythic Godly Shamrock", value:0, rarity:'secret', image:'/assets/img/22ecfe0c155fb6a11b7a.webp' },
-  'new279': { name:"Shiny Mythic Giant Pearl", value:0, rarity:'secret', image:'/assets/img/8211ac5c5e71d355d9a6.png' },
-  'new281': { name:"Mythic Giant Pearl", value:0, rarity:'secret', image:'/assets/img/fc9e2bdf590824059346.webp' },
-  'new282': { name:"Mythic Infinity Gem", value:0, rarity:'secret', image:'/assets/img/e624a85aa088e77cd7e6.webp' },
-  'new284': { name:"Shiny Mythic Infinity Gem", value:0, rarity:'secret', image:'/assets/img/16407860473af3a80c8d.png' },
-  'new285': { name:"Shiny King Dogcat", value:0, rarity:'secret', image:'/assets/img/ee6326d972886da07ab5.png' },
   'new287': { name:"Mythic King Slime", value:0, rarity:'secret', image:'/assets/img/c56c19c8e518d17ee151.webp' },
-  'new288': { name:"Shiny Mythic King Seal", value:0, rarity:'secret', image:'/assets/img/c9b2c45b889c03ef32d7.png' },
-  'new289': { name:"Shiny King Seal", value:0, rarity:'secret', image:'/assets/img/986452a9072803edca2a.png' },
   'new290': { name:"Mythic King Seal", value:0, rarity:'secret', image:'/assets/img/ab06d9d364472dfab101.webp' },
-  'new291': { name:"King Seal", value:0, rarity:'secret', image:'/assets/img/ede73988d679e7ffb55d.webp' },
-  'new292': { name:"Shiny Mythic King Penguin", value:0, rarity:'secret', image:'/assets/img/255d27f27a1425adba3f.png' },
   'new294': { name:"Mythic King Penguin", value:0, rarity:'secret', image:'/assets/img/7ebb8917c28fbc89c7a7.webp' },
-  'new297': { name:"Shiny Mythic King Kitty", value:0, rarity:'secret', image:'/assets/img/2dfa1e4c38c15b460473.png' },
-  'new299': { name:"Shiny Mythic King Doggy", value:0, rarity:'secret', image:'/assets/img/0bec9e53df42bbbcd6b7.png' },
   'new300': { name:"Mythic King Doggy", value:0, rarity:'secret', image:'/assets/img/4c5c0f8d229d2a172f65.webp' },
-  'new302': { name:"Shiny Mythic Koi", value:0, rarity:'secret', image:'/assets/img/d77fbe9e221c58a065bd.png' },
-  'new304': { name:"Shiny Mythic King Slime", value:0, rarity:'secret', image:'/assets/img/7e1a2e4b9f9476f8c009.png' },
   'new305': { name:"Mythic Love Thief", value:10000000, rarity:'secret', image:'/assets/img/3127c1fc0f8623219e40.webp' },
-  'new306': { name:"Shiny Mythic Love Thief", value:0, rarity:'secret', image:'/assets/img/6da0b6fd7690005cfc5b.png' },
-  'new308': { name:"Shiny Mythic Luminance", value:0, rarity:'secret', image:'/assets/img/10d15bc524510dc02dd7.png' },
-  'new310': { name:"Mythic Luminance", value:0, rarity:'secret', image:'/assets/img/6ecfdb28e2aeb9c9c1a6.webp' },
-  'new312': { name:"Mythic Lucky Pyramidium", value:0, rarity:'secret', image:'/assets/img/a5a36c14bceebc5c49bc.webp' },
-  'new314': { name:"Shiny Mythic Lucid Leaf", value:0, rarity:'secret', image:'/assets/img/0334717d49863b224702.png' },
-  'new315': { name:"Shiny Lucid Leaf", value:0, rarity:'secret', image:'/assets/img/69434910f8b42ed87881.png' },
-  'new316': { name:"Shiny Mythic Lovely Rose", value:0, rarity:'secret', image:'/assets/img/e17c73b3365e68e7adae.png' },
   'new318': { name:"Mythic Lovely Rose", value:330000, rarity:'secret', image:'/assets/img/f28900daeff5141f1aba.webp' },
-  'new320': { name:"Mythic Morning Star", value:1000000, rarity:'secret', image:'/assets/img/23f8f3d154983ae42fa1.webp' },
-  'new321': { name:"Shiny Mythic Money Mouth", value:0, rarity:'secret', image:'/assets/img/c2d3ee988f7d81feb50b.png' },
-  'new323': { name:"Mythic Money Mouth", value:0, rarity:'secret', image:'/assets/img/ec6a1fb8b958d8ad3393.webp' },
-  'new325': { name:"Shiny Mythic Morning Star", value:0, rarity:'secret', image:'/assets/img/2d672379125dd0673a96.png' },
-  'new328': { name:"Shiny Mythic Overlord Plushie", value:0, rarity:'secret', image:'/assets/img/52188801897539a05072.png' },
-  'new329': { name:"Mythic Overlord Plushie", value:0, rarity:'secret', image:'/assets/img/ede8d9900499324931b8.webp' },
-  'new330': { name:"Shiny Mythic New Year Champion", value:0, rarity:'secret', image:'/assets/img/0da0efde9f69aa5f361a.png' },
-  'new332': { name:"Mythic New Year Champion", value:0, rarity:'secret', image:'/assets/img/e9f526f72458e189f4b9.webp' },
-  'new334': { name:"Shiny Mythic Patronus", value:0, rarity:'secret', image:'/assets/img/265a41a6347c35450b7c.png' },
-  'new336': { name:"Mythic Patronus", value:0, rarity:'secret', image:'/assets/img/80265b8715ff7299810f.webp' },
-  'new341': { name:"Shiny Mythic Pixie Queen", value:0, rarity:'secret', image:'/assets/img/1b359e78aec58aa52f2b.png' },
-  'new343': { name:"Mythic Pixie Queen", value:0, rarity:'secret', image:'/assets/img/95e6d65f5b95fae607a9.webp' },
   'new347': { name:"Mythic Plasma Wolflord", value:0, rarity:'secret', image:'/assets/img/f1a5978eae1bd7ff7e81.webp' },
-  'new351': { name:"Shiny Mythic Sylently Plushie", value:0, rarity:'secret', image:'/assets/img/ed43798aeb022c7eeb78.png' },
-  'new352': { name:"Shiny Mythic Obscure Entity Plushie", value:0, rarity:'secret', image:'/assets/img/9d0055e02363241cc3ec.png' },
-  'new353': { name:"Mythic Sylently Plushie", value:0, rarity:'secret', image:'/assets/img/434c1c93222192d09acb.webp' },
-  'new354': { name:"Mythic Obscure Entity Plushie", value:0, rarity:'secret', image:'/assets/img/cb4dfa5112d13dc293b4.webp' },
-  'new355': { name:"Shiny Mythic Sircfenner Plushie", value:0, rarity:'secret', image:'/assets/img/184d47040caaab2c4ea8.png' },
-  'new356': { name:"Shiny Mythic Prisma Cube", value:0, rarity:'secret', image:'/assets/img/04e45f1d3f0bd490abf9.png' },
-  'new358': { name:"Mythic Prisma Cube", value:400000, rarity:'secret', image:'/assets/img/8cb8970e85cd975b387d.webp' },
-  'new363': { name:"Shiny Mythic Pyramidium", value:0, rarity:'secret', image:'/assets/img/9e627087e0d258caff56.webp' },
-  'new368': { name:"Shiny Mythic Radiant One", value:0, rarity:'secret', image:'/assets/img/b938f123155d3bd3007e.png' },
-  'new370': { name:"Shiny Radiant Shard", value:0, rarity:'secret', image:'/assets/img/16addcda349834976320.png' },
-  'new371': { name:"Radiant Shard", value:0, rarity:'secret', image:'/assets/img/4d07269e48a7421fad33.webp' },
-  'new377': { name:"Shiny Rainbow Leviathan", value:0, rarity:'secret', image:'/assets/img/2857722739db6b54ec35.png' },
-  'new378': { name:"Rainbow Leviathan", value:0, rarity:'secret', image:'/assets/img/a2f55abbe335102ca95e.webp' },
-  'new379': { name:"Shiny Mythic Sea Star", value:0, rarity:'secret', image:'/assets/img/6a62b11666671dddcb47.png' },
-  'new380': { name:"Mythic Sea Star", value:0, rarity:'secret', image:'/assets/img/3541b20d94aa7a9d9092.webp' },
-  'new385': { name:"Shiny Mythic Shadow Luminance", value:0, rarity:'secret', image:'/assets/img/5507d08b88331b6259ff.png' },
-  'new386': { name:"Mythic Shadow Luminance", value:0, rarity:'secret', image:'/assets/img/52776b5dbfa751fbda46.webp' },
-  'new387': { name:"Shiny Mythic Shadow Sundae Champion", value:0, rarity:'secret', image:'/assets/img/bc3d99317e658f2ab517.png' },
-  'new389': { name:"Mythic Shadow Sundae Champion", value:0, rarity:'secret', image:'/assets/img/33807d352f337c7483c3.webp' },
-  'new392': { name:"Shiny Mythic Shattered Soul", value:0, rarity:'secret', image:'/assets/img/b934177c9a9238f1f0cc.png' },
-  'new393': { name:"Mythic Shattered Soul", value:0, rarity:'secret', image:'/assets/img/71209e8bc9676295e31e.webp' },
-  'new394': { name:"Shiny Mythic Shard", value:0, rarity:'secret', image:'/assets/img/4bd2cd46a656658e2873.png' },
-  'new397': { name:"Shiny Mythic Shadow Wolflord", value:0, rarity:'secret', image:'/assets/img/d2fadafe50c53555daad.png' },
-  'new398': { name:"Mythic Shadow Wolflord", value:0, rarity:'secret', image:'/assets/img/08ada3543b5b21abd7da.webp' },
-  'new402': { name:"Shiny Mythic Sinister Shard", value:0, rarity:'secret', image:'/assets/img/100b0407ef17b47a50c3.png' },
-  'new403': { name:"Mythic Sinister Shard", value:3000000, rarity:'secret', image:'/assets/img/6a0aa90b4cfb46dbf0cd.webp' },
-  'new418': { name:"Mythic Vanilla Sundae Champion", value:0, rarity:'secret', image:'/assets/img/3bddf2937878fdbc7e8a.webp' },
-  'new419': { name:"Shiny Mythic Strawberry Sundae Champion", value:0, rarity:'secret', image:'/assets/img/cfe37a6bcc476b41557d.png' },
-  'new420': { name:"Mythic Strawberry Sundae Champion", value:0, rarity:'secret', image:'/assets/img/c1ca078fb72f6a26b0f9.webp' },
-  'new421': { name:"Shiny Mythic Chocolate Sundae Champion", value:0, rarity:'secret', image:'/assets/img/0c010028129588ed0e1e.png' },
   'new422': { name:"Mythic Chocolate Sundae Champion", value:0, rarity:'secret', image:'/assets/img/11d8b190744112092f98.webp' },
-  'new423': { name:"Shiny Mythic Mint Sundae Champion", value:0, rarity:'secret', image:'/assets/img/54feb1000dd06537d483.png' },
-  'new424': { name:"Mythic Mint Sundae Champion", value:0, rarity:'secret', image:'/assets/img/dac98775d1eb224a638f.webp' },
-  'new425': { name:"Shiny Mythic Vanilla Sundae Champion", value:0, rarity:'secret', image:'/assets/img/39f1554eece60fb414ce.png' },
-  'new429': { name:"Shiny Mythic The Overlord", value:0, rarity:'secret', image:'/assets/img/1b0e9c189fc9ebf00c63.png' },
-  'new431': { name:"Mythic The Overlord", value:0, rarity:'secret', image:'/assets/img/940da22629342855796b.webp' },
-  'new432': { name:"Shiny Mythic The OwOLord", value:0, rarity:'secret', image:'/assets/img/ad8a29afd0035a5bfdf0.png' },
-  'new434': { name:"Mythic The OwOLord", value:0, rarity:'secret', image:'/assets/img/3a978010bf86f03dcf8c.webp' },
-  'new436': { name:"Mythic Tophat G", value:0, rarity:'secret', image:'/assets/img/66558116cc75e6717e93.webp' },
-  'new438': { name:"Shiny Mythic Tophat G", value:0, rarity:'secret', image:'/assets/img/32e5e9dee0bf2d2d086a.png' },
-  'new448': { name:"Shiny Mythic Wisplord", value:0, rarity:'secret', image:'/assets/img/a96715d34e6a92c0d0c9.png' },
-  'new449': { name:"Mythic Wisplord", value:0, rarity:'secret', image:'/assets/img/0af64aeafe1d5b594437.webp' },
-  'new452': { name:"Shiny Mythic UFO", value:0, rarity:'secret', image:'/assets/img/83e769decc1196211f56.png' },
   'new453': { name:"Mythic UFO", value:0, rarity:'secret', image:'/assets/img/ba9898c4bb38dd2da595.webp' },
-  'new456': { name:"Shiny Mythic Galactic Dementor", value:0, rarity:'secret', image:'/assets/img/264a24ba17967a98f2cf.png' },
   'new457': { name:"Mythic Galactic Dementor", value:0, rarity:'secret', image:'/assets/img/a4abc3940af9c47e0926.webp' },
-  'new458': { name:"Shiny Galactic Dementor", value:0, rarity:'secret', image:'/assets/img/8feeec1ed280a292aac2.png' },
   'new459': { name:"Galactic Dementor", value:0, rarity:'secret', image:'/assets/img/d7d2d6240aa4dbf1f20d.webp' },
-  'new460': { name:"Shiny Mythic Space Entity", value:0, rarity:'secret', image:'/assets/img/fe69a655e37527a38c0a.png' },
-  'new461': { name:"Mythic Space Entity", value:0, rarity:'secret', image:'/assets/img/6fbdf7e15fdf14e39406.webp' },
-  'new462': { name:"Shiny Space Entity", value:0, rarity:'secret', image:'/assets/img/275b8cdd29f0bb1dda60.png' },
-  'new463': { name:"Space Entity", value:0, rarity:'secret', image:'/assets/img/6f92da6e54c0a31f3dee.webp' },
-  'new464': { name:"Shiny Mythic Soulflake", value:0, rarity:'secret', image:'/assets/img/fb0ffee05925a4225d38.png' },
-  'new466': { name:"Mythic Soulflake", value:0, rarity:'secret', image:'/assets/img/78f540928b130cd81c45.webp' },
-  'new470': { name:"Shiny Mythic Frosted Duality", value:0, rarity:'secret', image:'/assets/img/78fe804962afde56e186.png' },
-  'new471': { name:"Mythic Frosted Duality", value:2300000, rarity:'secret', image:'/assets/img/cf64792fd730d3611754.webp' },
-  'new473': { name:"Shiny Mythic Peppermint Heart", value:0, rarity:'secret', image:'/assets/img/3f60aa392f6d7927aca1.png' },
-  'new474': { name:"Mythic Peppermint Heart", value:0, rarity:'secret', image:'/assets/img/daeb4fb793367f04367f.webp' },
-  'new476': { name:"Shiny Mythic Shadow One", value:0, rarity:'secret', image:'/assets/img/5b2fe3c56c9900bb03d0.png' },
-  'new477': { name:"Mythic Shadow One", value:0, rarity:'secret', image:'/assets/img/27cc23b523ab7f3767a6.webp' },
-  'new478': { name:"Shiny Mythic Alien Kraken", value:0, rarity:'secret', image:'/assets/img/810d2339c3824de666d7.png' },
-  'new479': { name:"Shiny Alien Kraken", value:0, rarity:'secret', image:'/assets/img/a5f26fc5199879e0fc82.png' },
-  'new480': { name:"Mythic Alien Kraken", value:0, rarity:'secret', image:'/assets/img/ce892edd848b836eff81.png' },
   'new481': { name:"Alien Kraken", value:0, rarity:'secret', image:'/assets/img/96653c1c74bd0ca71e45.png' },
 };
-CATALOG_BY_ID['dup_new400'] = { name:"Duped Shiny Mythic Sinister Lord 2.0", value:16000000, rarity:'secret', image: CATALOG_BY_ID['new400'] ? CATALOG_BY_ID['new400'].image : null };
 CATALOG_BY_ID['dup_b4_0'] = { name:"Duped Mythic Sinister Lord 2.0", value:8000000, rarity:'secret', image: CATALOG_BY_ID['b4_0'] ? CATALOG_BY_ID['b4_0'].image : null };
 CATALOG_BY_ID['dup_b0_0'] = { name:"Duped Shiny Levithan", value:4600000, rarity:'secret', image: CATALOG_BY_ID['b0_0'] ? CATALOG_BY_ID['b0_0'].image : null };
-CATALOG_BY_ID['dup_new82'] = { name:"Duped Shiny Mythic Almighty Pumpkin", value:4000000, rarity:'secret', image: CATALOG_BY_ID['new82'] ? CATALOG_BY_ID['new82'].image : null };
 CATALOG_BY_ID['dup_b1_0'] = { name:"Duped Shiny Giant Robot", value:3450000, rarity:'secret', image: CATALOG_BY_ID['b1_0'] ? CATALOG_BY_ID['b1_0'].image : null };
-CATALOG_BY_ID['dup_new407'] = { name:"Duped Shiny Mythic King Skull", value:3000000, rarity:'secret', image: CATALOG_BY_ID['new407'] ? CATALOG_BY_ID['new407'].image : null };
 CATALOG_BY_ID['dup_b0_2'] = { name:"Duped Levithan", value:2000000, rarity:'mythic', image: CATALOG_BY_ID['b0_2'] ? CATALOG_BY_ID['b0_2'].image : null };
 CATALOG_BY_ID['dup_b3_0'] = { name:"Duped Levithan", value:2000000, rarity:'mythic', image: CATALOG_BY_ID['b3_0'] ? CATALOG_BY_ID['b3_0'].image : null };
 CATALOG_BY_ID['dup_b4_1'] = { name:"Duped Mythic Almighty Pumpkin", value:2000000, rarity:'mythic', image: CATALOG_BY_ID['b4_1'] ? CATALOG_BY_ID['b4_1'].image : null };
-CATALOG_BY_ID['dup_new408'] = { name:"Duped Shiny Mythic Sinister Skull", value:2000000, rarity:'secret', image: CATALOG_BY_ID['new408'] ? CATALOG_BY_ID['new408'].image : null };
-CATALOG_BY_ID['dup_new338'] = { name:"Duped Shiny Mythic Peppermint Leviathan", value:1800000, rarity:'secret', image: CATALOG_BY_ID['new338'] ? CATALOG_BY_ID['new338'].image : null };
-CATALOG_BY_ID['dup_new405'] = { name:"Duped Shiny Mythic Wolf Skull", value:1700000, rarity:'secret', image: CATALOG_BY_ID['new405'] ? CATALOG_BY_ID['new405'].image : null };
-CATALOG_BY_ID['dup_new311'] = { name:"Duped Shiny Mythic Lucky Pyramidium", value:1600000, rarity:'secret', image: CATALOG_BY_ID['new311'] ? CATALOG_BY_ID['new311'].image : null };
-CATALOG_BY_ID['dup_new404'] = { name:"Duped Shiny Mythic Angelic Skull", value:1600000, rarity:'secret', image: CATALOG_BY_ID['new404'] ? CATALOG_BY_ID['new404'].image : null };
-CATALOG_BY_ID['dup_new406'] = { name:"Duped Shiny Mythic Guardian Skull", value:1600000, rarity:'secret', image: CATALOG_BY_ID['new406'] ? CATALOG_BY_ID['new406'].image : null };
 CATALOG_BY_ID['dup_b1_1'] = { name:"Duped Giant Robot", value:1500000, rarity:'mythic', image: CATALOG_BY_ID['b1_1'] ? CATALOG_BY_ID['b1_1'].image : null };
 CATALOG_BY_ID['dup_b2_1'] = { name:"Duped Shiny Mythic Dream Catcher", value:1500000, rarity:'epic', image: CATALOG_BY_ID['b2_1'] ? CATALOG_BY_ID['b2_1'].image : null };
 CATALOG_BY_ID['dup_b3_1'] = { name:"Duped Giant Robot", value:1500000, rarity:'legendary', image: CATALOG_BY_ID['b3_1'] ? CATALOG_BY_ID['b3_1'].image : null };
 CATALOG_BY_ID['dup_b4_3'] = { name:"Duped Mythic King Skull", value:1500000, rarity:'mythic', image: CATALOG_BY_ID['b4_3'] ? CATALOG_BY_ID['b4_3'].image : null };
-CATALOG_BY_ID['dup_new346'] = { name:"Duped Shiny Mythic Plasma Wolflord", value:1400000, rarity:'secret', image: CATALOG_BY_ID['new346'] ? CATALOG_BY_ID['new346'].image : null };
 CATALOG_BY_ID['dup_b4_2'] = { name:"Duped Mythic Sinister Skull", value:1000000, rarity:'legendary', image: CATALOG_BY_ID['b4_2'] ? CATALOG_BY_ID['b4_2'].image : null };
-CATALOG_BY_ID['dup_new132'] = { name:"Duped Shiny Dementor", value:1150000, rarity:'secret', image: CATALOG_BY_ID['new132'] ? CATALOG_BY_ID['new132'].image : null };
 CATALOG_BY_ID['dup_b0_1'] = { name:"Duped Mythic Peppermint Leviathan", value:900000, rarity:'legendary', image: CATALOG_BY_ID['b0_1'] ? CATALOG_BY_ID['b0_1'].image : null };
 CATALOG_BY_ID['dup_b4_4'] = { name:"Duped Mythic Wolf Skull", value:850000, rarity:'mythic', image: CATALOG_BY_ID['b4_4'] ? CATALOG_BY_ID['b4_4'].image : null };
 CATALOG_BY_ID['dup_b2_0'] = { name:"Duped Mythic Lucky Pyramidium", value:800000, rarity:'mythic', image: CATALOG_BY_ID['b2_0'] ? CATALOG_BY_ID['b2_0'].image : null };
 CATALOG_BY_ID['dup_b4_5'] = { name:"Duped Mythic Angelic Skull", value:800000, rarity:'epic', image: CATALOG_BY_ID['b4_5'] ? CATALOG_BY_ID['b4_5'].image : null };
 CATALOG_BY_ID['dup_b4_6'] = { name:"Duped Mythic Guardian Skull", value:800000, rarity:'epic', image: CATALOG_BY_ID['b4_6'] ? CATALOG_BY_ID['b4_6'].image : null };
-CATALOG_BY_ID['dup_new276'] = { name:"Duped Shiny Mythic Godly Shamrock", value:800000, rarity:'secret', image: CATALOG_BY_ID['new276'] ? CATALOG_BY_ID['new276'].image : null };
 CATALOG_BY_ID['dup_b0_3'] = { name:"Duped Mythic Plasma Wolflord", value:700000, rarity:'legendary', image: CATALOG_BY_ID['b0_3'] ? CATALOG_BY_ID['b0_3'].image : null };
 CATALOG_BY_ID['dup_b1_3'] = { name:"Duped Shiny Robot 2.0", value:350000, rarity:'rare', image: CATALOG_BY_ID['b1_3'] ? CATALOG_BY_ID['b1_3'].image : null };
-CATALOG_BY_ID['dup_new268'] = { name:"Duped Shiny Godly Gem", value:690000, rarity:'secret', image: CATALOG_BY_ID['new268'] ? CATALOG_BY_ID['new268'].image : null };
 CATALOG_BY_ID['dup_b1_2'] = { name:"Duped Shiny Mythic Christmas Robot", value:500000, rarity:'legendary', image: CATALOG_BY_ID['b1_2'] ? CATALOG_BY_ID['b1_2'].image : null };
 CATALOG_BY_ID['dup_b3_2'] = { name:"Duped Dementor", value:500000, rarity:'epic', image: CATALOG_BY_ID['b3_2'] ? CATALOG_BY_ID['b3_2'].image : null };
-CATALOG_BY_ID['dup_new189'] = { name:"Duped Shiny Mythic Fire Basilisk", value:500000, rarity:'secret', image: CATALOG_BY_ID['new189'] ? CATALOG_BY_ID['new189'].image : null };
-CATALOG_BY_ID['dup_new475'] = { name:"Duped Shiny Shadow One", value:1150000, rarity:'secret', image: CATALOG_BY_ID['new475'] ? CATALOG_BY_ID['new475'].image : null };
 CATALOG_BY_ID['dup_b2_2'] = { name:"Duped Mythic Godly Shamrock", value:400000, rarity:'epic', image: CATALOG_BY_ID['b2_2'] ? CATALOG_BY_ID['b2_2'].image : null };
-CATALOG_BY_ID['dup_new200'] = { name:"Duped Shiny Mythic 1B Trophy", value:400000, rarity:'secret', image: CATALOG_BY_ID['new200'] ? CATALOG_BY_ID['new200'].image : null };
 CATALOG_BY_ID['dup_b1_4'] = { name:"Duped Robot 2.0", value:100000, rarity:'rare', image: CATALOG_BY_ID['b1_4'] ? CATALOG_BY_ID['b1_4'].image : null };
-CATALOG_BY_ID['dup_new10'] = { name:"Duped Godly Gem", value:300000, rarity:'secret', image: CATALOG_BY_ID['new10'] ? CATALOG_BY_ID['new10'].image : null };
-CATALOG_BY_ID['dup_new490'] = { name:"Duped Shiny Dark Serpent", value:690000, rarity:'secret', image: CATALOG_BY_ID['new490'] ? CATALOG_BY_ID['new490'].image : null };
 CATALOG_BY_ID['dup_b4_8'] = { name:"Duped Mythic Fire Basilisk", value:250000, rarity:'legendary', image: CATALOG_BY_ID['b4_8'] ? CATALOG_BY_ID['b4_8'].image : null };
-CATALOG_BY_ID['dup_new67'] = { name:"Duped Shadow One", value:500000, rarity:'secret', image: CATALOG_BY_ID['new67'] ? CATALOG_BY_ID['new67'].image : null };
-CATALOG_BY_ID['dup_new384'] = { name:"Duped Shiny Shadow Luminance", value:575000, rarity:'secret', image: CATALOG_BY_ID['new384'] ? CATALOG_BY_ID['new384'].image : null };
 CATALOG_BY_ID['dup_b0_5'] = { name:"Duped Shiny Tophat (F)", value:120000, rarity:'legendary', image: CATALOG_BY_ID['b0_5'] ? CATALOG_BY_ID['b0_5'].image : null };
 CATALOG_BY_ID['dup_b4_7'] = { name:"Duped Mythic 1B Trophy", value:200000, rarity:'rare', image: CATALOG_BY_ID['b4_7'] ? CATALOG_BY_ID['b4_7'].image : null };
-CATALOG_BY_ID['dup_new230'] = { name:"Duped Shiny Developer Trophy", value:402500, rarity:'secret', image: CATALOG_BY_ID['new230'] ? CATALOG_BY_ID['new230'].image : null };
-CATALOG_BY_ID['dup_new441'] = { name:"Duped Shiny Tophat (C)", value:115000, rarity:'secret', image: CATALOG_BY_ID['new441'] ? CATALOG_BY_ID['new441'].image : null };
-CATALOG_BY_ID['dup_new63'] = { name:"Duped Shiny Immortal One", value:80500, rarity:'secret', image: CATALOG_BY_ID['new63'] ? CATALOG_BY_ID['new63'].image : null };
-CATALOG_BY_ID['dup_new443'] = { name:"Duped Shiny Tophat (E)", value:391000, rarity:'secret', image: CATALOG_BY_ID['new443'] ? CATALOG_BY_ID['new443'].image : null };
-CATALOG_BY_ID['dup_new491'] = { name:"Duped Dark Serpent", value:300000, rarity:'secret', image: CATALOG_BY_ID['new491'] ? CATALOG_BY_ID['new491'].image : null };
-CATALOG_BY_ID['dup_new399'] = { name:"Duped Shiny Sinister Lord", value:172500, rarity:'secret', image: CATALOG_BY_ID['new399'] ? CATALOG_BY_ID['new399'].image : null };
-CATALOG_BY_ID['dup_new468'] = { name:"Duped Shiny Dowodle", value:345000, rarity:'secret', image: CATALOG_BY_ID['new468'] ? CATALOG_BY_ID['new468'].image : null };
-CATALOG_BY_ID['dup_new439'] = { name:"Duped Shiny Tophat (A)", value:103500, rarity:'secret', image: CATALOG_BY_ID['new439'] ? CATALOG_BY_ID['new439'].image : null };
-CATALOG_BY_ID['dup_new447'] = { name:"Duped Shiny Wolflord", value:103500, rarity:'secret', image: CATALOG_BY_ID['new447'] ? CATALOG_BY_ID['new447'].image : null };
 CATALOG_BY_ID['dup_b2_3'] = { name:"Duped Shiny Almighty Hexarium", value:130000, rarity:'rare', image: CATALOG_BY_ID['b2_3'] ? CATALOG_BY_ID['b2_3'].image : null };
-CATALOG_BY_ID['dup_new68'] = { name:"Duped Shadow Luminance", value:250000, rarity:'secret', image: CATALOG_BY_ID['new68'] ? CATALOG_BY_ID['new68'].image : null };
-CATALOG_BY_ID['dup_new327'] = { name:"Duped Shiny Patriotic Robot", value:138000, rarity:'secret', image: CATALOG_BY_ID['new327'] ? CATALOG_BY_ID['new327'].image : null };
-CATALOG_BY_ID['dup_p18'] = { name:"Duped Tophat (F)", value:95000, rarity:'secret', image: CATALOG_BY_ID['p18'] ? CATALOG_BY_ID['p18'].image : null };
-CATALOG_BY_ID['dup_new362'] = { name:"Duped Shiny Mythic Pot O' Doggy", value:110000, rarity:'secret', image: CATALOG_BY_ID['new362'] ? CATALOG_BY_ID['new362'].image : null };
-CATALOG_BY_ID['dup_new444'] = { name:"Duped Shiny Trophy", value:253000, rarity:'secret', image: CATALOG_BY_ID['new444'] ? CATALOG_BY_ID['new444'].image : null };
-CATALOG_BY_ID['dup_new298'] = { name:"Duped Shiny King Kitty", value:230000, rarity:'secret', image: CATALOG_BY_ID['new298'] ? CATALOG_BY_ID['new298'].image : null };
-CATALOG_BY_ID['dup_new367'] = { name:"Duped Shiny Radiance", value:230000, rarity:'secret', image: CATALOG_BY_ID['new367'] ? CATALOG_BY_ID['new367'].image : null };
-CATALOG_BY_ID['dup_new396'] = { name:"Duped Shiny Shadow Wolflord", value:230000, rarity:'secret', image: CATALOG_BY_ID['new396'] ? CATALOG_BY_ID['new396'].image : null };
-CATALOG_BY_ID['dup_new467'] = { name:"Duped Shiny Beta TV", value:230000, rarity:'secret', image: CATALOG_BY_ID['new467'] ? CATALOG_BY_ID['new467'].image : null };
-CATALOG_BY_ID['dup_new488'] = { name:"Duped Shiny Infernus", value:230000, rarity:'secret', image: CATALOG_BY_ID['new488'] ? CATALOG_BY_ID['new488'].image : null };
-CATALOG_BY_ID['dup_new271'] = { name:"Duped Shiny Giant Choco Chicken", value:63250, rarity:'secret', image: CATALOG_BY_ID['new271'] ? CATALOG_BY_ID['new271'].image : null };
-CATALOG_BY_ID['dup_new154'] = { name:"Duped Shiny Frost Sentinel", value:86250, rarity:'secret', image: CATALOG_BY_ID['new154'] ? CATALOG_BY_ID['new154'].image : null };
-CATALOG_BY_ID['dup_new127'] = { name:"Duped Developer Trophy", value:175000, rarity:'secret', image: CATALOG_BY_ID['new127'] ? CATALOG_BY_ID['new127'].image : null };
-CATALOG_BY_ID['dup_p16'] = { name:"Duped Tophat (C)", value:50000, rarity:'secret', image: CATALOG_BY_ID['p16'] ? CATALOG_BY_ID['p16'].image : null };
-CATALOG_BY_ID['dup_new11'] = { name:"Duped Immortal One", value:35000, rarity:'secret', image: CATALOG_BY_ID['new11'] ? CATALOG_BY_ID['new11'].image : null };
-CATALOG_BY_ID['dup_p36'] = { name:"Duped Tophat (E)", value:170000, rarity:'secret', image: CATALOG_BY_ID['p36'] ? CATALOG_BY_ID['p36'].image : null };
-CATALOG_BY_ID['dup_new301'] = { name:"Duped Shiny Lord Shock", value:94990, rarity:'secret', image: CATALOG_BY_ID['new301'] ? CATALOG_BY_ID['new301'].image : null };
-CATALOG_BY_ID['dup_new283'] = { name:"Duped Shiny Infinity Gem", value:184000, rarity:'secret', image: CATALOG_BY_ID['new283'] ? CATALOG_BY_ID['new283'].image : null };
-CATALOG_BY_ID['dup_new442'] = { name:"Duped Shiny Tophat (D)", value:184000, rarity:'secret', image: CATALOG_BY_ID['new442'] ? CATALOG_BY_ID['new442'].image : null };
 CATALOG_BY_ID['dup_b4_9'] = { name:"Duped Sinister Lord", value:75000, rarity:'common', image: CATALOG_BY_ID['b4_9'] ? CATALOG_BY_ID['b4_9'].image : null };
-CATALOG_BY_ID['dup_p34'] = { name:"Duped Dowodle", value:150000, rarity:'secret', image: CATALOG_BY_ID['p34'] ? CATALOG_BY_ID['p34'].image : null };
-CATALOG_BY_ID['dup_new117'] = { name:"Duped Shiny Easter Basket", value:86250, rarity:'secret', image: CATALOG_BY_ID['new117'] ? CATALOG_BY_ID['new117'].image : null };
-CATALOG_BY_ID['dup_new146'] = { name:"Duped Shiny Elite Challenger", value:161000, rarity:'secret', image: CATALOG_BY_ID['new146'] ? CATALOG_BY_ID['new146'].image : null };
-CATALOG_BY_ID['dup_new242'] = { name:"Duped Shiny Easter Robot", value:161000, rarity:'secret', image: CATALOG_BY_ID['new242'] ? CATALOG_BY_ID['new242'].image : null };
-CATALOG_BY_ID['dup_new360'] = { name:"Duped Shiny Pot O' Gold", value:78200, rarity:'secret', image: CATALOG_BY_ID['new360'] ? CATALOG_BY_ID['new360'].image : null };
-CATALOG_BY_ID['dup_new19'] = { name:"Duped Wolflord", value:45000, rarity:'secret', image: CATALOG_BY_ID['new19'] ? CATALOG_BY_ID['new19'].image : null };
-CATALOG_BY_ID['dup_p35'] = { name:"Duped Tophat (A)", value:45000, rarity:'secret', image: CATALOG_BY_ID['p35'] ? CATALOG_BY_ID['p35'].image : null };
-CATALOG_BY_ID['dup_p25'] = { name:"Duped Almighty Hexarium", value:130000, rarity:'secret', image: CATALOG_BY_ID['p25'] ? CATALOG_BY_ID['p25'].image : null };
-CATALOG_BY_ID['dup_p44'] = { name:"Duped Shiny Kraken", value:149500, rarity:'secret', image: CATALOG_BY_ID['p44'] ? CATALOG_BY_ID['p44'].image : null };
-CATALOG_BY_ID['dup_new237'] = { name:"Duped Shiny Elite Wolflord", value:149500, rarity:'secret', image: CATALOG_BY_ID['new237'] ? CATALOG_BY_ID['new237'].image : null };
 CATALOG_BY_ID['dup_b1_5'] = { name:"Duped Patriotic Robot", value:60000, rarity:'rare', image: CATALOG_BY_ID['b1_5'] ? CATALOG_BY_ID['b1_5'].image : null };
-CATALOG_BY_ID['dup_new144'] = { name:"Duped Shiny Elite Fallen Angel", value:138000, rarity:'secret', image: CATALOG_BY_ID['new144'] ? CATALOG_BY_ID['new144'].image : null };
-CATALOG_BY_ID['dup_new414'] = { name:"Duped Shiny Soul Heart", value:69000, rarity:'secret', image: CATALOG_BY_ID['new414'] ? CATALOG_BY_ID['new414'].image : null };
-CATALOG_BY_ID['dup_new435'] = { name:"Duped Shiny Tophat G", value:138000, rarity:'secret', image: CATALOG_BY_ID['new435'] ? CATALOG_BY_ID['new435'].image : null };
-CATALOG_BY_ID['dup_new482'] = { name:"Duped Shiny Electra Hydra", value:138000, rarity:'secret', image: CATALOG_BY_ID['new482'] ? CATALOG_BY_ID['new482'].image : null };
-CATALOG_BY_ID['dup_new113'] = { name:"Duped Shiny Dark Guardian", value:27600, rarity:'secret', image: CATALOG_BY_ID['new113'] ? CATALOG_BY_ID['new113'].image : null };
 CATALOG_BY_ID['dup_b2_4'] = { name:"Duped Mythic Pot O' Doggy", value:55000, rarity:'common', image: CATALOG_BY_ID['b2_4'] ? CATALOG_BY_ID['b2_4'].image : null };
-CATALOG_BY_ID['dup_new37'] = { name:"Duped Trophy", value:110000, rarity:'secret', image: CATALOG_BY_ID['new37'] ? CATALOG_BY_ID['new37'].image : null };
-CATALOG_BY_ID['dup_p47'] = { name:"Duped Shiny Sinister Lord 2.0", value:120750, rarity:'secret', image: CATALOG_BY_ID['p47'] ? CATALOG_BY_ID['p47'].image : null };
-CATALOG_BY_ID['dup_new16'] = { name:"Duped Radiance", value:100000, rarity:'secret', image: CATALOG_BY_ID['new16'] ? CATALOG_BY_ID['new16'].image : null };
-CATALOG_BY_ID['dup_new26'] = { name:"Duped King Kitty", value:100000, rarity:'secret', image: CATALOG_BY_ID['new26'] ? CATALOG_BY_ID['new26'].image : null };
-CATALOG_BY_ID['dup_p3'] = { name:"Duped Beta TV", value:100000, rarity:'secret', image: CATALOG_BY_ID['p3'] ? CATALOG_BY_ID['p3'].image : null };
-CATALOG_BY_ID['dup_new69'] = { name:"Duped Shadow Wolflord", value:100000, rarity:'secret', image: CATALOG_BY_ID['new69'] ? CATALOG_BY_ID['new69'].image : null };
-CATALOG_BY_ID['dup_new489'] = { name:"Duped Infernus", value:100000, rarity:'secret', image: CATALOG_BY_ID['new489'] ? CATALOG_BY_ID['new489'].image : null };
-CATALOG_BY_ID['dup_new413'] = { name:"Duped Shiny Wolf Skull", value:115000, rarity:'secret', image: CATALOG_BY_ID['new413'] ? CATALOG_BY_ID['new413'].image : null };
-CATALOG_BY_ID['dup_new440'] = { name:"Duped Shiny Tophat (B)", value:115000, rarity:'secret', image: CATALOG_BY_ID['new440'] ? CATALOG_BY_ID['new440'].image : null };
-CATALOG_BY_ID['dup_new486'] = { name:"Duped Shiny Enraged Phoenix", value:115000, rarity:'secret', image: CATALOG_BY_ID['new486'] ? CATALOG_BY_ID['new486'].image : null };
-CATALOG_BY_ID['dup_new24'] = { name:"Duped Giant Choco Chicken", value:27500, rarity:'secret', image: CATALOG_BY_ID['new24'] ? CATALOG_BY_ID['new24'].image : null };
-CATALOG_BY_ID['dup_new8'] = { name:"Duped Frost Sentinel", value:37500, rarity:'secret', image: CATALOG_BY_ID['new8'] ? CATALOG_BY_ID['new8'].image : null };
-CATALOG_BY_ID['dup_new180'] = { name:"Duped Shiny Holy Bell", value:103500, rarity:'secret', image: CATALOG_BY_ID['new180'] ? CATALOG_BY_ID['new180'].image : null };
-CATALOG_BY_ID['dup_new409'] = { name:"Duped Shiny Sinister Skull", value:103500, rarity:'secret', image: CATALOG_BY_ID['new409'] ? CATALOG_BY_ID['new409'].image : null };
-CATALOG_BY_ID['dup_new410'] = { name:"Duped Shiny Angelic Skull", value:103500, rarity:'secret', image: CATALOG_BY_ID['new410'] ? CATALOG_BY_ID['new410'].image : null };
 CATALOG_BY_ID['dup_b3_3'] = { name:"Duped Lord Shock", value:41300, rarity:'epic', image: CATALOG_BY_ID['b3_3'] ? CATALOG_BY_ID['b3_3'].image : null };
-CATALOG_BY_ID['dup_p8'] = { name:"Duped Infinity Gem", value:80000, rarity:'secret', image: CATALOG_BY_ID['p8'] ? CATALOG_BY_ID['p8'].image : null };
-CATALOG_BY_ID['dup_p17'] = { name:"Duped Tophat (D)", value:80000, rarity:'secret', image: CATALOG_BY_ID['p17'] ? CATALOG_BY_ID['p17'].image : null };
-CATALOG_BY_ID['dup_new142'] = { name:"Duped Shiny Elite Lord Shock", value:92000, rarity:'secret', image: CATALOG_BY_ID['new142'] ? CATALOG_BY_ID['new142'].image : null };
-CATALOG_BY_ID['dup_new331'] = { name:"Duped Shiny New Year Champion", value:92000, rarity:'secret', image: CATALOG_BY_ID['new331'] ? CATALOG_BY_ID['new331'].image : null };
-CATALOG_BY_ID['dup_new484'] = { name:"Duped Shiny Christmas Elemental", value:92000, rarity:'secret', image: CATALOG_BY_ID['new484'] ? CATALOG_BY_ID['new484'].image : null };
-CATALOG_BY_ID['dup_new411'] = { name:"Duped Shiny King Skull", value:89700, rarity:'secret', image: CATALOG_BY_ID['new411'] ? CATALOG_BY_ID['new411'].image : null };
 CATALOG_BY_ID['dup_b3_4'] = { name:"Duped Easter Basket", value:37500, rarity:'rare', image: CATALOG_BY_ID['b3_4'] ? CATALOG_BY_ID['b3_4'].image : null };
-CATALOG_BY_ID['dup_new412'] = { name:"Duped Shiny Guardian Skull", value:86250, rarity:'secret', image: CATALOG_BY_ID['new412'] ? CATALOG_BY_ID['new412'].image : null };
-CATALOG_BY_ID['dup_p52'] = { name:"Duped Easter Robot", value:70000, rarity:'secret', image: CATALOG_BY_ID['p52'] ? CATALOG_BY_ID['p52'].image : null };
-CATALOG_BY_ID['dup_new145'] = { name:"Duped Elite Challenger", value:70000, rarity:'secret', image: CATALOG_BY_ID['new145'] ? CATALOG_BY_ID['new145'].image : null };
-CATALOG_BY_ID['dup_new388'] = { name:"Duped Shiny Shadow Sundae Champion", value:80500, rarity:'secret', image: CATALOG_BY_ID['new388'] ? CATALOG_BY_ID['new388'].image : null };
 CATALOG_BY_ID['dup_b2_5'] = { name:"Duped Pot O' Gold", value:34000, rarity:'rare', image: CATALOG_BY_ID['b2_5'] ? CATALOG_BY_ID['b2_5'].image : null };
-CATALOG_BY_ID['dup_new369'] = { name:"Duped Shiny Radiant One", value:75900, rarity:'secret', image: CATALOG_BY_ID['new369'] ? CATALOG_BY_ID['new369'].image : null };
-CATALOG_BY_ID['dup_new29'] = { name:"Duped Kraken", value:65000, rarity:'secret', image: CATALOG_BY_ID['new29'] ? CATALOG_BY_ID['new29'].image : null };
-CATALOG_BY_ID['dup_new139'] = { name:"Duped Elite Wolflord", value:65000, rarity:'secret', image: CATALOG_BY_ID['new139'] ? CATALOG_BY_ID['new139'].image : null };
 CATALOG_BY_ID['dup_b3_5'] = { name:"Duped Soul Heart", value:30000, rarity:'common', image: CATALOG_BY_ID['b3_5'] ? CATALOG_BY_ID['b3_5'].image : null };
-CATALOG_BY_ID['dup_p59'] = { name:"Duped Elite Fallen Angel", value:60000, rarity:'secret', image: CATALOG_BY_ID['p59'] ? CATALOG_BY_ID['p59'].image : null };
-CATALOG_BY_ID['dup_new437'] = { name:"Duped Tophat G", value:60000, rarity:'secret', image: CATALOG_BY_ID['new437'] ? CATALOG_BY_ID['new437'].image : null };
-CATALOG_BY_ID['dup_new483'] = { name:"Duped Electra Hydra", value:60000, rarity:'secret', image: CATALOG_BY_ID['new483'] ? CATALOG_BY_ID['new483'].image : null };
-CATALOG_BY_ID['dup_new232'] = { name:"Duped Shiny Fairy Koi", value:69000, rarity:'secret', image: CATALOG_BY_ID['new232'] ? CATALOG_BY_ID['new232'].image : null };
-CATALOG_BY_ID['dup_new238'] = { name:"Duped Shiny Elite Sentinel", value:69000, rarity:'secret', image: CATALOG_BY_ID['new238'] ? CATALOG_BY_ID['new238'].image : null };
-CATALOG_BY_ID['dup_new239'] = { name:"Duped Shiny Elite Pot O' Gold", value:69000, rarity:'secret', image: CATALOG_BY_ID['new239'] ? CATALOG_BY_ID['new239'].image : null };
-CATALOG_BY_ID['dup_new255'] = { name:"Duped Shiny Galactic Paladin", value:69000, rarity:'secret', image: CATALOG_BY_ID['new255'] ? CATALOG_BY_ID['new255'].image : null };
-CATALOG_BY_ID['dup_new313'] = { name:"Duped Shiny Lucky Pyramidium", value:69000, rarity:'secret', image: CATALOG_BY_ID['new313'] ? CATALOG_BY_ID['new313'].image : null };
-CATALOG_BY_ID['dup_new445'] = { name:"Duped Shiny Ultimate Trophy", value:23000, rarity:'secret', image: CATALOG_BY_ID['new445'] ? CATALOG_BY_ID['new445'].image : null };
-CATALOG_BY_ID['dup_new44'] = { name:"Duped Dark Guardian", value:12000, rarity:'secret', image: CATALOG_BY_ID['new44'] ? CATALOG_BY_ID['new44'].image : null };
-CATALOG_BY_ID['dup_new62'] = { name:"Duped Shiny Eternal Heart", value:18400, rarity:'secret', image: CATALOG_BY_ID['new62'] ? CATALOG_BY_ID['new62'].image : null };
 CATALOG_BY_ID['dup_b0_4'] = { name:"Duped Shiny Peppermint Leviathan", value:27500, rarity:'legendary', image: CATALOG_BY_ID['b0_4'] ? CATALOG_BY_ID['b0_4'].image : null };
-CATALOG_BY_ID['dup_new34'] = { name:"Duped Sinister Lord 2.0", value:52500, rarity:'secret', image: CATALOG_BY_ID['new34'] ? CATALOG_BY_ID['new34'].image : null };
-CATALOG_BY_ID['dup_p15'] = { name:"Duped Tophat (B)", value:50000, rarity:'secret', image: CATALOG_BY_ID['p15'] ? CATALOG_BY_ID['p15'].image : null };
-CATALOG_BY_ID['dup_p20'] = { name:"Duped Wolf Skull", value:50000, rarity:'secret', image: CATALOG_BY_ID['p20'] ? CATALOG_BY_ID['p20'].image : null };
-CATALOG_BY_ID['dup_new487'] = { name:"Duped Enraged Phoenix", value:50000, rarity:'secret', image: CATALOG_BY_ID['new487'] ? CATALOG_BY_ID['new487'].image : null };
-CATALOG_BY_ID['dup_new102'] = { name:"Duped Shiny Christmas Robot", value:57500, rarity:'secret', image: CATALOG_BY_ID['new102'] ? CATALOG_BY_ID['new102'].image : null };
-CATALOG_BY_ID['dup_new151'] = { name:"Duped Shiny Eternal Star", value:57500, rarity:'secret', image: CATALOG_BY_ID['new151'] ? CATALOG_BY_ID['new151'].image : null };
-CATALOG_BY_ID['dup_new178'] = { name:"Duped Shiny Hellshard", value:57500, rarity:'secret', image: CATALOG_BY_ID['new178'] ? CATALOG_BY_ID['new178'].image : null };
-CATALOG_BY_ID['dup_new274'] = { name:"Duped Shiny Immortal Trophy", value:57500, rarity:'secret', image: CATALOG_BY_ID['new274'] ? CATALOG_BY_ID['new274'].image : null };
-CATALOG_BY_ID['dup_new309'] = { name:"Duped Shiny Luminance", value:57500, rarity:'secret', image: CATALOG_BY_ID['new309'] ? CATALOG_BY_ID['new309'].image : null };
-CATALOG_BY_ID['dup_new25'] = { name:"Duped Holy Bell", value:45000, rarity:'secret', image: CATALOG_BY_ID['new25'] ? CATALOG_BY_ID['new25'].image : null };
-CATALOG_BY_ID['dup_p11'] = { name:"Duped Sinister Skull", value:45000, rarity:'secret', image: CATALOG_BY_ID['p11'] ? CATALOG_BY_ID['p11'].image : null };
-CATALOG_BY_ID['dup_p32'] = { name:"Duped Angelic Skull", value:45000, rarity:'secret', image: CATALOG_BY_ID['p32'] ? CATALOG_BY_ID['p32'].image : null };
-CATALOG_BY_ID['dup_new143'] = { name:"Duped Elite Lord Shock", value:40000, rarity:'secret', image: CATALOG_BY_ID['new143'] ? CATALOG_BY_ID['new143'].image : null };
-CATALOG_BY_ID['dup_new333'] = { name:"Duped New Year Champion", value:40000, rarity:'secret', image: CATALOG_BY_ID['new333'] ? CATALOG_BY_ID['new333'].image : null };
-CATALOG_BY_ID['dup_new485'] = { name:"Duped Christmas Elemental", value:40000, rarity:'secret', image: CATALOG_BY_ID['new485'] ? CATALOG_BY_ID['new485'].image : null };
-CATALOG_BY_ID['dup_p45'] = { name:"Duped Shiny King Doggy", value:46000, rarity:'secret', image: CATALOG_BY_ID['p45'] ? CATALOG_BY_ID['p45'].image : null };
-CATALOG_BY_ID['dup_new375'] = { name:"Duped Shiny Radioactive Radiance", value:46000, rarity:'secret', image: CATALOG_BY_ID['new375'] ? CATALOG_BY_ID['new375'].image : null };
-CATALOG_BY_ID['dup_new427'] = { name:"Duped Shiny Chocolate Sundae Champion", value:46000, rarity:'secret', image: CATALOG_BY_ID['new427'] ? CATALOG_BY_ID['new427'].image : null };
-CATALOG_BY_ID['dup_p9'] = { name:"Duped King Skull", value:39000, rarity:'secret', image: CATALOG_BY_ID['p9'] ? CATALOG_BY_ID['p9'].image : null };
-CATALOG_BY_ID['dup_p28'] = { name:"Duped Guardian Skull", value:37500, rarity:'secret', image: CATALOG_BY_ID['p28'] ? CATALOG_BY_ID['p28'].image : null };
-CATALOG_BY_ID['dup_new348'] = { name:"Duped Shiny Plasma Wolflord", value:41400, rarity:'secret', image: CATALOG_BY_ID['new348'] ? CATALOG_BY_ID['new348'].image : null };
-CATALOG_BY_ID['dup_new390'] = { name:"Duped Shadow Sundae Champion", value:35000, rarity:'secret', image: CATALOG_BY_ID['new390'] ? CATALOG_BY_ID['new390'].image : null };
-CATALOG_BY_ID['dup_new364'] = { name:"Duped Shiny Pyramidium", value:40250, rarity:'secret', image: CATALOG_BY_ID['new364'] ? CATALOG_BY_ID['new364'].image : null };
-CATALOG_BY_ID['dup_new303'] = { name:"Duped Shiny Koi", value:39100, rarity:'secret', image: CATALOG_BY_ID['new303'] ? CATALOG_BY_ID['new303'].image : null };
-CATALOG_BY_ID['dup_new417'] = { name:"Duped Shiny Vanilla Sundae Champion", value:39100, rarity:'secret', image: CATALOG_BY_ID['new417'] ? CATALOG_BY_ID['new417'].image : null };
-CATALOG_BY_ID['dup_new32'] = { name:"Duped Radiant One", value:33000, rarity:'secret', image: CATALOG_BY_ID['new32'] ? CATALOG_BY_ID['new32'].image : null };
-CATALOG_BY_ID['dup_new251'] = { name:"Duped Shiny Ghosdeeri", value:36800, rarity:'secret', image: CATALOG_BY_ID['new251'] ? CATALOG_BY_ID['new251'].image : null };
-CATALOG_BY_ID['dup_new38'] = { name:"Duped Ultimate Clover", value:8000, rarity:'secret', image: CATALOG_BY_ID['new38'] ? CATALOG_BY_ID['new38'].image : null };
-CATALOG_BY_ID['dup_new47'] = { name:"Duped Galactic Paladin", value:30000, rarity:'secret', image: CATALOG_BY_ID['new47'] ? CATALOG_BY_ID['new47'].image : null };
-CATALOG_BY_ID['dup_p57'] = { name:"Duped Lucky Pyramidium", value:30000, rarity:'secret', image: CATALOG_BY_ID['p57'] ? CATALOG_BY_ID['p57'].image : null };
-CATALOG_BY_ID['dup_new140'] = { name:"Duped Elite Sentinel", value:30000, rarity:'secret', image: CATALOG_BY_ID['new140'] ? CATALOG_BY_ID['new140'].image : null };
-CATALOG_BY_ID['dup_new141'] = { name:"Duped Elite Pot O' Gold", value:30000, rarity:'secret', image: CATALOG_BY_ID['new141'] ? CATALOG_BY_ID['new141'].image : null };
-CATALOG_BY_ID['dup_new150'] = { name:"Duped Fairy Koi", value:30000, rarity:'secret', image: CATALOG_BY_ID['new150'] ? CATALOG_BY_ID['new150'].image : null };
-CATALOG_BY_ID['dup_new118'] = { name:"Duped Shiny Duality", value:34500, rarity:'secret', image: CATALOG_BY_ID['new118'] ? CATALOG_BY_ID['new118'].image : null };
-CATALOG_BY_ID['dup_new121'] = { name:"Duped Shiny Dragonfruit", value:34500, rarity:'secret', image: CATALOG_BY_ID['new121'] ? CATALOG_BY_ID['new121'].image : null };
-CATALOG_BY_ID['dup_new273'] = { name:"Duped Shiny Inferno Gem", value:34500, rarity:'secret', image: CATALOG_BY_ID['new273'] ? CATALOG_BY_ID['new273'].image : null };
-CATALOG_BY_ID['dup_new428'] = { name:"Duped Shiny Mint Sundae Champion", value:34500, rarity:'secret', image: CATALOG_BY_ID['new428'] ? CATALOG_BY_ID['new428'].image : null };
-CATALOG_BY_ID['dup_new469'] = { name:"Duped Shiny Frosted Duality", value:34500, rarity:'secret', image: CATALOG_BY_ID['new469'] ? CATALOG_BY_ID['new469'].image : null };
-CATALOG_BY_ID['dup_new39'] = { name:"Duped Ultimate Trophy", value:10000, rarity:'secret', image: CATALOG_BY_ID['new39'] ? CATALOG_BY_ID['new39'].image : null };
-CATALOG_BY_ID['dup_new446'] = { name:"Duped Ultimate Trophy", value:10000, rarity:'secret', image: CATALOG_BY_ID['new446'] ? CATALOG_BY_ID['new446'].image : null };
-CATALOG_BY_ID['dup_new395'] = { name:"Duped Shiny Shard", value:32200, rarity:'secret', image: CATALOG_BY_ID['new395'] ? CATALOG_BY_ID['new395'].image : null };
-CATALOG_BY_ID['dup_new7'] = { name:"Duped Eternal Heart", value:8000, rarity:'secret', image: CATALOG_BY_ID['new7'] ? CATALOG_BY_ID['new7'].image : null };
 CATALOG_BY_ID['dup_b0_6'] = { name:"Duped Peppermint Leviathan", value:13750, rarity:'common', image: CATALOG_BY_ID['b0_6'] ? CATALOG_BY_ID['b0_6'].image : null };
-CATALOG_BY_ID['dup_new426'] = { name:"Duped Shiny Strawberry Sundae Champion", value:31050, rarity:'secret', image: CATALOG_BY_ID['new426'] ? CATALOG_BY_ID['new426'].image : null };
-CATALOG_BY_ID['dup_new23'] = { name:"Duped Eternal Star", value:25000, rarity:'secret', image: CATALOG_BY_ID['new23'] ? CATALOG_BY_ID['new23'].image : null };
-CATALOG_BY_ID['dup_new52'] = { name:"Duped Luminance", value:25000, rarity:'secret', image: CATALOG_BY_ID['new52'] ? CATALOG_BY_ID['new52'].image : null };
-CATALOG_BY_ID['dup_p5'] = { name:"Duped Christmas Robot", value:25000, rarity:'secret', image: CATALOG_BY_ID['p5'] ? CATALOG_BY_ID['p5'].image : null };
-CATALOG_BY_ID['dup_new157'] = { name:"Duped Hellshard", value:25000, rarity:'secret', image: CATALOG_BY_ID['new157'] ? CATALOG_BY_ID['new157'].image : null };
-CATALOG_BY_ID['dup_new275'] = { name:"Duped Immortal Trophy", value:25000, rarity:'secret', image: CATALOG_BY_ID['new275'] ? CATALOG_BY_ID['new275'].image : null };
-CATALOG_BY_ID['dup_new335'] = { name:"Duped Shiny Patronus", value:27600, rarity:'secret', image: CATALOG_BY_ID['new335'] ? CATALOG_BY_ID['new335'].image : null };
-CATALOG_BY_ID['dup_new322'] = { name:"Duped Shiny Money Mouth", value:26450, rarity:'secret', image: CATALOG_BY_ID['new322'] ? CATALOG_BY_ID['new322'].image : null };
-CATALOG_BY_ID['dup_new13'] = { name:"Duped King Doggy", value:20000, rarity:'secret', image: CATALOG_BY_ID['new13'] ? CATALOG_BY_ID['new13'].image : null };
-CATALOG_BY_ID['dup_p46'] = { name:"Duped Chocolate Sundae Champion", value:20000, rarity:'secret', image: CATALOG_BY_ID['p46'] ? CATALOG_BY_ID['p46'].image : null };
-CATALOG_BY_ID['dup_new376'] = { name:"Duped Radioactive Radiance", value:20000, rarity:'secret', image: CATALOG_BY_ID['new376'] ? CATALOG_BY_ID['new376'].image : null };
-CATALOG_BY_ID['dup_new88'] = { name:"Duped Shiny 1B Trophy", value:23000, rarity:'secret', image: CATALOG_BY_ID['new88'] ? CATALOG_BY_ID['new88'].image : null };
-CATALOG_BY_ID['dup_new187'] = { name:"Duped Shiny Electric Basilisk", value:23000, rarity:'secret', image: CATALOG_BY_ID['new187'] ? CATALOG_BY_ID['new187'].image : null };
-CATALOG_BY_ID['dup_new188'] = { name:"Duped Shiny Ice Basilisk", value:23000, rarity:'secret', image: CATALOG_BY_ID['new188'] ? CATALOG_BY_ID['new188'].image : null };
-CATALOG_BY_ID['dup_new278'] = { name:"Duped Shiny Godly Shamrock", value:23000, rarity:'secret', image: CATALOG_BY_ID['new278'] ? CATALOG_BY_ID['new278'].image : null };
-CATALOG_BY_ID['dup_new15'] = { name:"Duped Plasma Wolflord", value:18000, rarity:'secret', image: CATALOG_BY_ID['new15'] ? CATALOG_BY_ID['new15'].image : null };
-CATALOG_BY_ID['dup_new204'] = { name:"Duped Shiny Cardinal Bunny", value:20700, rarity:'secret', image: CATALOG_BY_ID['new204'] ? CATALOG_BY_ID['new204'].image : null };
-CATALOG_BY_ID['dup_new391'] = { name:"Duped Shiny Shattered Soul", value:20700, rarity:'secret', image: CATALOG_BY_ID['new391'] ? CATALOG_BY_ID['new391'].image : null };
-CATALOG_BY_ID['dup_new31'] = { name:"Duped Pyramidium", value:17500, rarity:'secret', image: CATALOG_BY_ID['new31'] ? CATALOG_BY_ID['new31'].image : null };
-CATALOG_BY_ID['dup_new349'] = { name:"Duped Shiny Sylently Plushie", value:20125, rarity:'secret', image: CATALOG_BY_ID['new349'] ? CATALOG_BY_ID['new349'].image : null };
-CATALOG_BY_ID['dup_new28'] = { name:"Duped Koi", value:17000, rarity:'secret', image: CATALOG_BY_ID['new28'] ? CATALOG_BY_ID['new28'].image : null };
-CATALOG_BY_ID['dup_p19'] = { name:"Duped Vanilla Sundae Champion", value:17000, rarity:'secret', image: CATALOG_BY_ID['p19'] ? CATALOG_BY_ID['p19'].image : null };
-CATALOG_BY_ID['dup_p58'] = { name:"Duped Shiny Overlord Plushie", value:19550, rarity:'secret', image: CATALOG_BY_ID['p58'] ? CATALOG_BY_ID['p58'].image : null };
-CATALOG_BY_ID['dup_new253'] = { name:"Duped Ghosdeeri", value:16000, rarity:'secret', image: CATALOG_BY_ID['new253'] ? CATALOG_BY_ID['new253'].image : null };
-CATALOG_BY_ID['dup_new247'] = { name:"Duped Shiny Frost Shard", value:18400, rarity:'secret', image: CATALOG_BY_ID['new247'] ? CATALOG_BY_ID['new247'].image : null };
-CATALOG_BY_ID['dup_new345'] = { name:"Duped Shiny Sircfenner Plushie", value:18400, rarity:'secret', image: CATALOG_BY_ID['new345'] ? CATALOG_BY_ID['new345'].image : null };
-CATALOG_BY_ID['dup_new202'] = { name:"Duped Shiny Candycorn Shard", value:17825, rarity:'secret', image: CATALOG_BY_ID['new202'] ? CATALOG_BY_ID['new202'].image : null };
-CATALOG_BY_ID['dup_new5'] = { name:"Duped Duality", value:15000, rarity:'secret', image: CATALOG_BY_ID['new5'] ? CATALOG_BY_ID['new5'].image : null };
-CATALOG_BY_ID['dup_new22'] = { name:"Duped Dragonfruit", value:15000, rarity:'secret', image: CATALOG_BY_ID['new22'] ? CATALOG_BY_ID['new22'].image : null };
-CATALOG_BY_ID['dup_p27'] = { name:"Duped Frosted Duality", value:15000, rarity:'secret', image: CATALOG_BY_ID['p27'] ? CATALOG_BY_ID['p27'].image : null };
-CATALOG_BY_ID['dup_p54'] = { name:"Duped Mint Sundae Champion", value:15000, rarity:'secret', image: CATALOG_BY_ID['p54'] ? CATALOG_BY_ID['p54'].image : null };
-CATALOG_BY_ID['dup_new90'] = { name:"Duped Inferno Gem", value:15000, rarity:'secret', image: CATALOG_BY_ID['new90'] ? CATALOG_BY_ID['new90'].image : null };
-CATALOG_BY_ID['dup_new221'] = { name:"Duped Shiny Earth Champion", value:17250, rarity:'secret', image: CATALOG_BY_ID['new221'] ? CATALOG_BY_ID['new221'].image : null };
-CATALOG_BY_ID['dup_new17'] = { name:"Duped Shard", value:14000, rarity:'secret', image: CATALOG_BY_ID['new17'] ? CATALOG_BY_ID['new17'].image : null };
-CATALOG_BY_ID['dup_new198'] = { name:"Duped Shiny All Seeing Eye", value:16100, rarity:'secret', image: CATALOG_BY_ID['new198'] ? CATALOG_BY_ID['new198'].image : null };
-CATALOG_BY_ID['dup_new212'] = { name:"Duped Shiny Dark Basilisk", value:16100, rarity:'secret', image: CATALOG_BY_ID['new212'] ? CATALOG_BY_ID['new212'].image : null };
-CATALOG_BY_ID['dup_new319'] = { name:"Duped Shiny Love Thief", value:16100, rarity:'secret', image: CATALOG_BY_ID['new319'] ? CATALOG_BY_ID['new319'].image : null };
-CATALOG_BY_ID['dup_new350'] = { name:"Duped Shiny Obscure Entity Plushie", value:16100, rarity:'secret', image: CATALOG_BY_ID['new350'] ? CATALOG_BY_ID['new350'].image : null };
-CATALOG_BY_ID['dup_p13'] = { name:"Duped Strawberry Sundae Champion", value:13500, rarity:'secret', image: CATALOG_BY_ID['p13'] ? CATALOG_BY_ID['p13'].image : null };
-CATALOG_BY_ID['dup_new361'] = { name:"Duped Shiny Pot O' Doggy", value:15525, rarity:'secret', image: CATALOG_BY_ID['new361'] ? CATALOG_BY_ID['new361'].image : null };
-CATALOG_BY_ID['dup_new465'] = { name:"Duped Shiny Soulflake", value:15525, rarity:'secret', image: CATALOG_BY_ID['new465'] ? CATALOG_BY_ID['new465'].image : null };
-CATALOG_BY_ID['dup_new111'] = { name:"Duped Shiny Dark Champion", value:14950, rarity:'secret', image: CATALOG_BY_ID['new111'] ? CATALOG_BY_ID['new111'].image : null };
-CATALOG_BY_ID['dup_new163'] = { name:"Duped Shiny Harmonic Harp", value:14375, rarity:'secret', image: CATALOG_BY_ID['new163'] ? CATALOG_BY_ID['new163'].image : null };
-CATALOG_BY_ID['dup_new337'] = { name:"Duped Patronus", value:12000, rarity:'secret', image: CATALOG_BY_ID['new337'] ? CATALOG_BY_ID['new337'].image : null };
-CATALOG_BY_ID['dup_new159'] = { name:"Duped Shiny Hellfire", value:13800, rarity:'secret', image: CATALOG_BY_ID['new159'] ? CATALOG_BY_ID['new159'].image : null };
-CATALOG_BY_ID['dup_new186'] = { name:"Duped Shiny Fire Basilisk", value:13800, rarity:'secret', image: CATALOG_BY_ID['new186'] ? CATALOG_BY_ID['new186'].image : null };
-CATALOG_BY_ID['dup_new196'] = { name:"Duped Shiny Almighty Pumpkin", value:13800, rarity:'secret', image: CATALOG_BY_ID['new196'] ? CATALOG_BY_ID['new196'].image : null };
-CATALOG_BY_ID['dup_new222'] = { name:"Duped Shiny Fire Champion", value:13800, rarity:'secret', image: CATALOG_BY_ID['new222'] ? CATALOG_BY_ID['new222'].image : null };
-CATALOG_BY_ID['dup_new373'] = { name:"Duped Shiny Rainbow Gryphon", value:13800, rarity:'secret', image: CATALOG_BY_ID['new373'] ? CATALOG_BY_ID['new373'].image : null };
-CATALOG_BY_ID['dup_new324'] = { name:"Duped Money Mouth", value:11500, rarity:'secret', image: CATALOG_BY_ID['new324'] ? CATALOG_BY_ID['new324'].image : null };
-CATALOG_BY_ID['dup_new79'] = { name:"Duped Shiny Angelic Spirit", value:13225, rarity:'secret', image: CATALOG_BY_ID['new79'] ? CATALOG_BY_ID['new79'].image : null };
-CATALOG_BY_ID['dup_new40'] = { name:"Duped Air Basilisk", value:10000, rarity:'secret', image: CATALOG_BY_ID['new40'] ? CATALOG_BY_ID['new40'].image : null };
-CATALOG_BY_ID['dup_new49'] = { name:"Duped Ice Basilisk", value:10000, rarity:'secret', image: CATALOG_BY_ID['new49'] ? CATALOG_BY_ID['new49'].image : null };
-CATALOG_BY_ID['dup_p1'] = { name:"Duped 1B Trophy", value:10000, rarity:'secret', image: CATALOG_BY_ID['p1'] ? CATALOG_BY_ID['p1'].image : null };
-CATALOG_BY_ID['dup_p39'] = { name:"Duped Electric Basilisk", value:10000, rarity:'secret', image: CATALOG_BY_ID['p39'] ? CATALOG_BY_ID['p39'].image : null };
-CATALOG_BY_ID['dup_p55'] = { name:"Duped Godly Shamrock", value:10000, rarity:'secret', image: CATALOG_BY_ID['p55'] ? CATALOG_BY_ID['p55'].image : null };
-CATALOG_BY_ID['dup_new214'] = { name:"Duped Shiny Curse of Kings", value:11500, rarity:'secret', image: CATALOG_BY_ID['new214'] ? CATALOG_BY_ID['new214'].image : null };
-CATALOG_BY_ID['dup_new220'] = { name:"Duped Shiny Sky Champion", value:11500, rarity:'secret', image: CATALOG_BY_ID['new220'] ? CATALOG_BY_ID['new220'].image : null };
 CATALOG_BY_ID['dup_p22'] = { name:"Duped Shattered Soul", value:9000, rarity:'secret', image: CATALOG_BY_ID['p22'] ? CATALOG_BY_ID['p22'].image : null };
-CATALOG_BY_ID['dup_new110'] = { name:"Duped Cardinal Bunny", value:9000, rarity:'secret', image: CATALOG_BY_ID['new110'] ? CATALOG_BY_ID['new110'].image : null };
-CATALOG_BY_ID['dup_new263'] = { name:"Duped Shiny Demonic Ghost Spirit", value:10350, rarity:'secret', image: CATALOG_BY_ID['new263'] ? CATALOG_BY_ID['new263'].image : null };
-CATALOG_BY_ID['dup_new265'] = { name:"Duped Shiny Angelic Ghost Spirit", value:10350, rarity:'secret', image: CATALOG_BY_ID['new265'] ? CATALOG_BY_ID['new265'].image : null };
-CATALOG_BY_ID['dup_p14'] = { name:"Duped Sylently Plushie", value:8750, rarity:'secret', image: CATALOG_BY_ID['p14'] ? CATALOG_BY_ID['p14'].image : null };
-CATALOG_BY_ID['dup_new55'] = { name:"Duped Overlord Plushie", value:8500, rarity:'secret', image: CATALOG_BY_ID['new55'] ? CATALOG_BY_ID['new55'].image : null };
-CATALOG_BY_ID['dup_p33'] = { name:"Duped Sircfenner Plushie", value:8000, rarity:'secret', image: CATALOG_BY_ID['p33'] ? CATALOG_BY_ID['p33'].image : null };
-CATALOG_BY_ID['dup_new249'] = { name:"Duped Frost Shard", value:8000, rarity:'secret', image: CATALOG_BY_ID['new249'] ? CATALOG_BY_ID['new249'].image : null };
-CATALOG_BY_ID['dup_p43'] = { name:"Duped Shiny Gryphon", value:9200, rarity:'secret', image: CATALOG_BY_ID['p43'] ? CATALOG_BY_ID['p43'].image : null };
-CATALOG_BY_ID['dup_new119'] = { name:"Duped Shiny Dogcat", value:9200, rarity:'secret', image: CATALOG_BY_ID['new119'] ? CATALOG_BY_ID['new119'].image : null };
-CATALOG_BY_ID['dup_new226'] = { name:"Duped Shiny Dream Catcher", value:9200, rarity:'secret', image: CATALOG_BY_ID['new226'] ? CATALOG_BY_ID['new226'].image : null };
-CATALOG_BY_ID['dup_new401'] = { name:"Duped Shiny Sinister Shard", value:9200, rarity:'secret', image: CATALOG_BY_ID['new401'] ? CATALOG_BY_ID['new401'].image : null };
-CATALOG_BY_ID['dup_new42'] = { name:"Duped Candycorn Shard", value:7750, rarity:'secret', image: CATALOG_BY_ID['new42'] ? CATALOG_BY_ID['new42'].image : null };
-CATALOG_BY_ID['dup_p30'] = { name:"Duped Earth Champion", value:7500, rarity:'secret', image: CATALOG_BY_ID['p30'] ? CATALOG_BY_ID['p30'].image : null };
-CATALOG_BY_ID['dup_new124'] = { name:"Duped Shiny Diamond Ring", value:8625, rarity:'secret', image: CATALOG_BY_ID['new124'] ? CATALOG_BY_ID['new124'].image : null };
-CATALOG_BY_ID['dup_p10'] = { name:"Duped Obscure Entity Plushie", value:7000, rarity:'secret', image: CATALOG_BY_ID['p10'] ? CATALOG_BY_ID['p10'].image : null };
-CATALOG_BY_ID['dup_p42'] = { name:"Duped All Seeing Eye", value:7000, rarity:'secret', image: CATALOG_BY_ID['p42'] ? CATALOG_BY_ID['p42'].image : null };
-CATALOG_BY_ID['dup_p48'] = { name:"Duped Love Thief", value:7000, rarity:'secret', image: CATALOG_BY_ID['p48'] ? CATALOG_BY_ID['p48'].image : null };
-CATALOG_BY_ID['dup_new116'] = { name:"Duped Dark Basilisk", value:7000, rarity:'secret', image: CATALOG_BY_ID['new116'] ? CATALOG_BY_ID['new116'].image : null };
-CATALOG_BY_ID['dup_new155'] = { name:"Duped Shiny Firecracker", value:8050, rarity:'secret', image: CATALOG_BY_ID['new155'] ? CATALOG_BY_ID['new155'].image : null };
-CATALOG_BY_ID['dup_new235'] = { name:"Duped Shiny Eternal Carrot", value:8050, rarity:'secret', image: CATALOG_BY_ID['new235'] ? CATALOG_BY_ID['new235'].image : null };
-CATALOG_BY_ID['dup_p12'] = { name:"Duped Soulflake", value:6750, rarity:'secret', image: CATALOG_BY_ID['p12'] ? CATALOG_BY_ID['p12'].image : null };
-CATALOG_BY_ID['dup_p23'] = { name:"Duped Pot O' Doggy", value:6750, rarity:'secret', image: CATALOG_BY_ID['p23'] ? CATALOG_BY_ID['p23'].image : null };
-CATALOG_BY_ID['dup_p37'] = { name:"Duped Dark Champion", value:6500, rarity:'secret', image: CATALOG_BY_ID['p37'] ? CATALOG_BY_ID['p37'].image : null };
-CATALOG_BY_ID['dup_new162'] = { name:"Duped Harmonic Harp", value:6250, rarity:'secret', image: CATALOG_BY_ID['new162'] ? CATALOG_BY_ID['new162'].image : null };
-CATALOG_BY_ID['dup_new1'] = { name:"Duped Almighty Pumpkin", value:6000, rarity:'secret', image: CATALOG_BY_ID['new1'] ? CATALOG_BY_ID['new1'].image : null };
-CATALOG_BY_ID['dup_new56'] = { name:"Duped Rainbow Gryphon", value:6000, rarity:'secret', image: CATALOG_BY_ID['new56'] ? CATALOG_BY_ID['new56'].image : null };
-CATALOG_BY_ID['dup_p29'] = { name:"Duped Fire Champion", value:6000, rarity:'secret', image: CATALOG_BY_ID['p29'] ? CATALOG_BY_ID['p29'].image : null };
-CATALOG_BY_ID['dup_p50'] = { name:"Duped Fire Basilisk", value:6000, rarity:'secret', image: CATALOG_BY_ID['p50'] ? CATALOG_BY_ID['p50'].image : null };
-CATALOG_BY_ID['dup_new158'] = { name:"Duped Hellfire", value:6000, rarity:'secret', image: CATALOG_BY_ID['new158'] ? CATALOG_BY_ID['new158'].image : null };
-CATALOG_BY_ID['dup_new60'] = { name:"Duped Shiny Fallen Angel", value:6900, rarity:'secret', image: CATALOG_BY_ID['new60'] ? CATALOG_BY_ID['new60'].image : null };
-CATALOG_BY_ID['dup_new94'] = { name:"Duped Shiny Archangel", value:6900, rarity:'secret', image: CATALOG_BY_ID['new94'] ? CATALOG_BY_ID['new94'].image : null };
-CATALOG_BY_ID['dup_new280'] = { name:"Duped Shiny Giant Pearl", value:6900, rarity:'secret', image: CATALOG_BY_ID['new280'] ? CATALOG_BY_ID['new280'].image : null };
-CATALOG_BY_ID['dup_new372'] = { name:"Duped Shiny Rainbow Dogcat", value:6900, rarity:'secret', image: CATALOG_BY_ID['new372'] ? CATALOG_BY_ID['new372'].image : null };
-CATALOG_BY_ID['dup_new381'] = { name:"Duped Shiny Sea Star", value:6900, rarity:'secret', image: CATALOG_BY_ID['new381'] ? CATALOG_BY_ID['new381'].image : null };
-CATALOG_BY_ID['dup_new41'] = { name:"Duped Angelic Spirit", value:5750, rarity:'secret', image: CATALOG_BY_ID['new41'] ? CATALOG_BY_ID['new41'].image : null };
-CATALOG_BY_ID['dup_new184'] = { name:"Duped Shiny Holy Egg", value:6325, rarity:'secret', image: CATALOG_BY_ID['new184'] ? CATALOG_BY_ID['new184'].image : null };
-CATALOG_BY_ID['dup_p38'] = { name:"Duped Sky Champion", value:5000, rarity:'secret', image: CATALOG_BY_ID['p38'] ? CATALOG_BY_ID['p38'].image : null };
-CATALOG_BY_ID['dup_new98'] = { name:"Duped Curse of Kings", value:5000, rarity:'secret', image: CATALOG_BY_ID['new98'] ? CATALOG_BY_ID['new98'].image : null };
-CATALOG_BY_ID['dup_new152'] = { name:"Duped Shiny Eternal Cucumber", value:5750, rarity:'secret', image: CATALOG_BY_ID['new152'] ? CATALOG_BY_ID['new152'].image : null };
-CATALOG_BY_ID['dup_new293'] = { name:"Duped Shiny King Penguin", value:5750, rarity:'secret', image: CATALOG_BY_ID['new293'] ? CATALOG_BY_ID['new293'].image : null };
-CATALOG_BY_ID['dup_new433'] = { name:"Duped Shiny OwOLord", value:5750, rarity:'secret', image: CATALOG_BY_ID['new433'] ? CATALOG_BY_ID['new433'].image : null };
-CATALOG_BY_ID['dup_new2'] = { name:"Duped Angelic Ghost Spirit", value:4500, rarity:'secret', image: CATALOG_BY_ID['new2'] ? CATALOG_BY_ID['new2'].image : null };
-CATALOG_BY_ID['dup_new20'] = { name:"Duped Demonic Ghost Spirit", value:4500, rarity:'secret', image: CATALOG_BY_ID['new20'] ? CATALOG_BY_ID['new20'].image : null };
-CATALOG_BY_ID['dup_new326'] = { name:"Duped Shiny Morning Star", value:5175, rarity:'secret', image: CATALOG_BY_ID['new326'] ? CATALOG_BY_ID['new326'].image : null };
-CATALOG_BY_ID['dup_new21'] = { name:"Duped Dogcat", value:4000, rarity:'secret', image: CATALOG_BY_ID['new21'] ? CATALOG_BY_ID['new21'].image : null };
-CATALOG_BY_ID['dup_new58'] = { name:"Duped Sinister Shard", value:4000, rarity:'secret', image: CATALOG_BY_ID['new58'] ? CATALOG_BY_ID['new58'].image : null };
-CATALOG_BY_ID['dup_p24'] = { name:"Duped Dream Catcher", value:4000, rarity:'secret', image: CATALOG_BY_ID['p24'] ? CATALOG_BY_ID['p24'].image : null };
-CATALOG_BY_ID['dup_new174'] = { name:"Duped Gryphon", value:4000, rarity:'secret', image: CATALOG_BY_ID['new174'] ? CATALOG_BY_ID['new174'].image : null };
-CATALOG_BY_ID['dup_new100'] = { name:"Duped Shiny Christmas Bell", value:4600, rarity:'secret', image: CATALOG_BY_ID['new100'] ? CATALOG_BY_ID['new100'].image : null };
-CATALOG_BY_ID['dup_new167'] = { name:"Duped Shiny Angelic Golf Ball", value:4600, rarity:'secret', image: CATALOG_BY_ID['new167'] ? CATALOG_BY_ID['new167'].image : null };
-CATALOG_BY_ID['dup_new216'] = { name:"Duped Shiny Crystal Teddy", value:4600, rarity:'secret', image: CATALOG_BY_ID['new216'] ? CATALOG_BY_ID['new216'].image : null };
-CATALOG_BY_ID['dup_new307'] = { name:"Duped Shiny Magic Marshmallow", value:4600, rarity:'secret', image: CATALOG_BY_ID['new307'] ? CATALOG_BY_ID['new307'].image : null };
-CATALOG_BY_ID['dup_new454'] = { name:"Duped Shiny UFO", value:4600, rarity:'secret', image: CATALOG_BY_ID['new454'] ? CATALOG_BY_ID['new454'].image : null };
-CATALOG_BY_ID['dup_new171'] = { name:"Duped Shiny Demonic Golf Ball", value:4370, rarity:'secret', image: CATALOG_BY_ID['new171'] ? CATALOG_BY_ID['new171'].image : null };
-CATALOG_BY_ID['dup_p6'] = { name:"Duped Diamond Ring", value:3750, rarity:'secret', image: CATALOG_BY_ID['p6'] ? CATALOG_BY_ID['p6'].image : null };
-CATALOG_BY_ID['dup_p7'] = { name:"Duped Firecracker", value:3500, rarity:'secret', image: CATALOG_BY_ID['p7'] ? CATALOG_BY_ID['p7'].image : null };
-CATALOG_BY_ID['dup_p56'] = { name:"Duped Eternal Carrot", value:3500, rarity:'secret', image: CATALOG_BY_ID['p56'] ? CATALOG_BY_ID['p56'].image : null };
-CATALOG_BY_ID['dup_new218'] = { name:"Duped Shiny Corrupt Glitch", value:4025, rarity:'secret', image: CATALOG_BY_ID['new218'] ? CATALOG_BY_ID['new218'].image : null };
-CATALOG_BY_ID['dup_new317'] = { name:"Duped Shiny Lovely Rose", value:4025, rarity:'secret', image: CATALOG_BY_ID['new317'] ? CATALOG_BY_ID['new317'].image : null };
-CATALOG_BY_ID['dup_new450'] = { name:"Duped Shiny Wisplord", value:4025, rarity:'secret', image: CATALOG_BY_ID['new450'] ? CATALOG_BY_ID['new450'].image : null };
-CATALOG_BY_ID['dup_new472'] = { name:"Duped Shiny Peppermint Heart", value:4025, rarity:'secret', image: CATALOG_BY_ID['new472'] ? CATALOG_BY_ID['new472'].image : null };
-CATALOG_BY_ID['dup_new33'] = { name:"Duped Rainbow Dogcat", value:3000, rarity:'secret', image: CATALOG_BY_ID['new33'] ? CATALOG_BY_ID['new33'].image : null };
-CATALOG_BY_ID['dup_new46'] = { name:"Duped Fallen Angel", value:3000, rarity:'secret', image: CATALOG_BY_ID['new46'] ? CATALOG_BY_ID['new46'].image : null };
-CATALOG_BY_ID['dup_new48'] = { name:"Duped Giant Pearl", value:3000, rarity:'secret', image: CATALOG_BY_ID['new48'] ? CATALOG_BY_ID['new48'].image : null };
-CATALOG_BY_ID['dup_new57'] = { name:"Duped Sea Star", value:3000, rarity:'secret', image: CATALOG_BY_ID['new57'] ? CATALOG_BY_ID['new57'].image : null };
-CATALOG_BY_ID['dup_new96'] = { name:"Duped Archangel", value:3000, rarity:'secret', image: CATALOG_BY_ID['new96'] ? CATALOG_BY_ID['new96'].image : null };
-CATALOG_BY_ID['dup_new374'] = { name:"Duped Rainbow Dogcat", value:3000, rarity:'secret', image: CATALOG_BY_ID['new374'] ? CATALOG_BY_ID['new374'].image : null };
-CATALOG_BY_ID['dup_new342'] = { name:"Duped Shiny Pixie Queen", value:3450, rarity:'secret', image: CATALOG_BY_ID['new342'] ? CATALOG_BY_ID['new342'].image : null };
-CATALOG_BY_ID['dup_p51'] = { name:"Duped Holy Egg", value:2750, rarity:'secret', image: CATALOG_BY_ID['p51'] ? CATALOG_BY_ID['p51'].image : null };
-CATALOG_BY_ID['dup_new6'] = { name:"Duped Eternal Cucumber", value:2500, rarity:'secret', image: CATALOG_BY_ID['new6'] ? CATALOG_BY_ID['new6'].image : null };
-CATALOG_BY_ID['dup_new36'] = { name:"Duped The OwOlord", value:2500, rarity:'secret', image: CATALOG_BY_ID['new36'] ? CATALOG_BY_ID['new36'].image : null };
-CATALOG_BY_ID['dup_new295'] = { name:"Duped King Penguin", value:2500, rarity:'secret', image: CATALOG_BY_ID['new295'] ? CATALOG_BY_ID['new295'].image : null };
-CATALOG_BY_ID['dup_new54'] = { name:"Duped Morning Star", value:2250, rarity:'secret', image: CATALOG_BY_ID['new54'] ? CATALOG_BY_ID['new54'].image : null };
-CATALOG_BY_ID['dup_new43'] = { name:"Duped Crystal Teddy", value:2000, rarity:'secret', image: CATALOG_BY_ID['new43'] ? CATALOG_BY_ID['new43'].image : null };
-CATALOG_BY_ID['dup_new53'] = { name:"Duped Magic Marshmallow", value:2000, rarity:'secret', image: CATALOG_BY_ID['new53'] ? CATALOG_BY_ID['new53'].image : null };
-CATALOG_BY_ID['dup_p4'] = { name:"Duped Christmas Bell", value:2000, rarity:'secret', image: CATALOG_BY_ID['p4'] ? CATALOG_BY_ID['p4'].image : null };
-CATALOG_BY_ID['dup_new166'] = { name:"Duped Angelic Golf Ball", value:2000, rarity:'secret', image: CATALOG_BY_ID['new166'] ? CATALOG_BY_ID['new166'].image : null };
 CATALOG_BY_ID['dup_new455'] = { name:"Duped UFO", value:2000, rarity:'secret', image: CATALOG_BY_ID['new455'] ? CATALOG_BY_ID['new455'].image : null };
-CATALOG_BY_ID['dup_new123'] = { name:"Duped Shiny Dice Split", value:2300, rarity:'secret', image: CATALOG_BY_ID['new123'] ? CATALOG_BY_ID['new123'].image : null };
-CATALOG_BY_ID['dup_new194'] = { name:"Duped Shiny Angelic Shard", value:2300, rarity:'secret', image: CATALOG_BY_ID['new194'] ? CATALOG_BY_ID['new194'].image : null };
-CATALOG_BY_ID['dup_new240'] = { name:"Duped Shiny Easter Spirit", value:2300, rarity:'secret', image: CATALOG_BY_ID['new240'] ? CATALOG_BY_ID['new240'].image : null };
-CATALOG_BY_ID['dup_new286'] = { name:"Duped Shiny Slime King", value:2300, rarity:'secret', image: CATALOG_BY_ID['new286'] ? CATALOG_BY_ID['new286'].image : null };
-CATALOG_BY_ID['dup_new357'] = { name:"Duped Shiny Prisma Cube", value:2300, rarity:'secret', image: CATALOG_BY_ID['new357'] ? CATALOG_BY_ID['new357'].image : null };
-CATALOG_BY_ID['dup_new415'] = { name:"Duped Shiny Spring Spirit", value:2300, rarity:'secret', image: CATALOG_BY_ID['new415'] ? CATALOG_BY_ID['new415'].image : null };
-CATALOG_BY_ID['dup_new170'] = { name:"Duped Demonic Golf Ball", value:1900, rarity:'secret', image: CATALOG_BY_ID['new170'] ? CATALOG_BY_ID['new170'].image : null };
-CATALOG_BY_ID['dup_new201'] = { name:"Duped Shiny BGS Plaque", value:2070, rarity:'secret', image: CATALOG_BY_ID['new201'] ? CATALOG_BY_ID['new201'].image : null };
-CATALOG_BY_ID['dup_new257'] = { name:"Duped Shiny Frosted Dreamer", value:2070, rarity:'secret', image: CATALOG_BY_ID['new257'] ? CATALOG_BY_ID['new257'].image : null };
-CATALOG_BY_ID['dup_new30'] = { name:"Duped Lovely Rose", value:1750, rarity:'secret', image: CATALOG_BY_ID['new30'] ? CATALOG_BY_ID['new30'].image : null };
-CATALOG_BY_ID['dup_p26'] = { name:"Duped Peppermint Heart", value:1750, rarity:'secret', image: CATALOG_BY_ID['p26'] ? CATALOG_BY_ID['p26'].image : null };
-CATALOG_BY_ID['dup_new105'] = { name:"Duped Corrupt Glitch", value:1750, rarity:'secret', image: CATALOG_BY_ID['new105'] ? CATALOG_BY_ID['new105'].image : null };
-CATALOG_BY_ID['dup_new451'] = { name:"Duped Wisplord", value:1750, rarity:'secret', image: CATALOG_BY_ID['new451'] ? CATALOG_BY_ID['new451'].image : null };
-CATALOG_BY_ID['dup_new344'] = { name:"Duped Pixie Queen", value:1500, rarity:'secret', image: CATALOG_BY_ID['new344'] ? CATALOG_BY_ID['new344'].image : null };
-CATALOG_BY_ID['dup_new340'] = { name:"Duped Shiny Phantom", value:1725, rarity:'secret', image: CATALOG_BY_ID['new340'] ? CATALOG_BY_ID['new340'].image : null };
-CATALOG_BY_ID['dup_new270'] = { name:"Duped Shiny Gingerbread Shard", value:1610, rarity:'secret', image: CATALOG_BY_ID['new270'] ? CATALOG_BY_ID['new270'].image : null };
-CATALOG_BY_ID['dup_new296'] = { name:"Duped Shiny King Mush", value:1610, rarity:'secret', image: CATALOG_BY_ID['new296'] ? CATALOG_BY_ID['new296'].image : null };
-CATALOG_BY_ID['dup_new4'] = { name:"Duped Dice Split", value:1000, rarity:'secret', image: CATALOG_BY_ID['new4'] ? CATALOG_BY_ID['new4'].image : null };
 CATALOG_BY_ID['dup_new14'] = { name:"Duped King Slime", value:1000, rarity:'secret', image: CATALOG_BY_ID['new14'] ? CATALOG_BY_ID['new14'].image : null };
-CATALOG_BY_ID['dup_new45'] = { name:"Duped Easter Spirit", value:1000, rarity:'secret', image: CATALOG_BY_ID['new45'] ? CATALOG_BY_ID['new45'].image : null };
-CATALOG_BY_ID['dup_new359'] = { name:"Duped Prisma Cube", value:1000, rarity:'secret', image: CATALOG_BY_ID['new359'] ? CATALOG_BY_ID['new359'].image : null };
-CATALOG_BY_ID['dup_new81'] = { name:"Duped Angelic Shard", value:1000, rarity:'secret', image: CATALOG_BY_ID['new81'] ? CATALOG_BY_ID['new81'].image : null };
-CATALOG_BY_ID['dup_new416'] = { name:"Duped Spring Spirit", value:1000, rarity:'secret', image: CATALOG_BY_ID['new416'] ? CATALOG_BY_ID['new416'].image : null };
-CATALOG_BY_ID['dup_new382'] = { name:"Duped Shiny Shadow Challenger", value:1150, rarity:'secret', image: CATALOG_BY_ID['new382'] ? CATALOG_BY_ID['new382'].image : null };
-CATALOG_BY_ID['dup_new430'] = { name:"Duped Shiny The Overlord", value:1150, rarity:'secret', image: CATALOG_BY_ID['new430'] ? CATALOG_BY_ID['new430'].image : null };
-CATALOG_BY_ID['dup_new3'] = { name:"Duped BGS Plaque", value:900, rarity:'secret', image: CATALOG_BY_ID['new3'] ? CATALOG_BY_ID['new3'].image : null };
-CATALOG_BY_ID['dup_new259'] = { name:"Duped Frosted Dreamer", value:900, rarity:'secret', image: CATALOG_BY_ID['new259'] ? CATALOG_BY_ID['new259'].image : null };
-CATALOG_BY_ID['dup_new87'] = { name:"Duped Shiny ACE", value:920, rarity:'secret', image: CATALOG_BY_ID['new87'] ? CATALOG_BY_ID['new87'].image : null };
-CATALOG_BY_ID['dup_new339'] = { name:"Duped Phantom", value:750, rarity:'secret', image: CATALOG_BY_ID['new339'] ? CATALOG_BY_ID['new339'].image : null };
-CATALOG_BY_ID['dup_new9'] = { name:"Duped Gingerbread Shard", value:700, rarity:'secret', image: CATALOG_BY_ID['new9'] ? CATALOG_BY_ID['new9'].image : null };
-CATALOG_BY_ID['dup_new27'] = { name:"Duped King Mush", value:700, rarity:'secret', image: CATALOG_BY_ID['new27'] ? CATALOG_BY_ID['new27'].image : null };
-CATALOG_BY_ID['dup_new35'] = { name:"Duped The Overlord", value:500, rarity:'secret', image: CATALOG_BY_ID['new35'] ? CATALOG_BY_ID['new35'].image : null };
-CATALOG_BY_ID['dup_new383'] = { name:"Duped Shadow Challenger", value:500, rarity:'secret', image: CATALOG_BY_ID['new383'] ? CATALOG_BY_ID['new383'].image : null };
-CATALOG_BY_ID['dup_p2'] = { name:"Duped Ace", value:400, rarity:'secret', image: CATALOG_BY_ID['p2'] ? CATALOG_BY_ID['p2'].image : null };
-CATALOG_BY_ID['dup_new72'] = { name:"Duped Shiny King Leviathan", value:460, rarity:'secret', image: CATALOG_BY_ID['new72'] ? CATALOG_BY_ID['new72'].image : null };
-CATALOG_BY_ID['dup_new206'] = { name:"Duped Shiny Demonic One", value:460, rarity:'secret', image: CATALOG_BY_ID['new206'] ? CATALOG_BY_ID['new206'].image : null };
-CATALOG_BY_ID['dup_new207'] = { name:"Duped Shiny Demonic Dogcat", value:460, rarity:'secret', image: CATALOG_BY_ID['new207'] ? CATALOG_BY_ID['new207'].image : null };
-CATALOG_BY_ID['dup_new133'] = { name:"Duped Shiny Dark Radiance", value:345, rarity:'secret', image: CATALOG_BY_ID['new133'] ? CATALOG_BY_ID['new133'].image : null };
-CATALOG_BY_ID['dup_new136'] = { name:"Duped Shiny Dark Lord", value:345, rarity:'secret', image: CATALOG_BY_ID['new136'] ? CATALOG_BY_ID['new136'].image : null };
-CATALOG_BY_ID['dup_new365'] = { name:"Duped Shiny Radiant Challenger", value:345, rarity:'secret', image: CATALOG_BY_ID['new365'] ? CATALOG_BY_ID['new365'].image : null };
-CATALOG_BY_ID['dup_new51'] = { name:"Duped King Leviathan", value:200, rarity:'secret', image: CATALOG_BY_ID['new51'] ? CATALOG_BY_ID['new51'].image : null };
-CATALOG_BY_ID['dup_new128'] = { name:"Duped Demonic One", value:200, rarity:'secret', image: CATALOG_BY_ID['new128'] ? CATALOG_BY_ID['new128'].image : null };
-CATALOG_BY_ID['dup_new129'] = { name:"Duped Demonic Dogcat", value:200, rarity:'secret', image: CATALOG_BY_ID['new129'] ? CATALOG_BY_ID['new129'].image : null };
-CATALOG_BY_ID['dup_new112'] = { name:"Duped Dark Lord", value:150, rarity:'secret', image: CATALOG_BY_ID['new112'] ? CATALOG_BY_ID['new112'].image : null };
-CATALOG_BY_ID['dup_new134'] = { name:"Duped Dark Radiance", value:150, rarity:'secret', image: CATALOG_BY_ID['new134'] ? CATALOG_BY_ID['new134'].image : null };
-CATALOG_BY_ID['dup_new366'] = { name:"Duped Radiant Challenger", value:150, rarity:'secret', image: CATALOG_BY_ID['new366'] ? CATALOG_BY_ID['new366'].image : null };
-CATALOG_BY_ID['dup_new12'] = { name:"Duped King Dogcat", value:0, rarity:'secret', image: CATALOG_BY_ID['new12'] ? CATALOG_BY_ID['new12'].image : null };
-CATALOG_BY_ID['dup_new18'] = { name:"Duped Sylentlys pet", value:0, rarity:'secret', image: CATALOG_BY_ID['new18'] ? CATALOG_BY_ID['new18'].image : null };
-CATALOG_BY_ID['dup_new50'] = { name:"Duped Isaac's Creation 2.0", value:0, rarity:'secret', image: CATALOG_BY_ID['new50'] ? CATALOG_BY_ID['new50'].image : null };
-CATALOG_BY_ID['dup_new59'] = { name:"Duped Spring Dragon", value:0, rarity:'secret', image: CATALOG_BY_ID['new59'] ? CATALOG_BY_ID['new59'].image : null };
-CATALOG_BY_ID['dup_p21'] = { name:"Duped Mythic Shard", value:0, rarity:'secret', image: CATALOG_BY_ID['p21'] ? CATALOG_BY_ID['p21'].image : null };
-CATALOG_BY_ID['dup_p31'] = { name:"Duped Mythic Pyramidium", value:0, rarity:'secret', image: CATALOG_BY_ID['p31'] ? CATALOG_BY_ID['p31'].image : null };
-CATALOG_BY_ID['dup_p40'] = { name:"Duped Mythic Radiant One", value:0, rarity:'secret', image: CATALOG_BY_ID['p40'] ? CATALOG_BY_ID['p40'].image : null };
-CATALOG_BY_ID['dup_p41'] = { name:"Duped Mythic Koi", value:0, rarity:'secret', image: CATALOG_BY_ID['p41'] ? CATALOG_BY_ID['p41'].image : null };
-CATALOG_BY_ID['dup_p49'] = { name:"Duped Shiny Ultimate Clover", value:18400, rarity:'secret', image: CATALOG_BY_ID['p49'] ? CATALOG_BY_ID['p49'].image : null };
-CATALOG_BY_ID['dup_p53'] = { name:"Duped Mythic Galactic Paladin", value:400000, rarity:'secret', image: CATALOG_BY_ID['p53'] ? CATALOG_BY_ID['p53'].image : null };
-CATALOG_BY_ID['dup_p60'] = { name:"Duped Mythic Lucid Leaf", value:200000, rarity:'secret', image: CATALOG_BY_ID['p60'] ? CATALOG_BY_ID['p60'].image : null };
-CATALOG_BY_ID['dup_new61'] = { name:"Duped Shiny Sylently's Pet", value:0, rarity:'secret', image: CATALOG_BY_ID['new61'] ? CATALOG_BY_ID['new61'].image : null };
-CATALOG_BY_ID['dup_new64'] = { name:"Duped Mythic Duality", value:0, rarity:'secret', image: CATALOG_BY_ID['new64'] ? CATALOG_BY_ID['new64'].image : null };
-CATALOG_BY_ID['dup_new65'] = { name:"Duped Mythic Air Basilisk", value:0, rarity:'secret', image: CATALOG_BY_ID['new65'] ? CATALOG_BY_ID['new65'].image : null };
 CATALOG_BY_ID['dup_new66'] = { name:"Duped Mythic King Kitty", value:350000, rarity:'secret', image: CATALOG_BY_ID['new66'] ? CATALOG_BY_ID['new66'].image : null };
-CATALOG_BY_ID['dup_new71'] = { name:"Duped Mythic Crystal Teddy", value:70000, rarity:'secret', image: CATALOG_BY_ID['new71'] ? CATALOG_BY_ID['new71'].image : null };
-CATALOG_BY_ID['dup_new73'] = { name:"Duped Shiny Lucid Leaf", value:0, rarity:'secret', image: CATALOG_BY_ID['new73'] ? CATALOG_BY_ID['new73'].image : null };
-CATALOG_BY_ID['dup_new74'] = { name:"Duped Mythic Dice Split", value:65000, rarity:'secret', image: CATALOG_BY_ID['new74'] ? CATALOG_BY_ID['new74'].image : null };
-CATALOG_BY_ID['dup_new75'] = { name:"Duped Mythic Sircfenner Plushie", value:225000, rarity:'secret', image: CATALOG_BY_ID['new75'] ? CATALOG_BY_ID['new75'].image : null };
-CATALOG_BY_ID['dup_new76'] = { name:"Duped Mythic Gingerbread Shard", value:15000, rarity:'secret', image: CATALOG_BY_ID['new76'] ? CATALOG_BY_ID['new76'].image : null };
-CATALOG_BY_ID['dup_new77'] = { name:"Duped Shiny Mythic Angelic Spirit", value:0, rarity:'secret', image: CATALOG_BY_ID['new77'] ? CATALOG_BY_ID['new77'].image : null };
-CATALOG_BY_ID['dup_new78'] = { name:"Duped Mythic Angelic Spirit", value:0, rarity:'secret', image: CATALOG_BY_ID['new78'] ? CATALOG_BY_ID['new78'].image : null };
-CATALOG_BY_ID['dup_new80'] = { name:"Duped Mythic Angelic Shard", value:0, rarity:'secret', image: CATALOG_BY_ID['new80'] ? CATALOG_BY_ID['new80'].image : null };
-CATALOG_BY_ID['dup_new83'] = { name:"Duped Mythic Almighty Hexarium", value:0, rarity:'secret', image: CATALOG_BY_ID['new83'] ? CATALOG_BY_ID['new83'].image : null };
-CATALOG_BY_ID['dup_new84'] = { name:"Duped Mythic All Seeing Eye", value:250000, rarity:'secret', image: CATALOG_BY_ID['new84'] ? CATALOG_BY_ID['new84'].image : null };
-CATALOG_BY_ID['dup_new85'] = { name:"Duped Shiny Mythic ACE", value:0, rarity:'secret', image: CATALOG_BY_ID['new85'] ? CATALOG_BY_ID['new85'].image : null };
-CATALOG_BY_ID['dup_new86'] = { name:"Duped Mythic ACE", value:8000, rarity:'secret', image: CATALOG_BY_ID['new86'] ? CATALOG_BY_ID['new86'].image : null };
-CATALOG_BY_ID['dup_new89'] = { name:"Duped Mythic Inferno Gem", value:0, rarity:'secret', image: CATALOG_BY_ID['new89'] ? CATALOG_BY_ID['new89'].image : null };
-CATALOG_BY_ID['dup_new91'] = { name:"Duped Mythic Ice Basilisk", value:0, rarity:'secret', image: CATALOG_BY_ID['new91'] ? CATALOG_BY_ID['new91'].image : null };
-CATALOG_BY_ID['dup_new92'] = { name:"Duped Mythic Electric Basilisk", value:0, rarity:'secret', image: CATALOG_BY_ID['new92'] ? CATALOG_BY_ID['new92'].image : null };
-CATALOG_BY_ID['dup_new93'] = { name:"Duped Mythic Air Basilisk", value:0, rarity:'secret', image: CATALOG_BY_ID['new93'] ? CATALOG_BY_ID['new93'].image : null };
-CATALOG_BY_ID['dup_new95'] = { name:"Duped Mythic Archangel", value:0, rarity:'secret', image: CATALOG_BY_ID['new95'] ? CATALOG_BY_ID['new95'].image : null };
-CATALOG_BY_ID['dup_new97'] = { name:"Duped Mythic Curse of Kings", value:0, rarity:'secret', image: CATALOG_BY_ID['new97'] ? CATALOG_BY_ID['new97'].image : null };
-CATALOG_BY_ID['dup_new99'] = { name:"Duped Shiny Mythic Christmas Bell", value:0, rarity:'secret', image: CATALOG_BY_ID['new99'] ? CATALOG_BY_ID['new99'].image : null };
-CATALOG_BY_ID['dup_new101'] = { name:"Duped Mythic Christmas Bell", value:100000, rarity:'secret', image: CATALOG_BY_ID['new101'] ? CATALOG_BY_ID['new101'].image : null };
-CATALOG_BY_ID['dup_new103'] = { name:"Duped Mythic Christmas Robot", value:0, rarity:'secret', image: CATALOG_BY_ID['new103'] ? CATALOG_BY_ID['new103'].image : null };
-CATALOG_BY_ID['dup_new104'] = { name:"Duped Mythic Corrupt Glitch", value:55000, rarity:'secret', image: CATALOG_BY_ID['new104'] ? CATALOG_BY_ID['new104'].image : null };
-CATALOG_BY_ID['dup_new106'] = { name:"Duped Shiny Mythic BGS Plaque", value:0, rarity:'secret', image: CATALOG_BY_ID['new106'] ? CATALOG_BY_ID['new106'].image : null };
-CATALOG_BY_ID['dup_new107'] = { name:"Duped Mythic BGS Plaque", value:50000, rarity:'secret', image: CATALOG_BY_ID['new107'] ? CATALOG_BY_ID['new107'].image : null };
-CATALOG_BY_ID['dup_new108'] = { name:"Duped Mythic Candycorn Shard", value:0, rarity:'secret', image: CATALOG_BY_ID['new108'] ? CATALOG_BY_ID['new108'].image : null };
-CATALOG_BY_ID['dup_new109'] = { name:"Duped Mythic Cardinal Bunny", value:670000, rarity:'secret', image: CATALOG_BY_ID['new109'] ? CATALOG_BY_ID['new109'].image : null };
-CATALOG_BY_ID['dup_new114'] = { name:"Duped Dark Dementor", value:0, rarity:'secret', image: CATALOG_BY_ID['new114'] ? CATALOG_BY_ID['new114'].image : null };
-CATALOG_BY_ID['dup_new115'] = { name:"Duped Mythic Dark Basilisk", value:0, rarity:'secret', image: CATALOG_BY_ID['new115'] ? CATALOG_BY_ID['new115'].image : null };
-CATALOG_BY_ID['dup_new120'] = { name:"Duped Mythic Dogcat", value:0, rarity:'secret', image: CATALOG_BY_ID['new120'] ? CATALOG_BY_ID['new120'].image : null };
-CATALOG_BY_ID['dup_new122'] = { name:"Duped Mythic Dragonfruit", value:0, rarity:'secret', image: CATALOG_BY_ID['new122'] ? CATALOG_BY_ID['new122'].image : null };
-CATALOG_BY_ID['dup_new125'] = { name:"Duped Mythic Diamond Ring", value:0, rarity:'secret', image: CATALOG_BY_ID['new125'] ? CATALOG_BY_ID['new125'].image : null };
-CATALOG_BY_ID['dup_new126'] = { name:"Duped Mythic Developer Trophy", value:0, rarity:'secret', image: CATALOG_BY_ID['new126'] ? CATALOG_BY_ID['new126'].image : null };
-CATALOG_BY_ID['dup_new130'] = { name:"Duped Mythic Demon Reaper", value:0, rarity:'secret', image: CATALOG_BY_ID['new130'] ? CATALOG_BY_ID['new130'].image : null };
-CATALOG_BY_ID['dup_new131'] = { name:"Duped Demon Reaper", value:0, rarity:'secret', image: CATALOG_BY_ID['new131'] ? CATALOG_BY_ID['new131'].image : null };
-CATALOG_BY_ID['dup_new135'] = { name:"Duped Dark Lord Shock", value:0, rarity:'secret', image: CATALOG_BY_ID['new135'] ? CATALOG_BY_ID['new135'].image : null };
-CATALOG_BY_ID['dup_new137'] = { name:"Duped Mythic Easter Robot", value:1000000, rarity:'secret', image: CATALOG_BY_ID['new137'] ? CATALOG_BY_ID['new137'].image : null };
-CATALOG_BY_ID['dup_new138'] = { name:"Duped Mythic Eternal Carrot", value:85000, rarity:'secret', image: CATALOG_BY_ID['new138'] ? CATALOG_BY_ID['new138'].image : null };
-CATALOG_BY_ID['dup_new147'] = { name:"Duped Mythic Easter Spirit", value:94000, rarity:'secret', image: CATALOG_BY_ID['new147'] ? CATALOG_BY_ID['new147'].image : null };
-CATALOG_BY_ID['dup_new148'] = { name:"Duped Mythic Fallen Angel", value:0, rarity:'secret', image: CATALOG_BY_ID['new148'] ? CATALOG_BY_ID['new148'].image : null };
-CATALOG_BY_ID['dup_new149'] = { name:"Duped Mythic Fairy Koi", value:0, rarity:'secret', image: CATALOG_BY_ID['new149'] ? CATALOG_BY_ID['new149'].image : null };
-CATALOG_BY_ID['dup_new153'] = { name:"Duped Mythic Eternal Cucumber", value:240000, rarity:'secret', image: CATALOG_BY_ID['new153'] ? CATALOG_BY_ID['new153'].image : null };
-CATALOG_BY_ID['dup_new156'] = { name:"Duped Mythic Firecracker", value:170000, rarity:'secret', image: CATALOG_BY_ID['new156'] ? CATALOG_BY_ID['new156'].image : null };
-CATALOG_BY_ID['dup_new160'] = { name:"Duped Mythic Hellfire", value:200000, rarity:'secret', image: CATALOG_BY_ID['new160'] ? CATALOG_BY_ID['new160'].image : null };
-CATALOG_BY_ID['dup_new161'] = { name:"Duped Shiny Mythic Hellfire", value:0, rarity:'secret', image: CATALOG_BY_ID['new161'] ? CATALOG_BY_ID['new161'].image : null };
 CATALOG_BY_ID['dup_new164'] = { name:"Duped Mythic Harmonic Harp", value:0, rarity:'secret', image: CATALOG_BY_ID['new164'] ? CATALOG_BY_ID['new164'].image : null };
-CATALOG_BY_ID['dup_new165'] = { name:"Duped Shiny Mythic Harmonic Harp", value:0, rarity:'secret', image: CATALOG_BY_ID['new165'] ? CATALOG_BY_ID['new165'].image : null };
-CATALOG_BY_ID['dup_new168'] = { name:"Duped Mythic Angelic Golf Ball", value:17500, rarity:'secret', image: CATALOG_BY_ID['new168'] ? CATALOG_BY_ID['new168'].image : null };
-CATALOG_BY_ID['dup_new169'] = { name:"Duped Shiny Mythic Angelic Golf Ball", value:0, rarity:'secret', image: CATALOG_BY_ID['new169'] ? CATALOG_BY_ID['new169'].image : null };
-CATALOG_BY_ID['dup_new172'] = { name:"Duped Mythic Demonic Golf Ball", value:15000, rarity:'secret', image: CATALOG_BY_ID['new172'] ? CATALOG_BY_ID['new172'].image : null };
-CATALOG_BY_ID['dup_new173'] = { name:"Duped Shiny Mythic Demonic Golf Ball", value:0, rarity:'secret', image: CATALOG_BY_ID['new173'] ? CATALOG_BY_ID['new173'].image : null };
-CATALOG_BY_ID['dup_new175'] = { name:"Duped Mythic Gryphon", value:0, rarity:'secret', image: CATALOG_BY_ID['new175'] ? CATALOG_BY_ID['new175'].image : null };
-CATALOG_BY_ID['dup_new176'] = { name:"Duped Shiny Mythic Gryphon", value:0, rarity:'secret', image: CATALOG_BY_ID['new176'] ? CATALOG_BY_ID['new176'].image : null };
-CATALOG_BY_ID['dup_new177'] = { name:"Duped Mythic Hellshard", value:0, rarity:'secret', image: CATALOG_BY_ID['new177'] ? CATALOG_BY_ID['new177'].image : null };
-CATALOG_BY_ID['dup_new179'] = { name:"Duped Shiny Mythic Hellshard", value:0, rarity:'secret', image: CATALOG_BY_ID['new179'] ? CATALOG_BY_ID['new179'].image : null };
-CATALOG_BY_ID['dup_new181'] = { name:"Duped Holy Star", value:0, rarity:'secret', image: CATALOG_BY_ID['new181'] ? CATALOG_BY_ID['new181'].image : null };
-CATALOG_BY_ID['dup_new182'] = { name:"Duped Shiny Holy Star", value:0, rarity:'secret', image: CATALOG_BY_ID['new182'] ? CATALOG_BY_ID['new182'].image : null };
-CATALOG_BY_ID['dup_new183'] = { name:"Duped Mythic Holy Egg", value:160000, rarity:'secret', image: CATALOG_BY_ID['new183'] ? CATALOG_BY_ID['new183'].image : null };
-CATALOG_BY_ID['dup_new185'] = { name:"Duped Shiny Mythic Holy Egg", value:0, rarity:'secret', image: CATALOG_BY_ID['new185'] ? CATALOG_BY_ID['new185'].image : null };
-CATALOG_BY_ID['dup_new190'] = { name:"Duped Shiny Mythic Air Basilisk", value:0, rarity:'secret', image: CATALOG_BY_ID['new190'] ? CATALOG_BY_ID['new190'].image : null };
-CATALOG_BY_ID['dup_new191'] = { name:"Duped Shiny Mythic Electric Basilisk", value:0, rarity:'secret', image: CATALOG_BY_ID['new191'] ? CATALOG_BY_ID['new191'].image : null };
-CATALOG_BY_ID['dup_new192'] = { name:"Duped Shiny Mythic Ice Basilisk", value:0, rarity:'secret', image: CATALOG_BY_ID['new192'] ? CATALOG_BY_ID['new192'].image : null };
-CATALOG_BY_ID['dup_new193'] = { name:"Duped Shiny Mythic Archangel", value:0, rarity:'secret', image: CATALOG_BY_ID['new193'] ? CATALOG_BY_ID['new193'].image : null };
-CATALOG_BY_ID['dup_new195'] = { name:"Duped Shiny Mythic Angelic Shard", value:0, rarity:'secret', image: CATALOG_BY_ID['new195'] ? CATALOG_BY_ID['new195'].image : null };
-CATALOG_BY_ID['dup_new197'] = { name:"Duped Shiny Mythic Almighty Hexarium", value:0, rarity:'secret', image: CATALOG_BY_ID['new197'] ? CATALOG_BY_ID['new197'].image : null };
-CATALOG_BY_ID['dup_new199'] = { name:"Duped Shiny Mythic All Seeing Eye", value:0, rarity:'secret', image: CATALOG_BY_ID['new199'] ? CATALOG_BY_ID['new199'].image : null };
-CATALOG_BY_ID['dup_new203'] = { name:"Duped Shiny Mythic Candycorn Shard", value:0, rarity:'secret', image: CATALOG_BY_ID['new203'] ? CATALOG_BY_ID['new203'].image : null };
-CATALOG_BY_ID['dup_new205'] = { name:"Duped Shiny Mythic Cardinal Bunny", value:0, rarity:'secret', image: CATALOG_BY_ID['new205'] ? CATALOG_BY_ID['new205'].image : null };
-CATALOG_BY_ID['dup_new208'] = { name:"Duped Shiny Demon Reaper", value:0, rarity:'secret', image: CATALOG_BY_ID['new208'] ? CATALOG_BY_ID['new208'].image : null };
-CATALOG_BY_ID['dup_new209'] = { name:"Duped Shiny Mythic Demon Reaper", value:0, rarity:'secret', image: CATALOG_BY_ID['new209'] ? CATALOG_BY_ID['new209'].image : null };
-CATALOG_BY_ID['dup_new210'] = { name:"Duped Shiny Dark Lord Shock", value:0, rarity:'secret', image: CATALOG_BY_ID['new210'] ? CATALOG_BY_ID['new210'].image : null };
-CATALOG_BY_ID['dup_new211'] = { name:"Duped Shiny Dark Dementor", value:0, rarity:'secret', image: CATALOG_BY_ID['new211'] ? CATALOG_BY_ID['new211'].image : null };
-CATALOG_BY_ID['dup_new213'] = { name:"Duped Shiny Mythic Dark Basilisk", value:0, rarity:'secret', image: CATALOG_BY_ID['new213'] ? CATALOG_BY_ID['new213'].image : null };
-CATALOG_BY_ID['dup_new215'] = { name:"Duped Shiny Mythic Curse of Kings", value:0, rarity:'secret', image: CATALOG_BY_ID['new215'] ? CATALOG_BY_ID['new215'].image : null };
-CATALOG_BY_ID['dup_new217'] = { name:"Duped Shiny Mythic Crystal Teddy", value:0, rarity:'secret', image: CATALOG_BY_ID['new217'] ? CATALOG_BY_ID['new217'].image : null };
-CATALOG_BY_ID['dup_new219'] = { name:"Duped Shiny Mythic Corrupt Glitch", value:0, rarity:'secret', image: CATALOG_BY_ID['new219'] ? CATALOG_BY_ID['new219'].image : null };
-CATALOG_BY_ID['dup_new223'] = { name:"Duped Demonic Sentinel", value:0, rarity:'secret', image: CATALOG_BY_ID['new223'] ? CATALOG_BY_ID['new223'].image : null };
-CATALOG_BY_ID['dup_new224'] = { name:"Duped Shiny Demonic Sentinel", value:0, rarity:'secret', image: CATALOG_BY_ID['new224'] ? CATALOG_BY_ID['new224'].image : null };
-CATALOG_BY_ID['dup_new225'] = { name:"Duped Mythic Dream Catcher", value:800000, rarity:'secret', image: CATALOG_BY_ID['new225'] ? CATALOG_BY_ID['new225'].image : null };
-CATALOG_BY_ID['dup_new227'] = { name:"Duped Shiny Mythic Dragonfruit", value:0, rarity:'secret', image: CATALOG_BY_ID['new227'] ? CATALOG_BY_ID['new227'].image : null };
-CATALOG_BY_ID['dup_new228'] = { name:"Duped Shiny Mythic Dice Split", value:0, rarity:'secret', image: CATALOG_BY_ID['new228'] ? CATALOG_BY_ID['new228'].image : null };
-CATALOG_BY_ID['dup_new229'] = { name:"Duped Shiny Mythic Diamond Ring", value:0, rarity:'secret', image: CATALOG_BY_ID['new229'] ? CATALOG_BY_ID['new229'].image : null };
-CATALOG_BY_ID['dup_new231'] = { name:"Duped Shiny Mythic Developer Trophy", value:0, rarity:'secret', image: CATALOG_BY_ID['new231'] ? CATALOG_BY_ID['new231'].image : null };
-CATALOG_BY_ID['dup_new233'] = { name:"Duped Shiny Mythic Fairy Koi", value:0, rarity:'secret', image: CATALOG_BY_ID['new233'] ? CATALOG_BY_ID['new233'].image : null };
 CATALOG_BY_ID['dup_new234'] = { name:"Duped Shiny Mythic Eternal Cucumber", value:0, rarity:'secret', image: CATALOG_BY_ID['new234'] ? CATALOG_BY_ID['new234'].image : null };
 CATALOG_BY_ID['dup_new236'] = { name:"Duped Shiny Mythic Eternal Carrot", value:0, rarity:'secret', image: CATALOG_BY_ID['new236'] ? CATALOG_BY_ID['new236'].image : null };
-CATALOG_BY_ID['dup_new241'] = { name:"Duped Shiny Mythic Easter Spirit", value:0, rarity:'secret', image: CATALOG_BY_ID['new241'] ? CATALOG_BY_ID['new241'].image : null };
-CATALOG_BY_ID['dup_new243'] = { name:"Duped Shiny Mythic Easter Robot", value:0, rarity:'secret', image: CATALOG_BY_ID['new243'] ? CATALOG_BY_ID['new243'].image : null };
-CATALOG_BY_ID['dup_new244'] = { name:"Duped Shiny Mythic Fallen Angel", value:0, rarity:'secret', image: CATALOG_BY_ID['new244'] ? CATALOG_BY_ID['new244'].image : null };
 CATALOG_BY_ID['dup_new245'] = { name:"Duped Shiny Mythic Firecracker", value:0, rarity:'secret', image: CATALOG_BY_ID['new245'] ? CATALOG_BY_ID['new245'].image : null };
-CATALOG_BY_ID['dup_new246'] = { name:"Duped Shiny Mythic Duality", value:0, rarity:'secret', image: CATALOG_BY_ID['new246'] ? CATALOG_BY_ID['new246'].image : null };
-CATALOG_BY_ID['dup_new248'] = { name:"Duped Shiny Mythic Dogcat", value:0, rarity:'secret', image: CATALOG_BY_ID['new248'] ? CATALOG_BY_ID['new248'].image : null };
-CATALOG_BY_ID['dup_new250'] = { name:"Duped Shiny Mythic Ghosdeeri", value:0, rarity:'secret', image: CATALOG_BY_ID['new250'] ? CATALOG_BY_ID['new250'].image : null };
-CATALOG_BY_ID['dup_new252'] = { name:"Duped Mythic Ghosdeeri", value:150000, rarity:'secret', image: CATALOG_BY_ID['new252'] ? CATALOG_BY_ID['new252'].image : null };
-CATALOG_BY_ID['dup_new254'] = { name:"Duped Shiny Mythic Galactic Paladin", value:0, rarity:'secret', image: CATALOG_BY_ID['new254'] ? CATALOG_BY_ID['new254'].image : null };
-CATALOG_BY_ID['dup_new256'] = { name:"Duped Shiny Mythic Frosted Dreamer", value:0, rarity:'secret', image: CATALOG_BY_ID['new256'] ? CATALOG_BY_ID['new256'].image : null };
 CATALOG_BY_ID['dup_new258'] = { name:"Duped Mythic Frosted Dreamer", value:12500, rarity:'secret', image: CATALOG_BY_ID['new258'] ? CATALOG_BY_ID['new258'].image : null };
-CATALOG_BY_ID['dup_new260'] = { name:"Duped Shiny Mythic Frost Shard", value:0, rarity:'secret', image: CATALOG_BY_ID['new260'] ? CATALOG_BY_ID['new260'].image : null };
-CATALOG_BY_ID['dup_new261'] = { name:"Duped Mythic Frost Shard", value:80000, rarity:'secret', image: CATALOG_BY_ID['new261'] ? CATALOG_BY_ID['new261'].image : null };
-CATALOG_BY_ID['dup_new262'] = { name:"Duped Mythic Angelic Ghost Spirit", value:150000, rarity:'secret', image: CATALOG_BY_ID['new262'] ? CATALOG_BY_ID['new262'].image : null };
-CATALOG_BY_ID['dup_new264'] = { name:"Duped Shiny Mythic Demonic Ghost Spirit", value:0, rarity:'secret', image: CATALOG_BY_ID['new264'] ? CATALOG_BY_ID['new264'].image : null };
-CATALOG_BY_ID['dup_new266'] = { name:"Duped Shiny Mythic Angelic Ghost Spirit", value:0, rarity:'secret', image: CATALOG_BY_ID['new266'] ? CATALOG_BY_ID['new266'].image : null };
-CATALOG_BY_ID['dup_new267'] = { name:"Duped Mythic Demonic Ghost Spirit", value:200000, rarity:'secret', image: CATALOG_BY_ID['new267'] ? CATALOG_BY_ID['new267'].image : null };
-CATALOG_BY_ID['dup_new269'] = { name:"Duped Shiny Mythic Gingerbread Shard", value:0, rarity:'secret', image: CATALOG_BY_ID['new269'] ? CATALOG_BY_ID['new269'].image : null };
-CATALOG_BY_ID['dup_new272'] = { name:"Duped Shiny Mythic Inferno Gem", value:0, rarity:'secret', image: CATALOG_BY_ID['new272'] ? CATALOG_BY_ID['new272'].image : null };
-CATALOG_BY_ID['dup_new277'] = { name:"Duped Mythic Godly Shamrock", value:0, rarity:'secret', image: CATALOG_BY_ID['new277'] ? CATALOG_BY_ID['new277'].image : null };
-CATALOG_BY_ID['dup_new279'] = { name:"Duped Shiny Mythic Giant Pearl", value:0, rarity:'secret', image: CATALOG_BY_ID['new279'] ? CATALOG_BY_ID['new279'].image : null };
-CATALOG_BY_ID['dup_new281'] = { name:"Duped Mythic Giant Pearl", value:0, rarity:'secret', image: CATALOG_BY_ID['new281'] ? CATALOG_BY_ID['new281'].image : null };
-CATALOG_BY_ID['dup_new282'] = { name:"Duped Mythic Infinity Gem", value:0, rarity:'secret', image: CATALOG_BY_ID['new282'] ? CATALOG_BY_ID['new282'].image : null };
-CATALOG_BY_ID['dup_new284'] = { name:"Duped Shiny Mythic Infinity Gem", value:0, rarity:'secret', image: CATALOG_BY_ID['new284'] ? CATALOG_BY_ID['new284'].image : null };
-CATALOG_BY_ID['dup_new285'] = { name:"Duped Shiny King Dogcat", value:0, rarity:'secret', image: CATALOG_BY_ID['new285'] ? CATALOG_BY_ID['new285'].image : null };
 CATALOG_BY_ID['dup_new287'] = { name:"Duped Mythic King Slime", value:0, rarity:'secret', image: CATALOG_BY_ID['new287'] ? CATALOG_BY_ID['new287'].image : null };
-CATALOG_BY_ID['dup_new288'] = { name:"Duped Shiny Mythic King Seal", value:0, rarity:'secret', image: CATALOG_BY_ID['new288'] ? CATALOG_BY_ID['new288'].image : null };
-CATALOG_BY_ID['dup_new289'] = { name:"Duped Shiny King Seal", value:0, rarity:'secret', image: CATALOG_BY_ID['new289'] ? CATALOG_BY_ID['new289'].image : null };
 CATALOG_BY_ID['dup_new290'] = { name:"Duped Mythic King Seal", value:0, rarity:'secret', image: CATALOG_BY_ID['new290'] ? CATALOG_BY_ID['new290'].image : null };
-CATALOG_BY_ID['dup_new291'] = { name:"Duped King Seal", value:0, rarity:'secret', image: CATALOG_BY_ID['new291'] ? CATALOG_BY_ID['new291'].image : null };
-CATALOG_BY_ID['dup_new292'] = { name:"Duped Shiny Mythic King Penguin", value:0, rarity:'secret', image: CATALOG_BY_ID['new292'] ? CATALOG_BY_ID['new292'].image : null };
 CATALOG_BY_ID['dup_new294'] = { name:"Duped Mythic King Penguin", value:0, rarity:'secret', image: CATALOG_BY_ID['new294'] ? CATALOG_BY_ID['new294'].image : null };
-CATALOG_BY_ID['dup_new297'] = { name:"Duped Shiny Mythic King Kitty", value:0, rarity:'secret', image: CATALOG_BY_ID['new297'] ? CATALOG_BY_ID['new297'].image : null };
-CATALOG_BY_ID['dup_new299'] = { name:"Duped Shiny Mythic King Doggy", value:0, rarity:'secret', image: CATALOG_BY_ID['new299'] ? CATALOG_BY_ID['new299'].image : null };
 CATALOG_BY_ID['dup_new300'] = { name:"Duped Mythic King Doggy", value:0, rarity:'secret', image: CATALOG_BY_ID['new300'] ? CATALOG_BY_ID['new300'].image : null };
-CATALOG_BY_ID['dup_new302'] = { name:"Duped Shiny Mythic Koi", value:0, rarity:'secret', image: CATALOG_BY_ID['new302'] ? CATALOG_BY_ID['new302'].image : null };
-CATALOG_BY_ID['dup_new304'] = { name:"Duped Shiny Mythic King Slime", value:0, rarity:'secret', image: CATALOG_BY_ID['new304'] ? CATALOG_BY_ID['new304'].image : null };
 CATALOG_BY_ID['dup_new305'] = { name:"Duped Mythic Love Thief", value:600000, rarity:'secret', image: CATALOG_BY_ID['new305'] ? CATALOG_BY_ID['new305'].image : null };
-CATALOG_BY_ID['dup_new306'] = { name:"Duped Shiny Mythic Love Thief", value:0, rarity:'secret', image: CATALOG_BY_ID['new306'] ? CATALOG_BY_ID['new306'].image : null };
-CATALOG_BY_ID['dup_new308'] = { name:"Duped Shiny Mythic Luminance", value:0, rarity:'secret', image: CATALOG_BY_ID['new308'] ? CATALOG_BY_ID['new308'].image : null };
-CATALOG_BY_ID['dup_new310'] = { name:"Duped Mythic Luminance", value:0, rarity:'secret', image: CATALOG_BY_ID['new310'] ? CATALOG_BY_ID['new310'].image : null };
-CATALOG_BY_ID['dup_new312'] = { name:"Duped Mythic Lucky Pyramidium", value:0, rarity:'secret', image: CATALOG_BY_ID['new312'] ? CATALOG_BY_ID['new312'].image : null };
-CATALOG_BY_ID['dup_new314'] = { name:"Duped Shiny Mythic Lucid Leaf", value:0, rarity:'secret', image: CATALOG_BY_ID['new314'] ? CATALOG_BY_ID['new314'].image : null };
-CATALOG_BY_ID['dup_new315'] = { name:"Duped Shiny Lucid Leaf", value:0, rarity:'secret', image: CATALOG_BY_ID['new315'] ? CATALOG_BY_ID['new315'].image : null };
-CATALOG_BY_ID['dup_new316'] = { name:"Duped Shiny Mythic Lovely Rose", value:0, rarity:'secret', image: CATALOG_BY_ID['new316'] ? CATALOG_BY_ID['new316'].image : null };
 CATALOG_BY_ID['dup_new318'] = { name:"Duped Mythic Lovely Rose", value:33000, rarity:'secret', image: CATALOG_BY_ID['new318'] ? CATALOG_BY_ID['new318'].image : null };
-CATALOG_BY_ID['dup_new320'] = { name:"Duped Mythic Morning Star", value:100000, rarity:'secret', image: CATALOG_BY_ID['new320'] ? CATALOG_BY_ID['new320'].image : null };
-CATALOG_BY_ID['dup_new321'] = { name:"Duped Shiny Mythic Money Mouth", value:0, rarity:'secret', image: CATALOG_BY_ID['new321'] ? CATALOG_BY_ID['new321'].image : null };
-CATALOG_BY_ID['dup_new323'] = { name:"Duped Mythic Money Mouth", value:0, rarity:'secret', image: CATALOG_BY_ID['new323'] ? CATALOG_BY_ID['new323'].image : null };
-CATALOG_BY_ID['dup_new325'] = { name:"Duped Shiny Mythic Morning Star", value:0, rarity:'secret', image: CATALOG_BY_ID['new325'] ? CATALOG_BY_ID['new325'].image : null };
-CATALOG_BY_ID['dup_new328'] = { name:"Duped Shiny Mythic Overlord Plushie", value:0, rarity:'secret', image: CATALOG_BY_ID['new328'] ? CATALOG_BY_ID['new328'].image : null };
-CATALOG_BY_ID['dup_new329'] = { name:"Duped Mythic Overlord Plushie", value:0, rarity:'secret', image: CATALOG_BY_ID['new329'] ? CATALOG_BY_ID['new329'].image : null };
-CATALOG_BY_ID['dup_new330'] = { name:"Duped Shiny Mythic New Year Champion", value:0, rarity:'secret', image: CATALOG_BY_ID['new330'] ? CATALOG_BY_ID['new330'].image : null };
-CATALOG_BY_ID['dup_new332'] = { name:"Duped Mythic New Year Champion", value:0, rarity:'secret', image: CATALOG_BY_ID['new332'] ? CATALOG_BY_ID['new332'].image : null };
-CATALOG_BY_ID['dup_new334'] = { name:"Duped Shiny Mythic Patronus", value:0, rarity:'secret', image: CATALOG_BY_ID['new334'] ? CATALOG_BY_ID['new334'].image : null };
-CATALOG_BY_ID['dup_new336'] = { name:"Duped Mythic Patronus", value:0, rarity:'secret', image: CATALOG_BY_ID['new336'] ? CATALOG_BY_ID['new336'].image : null };
-CATALOG_BY_ID['dup_new341'] = { name:"Duped Shiny Mythic Pixie Queen", value:0, rarity:'secret', image: CATALOG_BY_ID['new341'] ? CATALOG_BY_ID['new341'].image : null };
-CATALOG_BY_ID['dup_new343'] = { name:"Duped Mythic Pixie Queen", value:0, rarity:'secret', image: CATALOG_BY_ID['new343'] ? CATALOG_BY_ID['new343'].image : null };
 CATALOG_BY_ID['dup_new347'] = { name:"Duped Mythic Plasma Wolflord", value:0, rarity:'secret', image: CATALOG_BY_ID['new347'] ? CATALOG_BY_ID['new347'].image : null };
-CATALOG_BY_ID['dup_new351'] = { name:"Duped Shiny Mythic Sylently Plushie", value:0, rarity:'secret', image: CATALOG_BY_ID['new351'] ? CATALOG_BY_ID['new351'].image : null };
-CATALOG_BY_ID['dup_new352'] = { name:"Duped Shiny Mythic Obscure Entity Plushie", value:0, rarity:'secret', image: CATALOG_BY_ID['new352'] ? CATALOG_BY_ID['new352'].image : null };
-CATALOG_BY_ID['dup_new353'] = { name:"Duped Mythic Sylently Plushie", value:0, rarity:'secret', image: CATALOG_BY_ID['new353'] ? CATALOG_BY_ID['new353'].image : null };
-CATALOG_BY_ID['dup_new354'] = { name:"Duped Mythic Obscure Entity Plushie", value:0, rarity:'secret', image: CATALOG_BY_ID['new354'] ? CATALOG_BY_ID['new354'].image : null };
-CATALOG_BY_ID['dup_new355'] = { name:"Duped Shiny Mythic Sircfenner Plushie", value:0, rarity:'secret', image: CATALOG_BY_ID['new355'] ? CATALOG_BY_ID['new355'].image : null };
-CATALOG_BY_ID['dup_new356'] = { name:"Duped Shiny Mythic Prisma Cube", value:0, rarity:'secret', image: CATALOG_BY_ID['new356'] ? CATALOG_BY_ID['new356'].image : null };
-CATALOG_BY_ID['dup_new358'] = { name:"Duped Mythic Prisma Cube", value:40000, rarity:'secret', image: CATALOG_BY_ID['new358'] ? CATALOG_BY_ID['new358'].image : null };
-CATALOG_BY_ID['dup_new363'] = { name:"Duped Shiny Mythic Pyramidium", value:0, rarity:'secret', image: CATALOG_BY_ID['new363'] ? CATALOG_BY_ID['new363'].image : null };
-CATALOG_BY_ID['dup_new368'] = { name:"Duped Shiny Mythic Radiant One", value:0, rarity:'secret', image: CATALOG_BY_ID['new368'] ? CATALOG_BY_ID['new368'].image : null };
-CATALOG_BY_ID['dup_new370'] = { name:"Duped Shiny Radiant Shard", value:0, rarity:'secret', image: CATALOG_BY_ID['new370'] ? CATALOG_BY_ID['new370'].image : null };
-CATALOG_BY_ID['dup_new371'] = { name:"Duped Radiant Shard", value:0, rarity:'secret', image: CATALOG_BY_ID['new371'] ? CATALOG_BY_ID['new371'].image : null };
-CATALOG_BY_ID['dup_new377'] = { name:"Duped Shiny Rainbow Leviathan", value:0, rarity:'secret', image: CATALOG_BY_ID['new377'] ? CATALOG_BY_ID['new377'].image : null };
-CATALOG_BY_ID['dup_new378'] = { name:"Duped Rainbow Leviathan", value:0, rarity:'secret', image: CATALOG_BY_ID['new378'] ? CATALOG_BY_ID['new378'].image : null };
-CATALOG_BY_ID['dup_new379'] = { name:"Duped Shiny Mythic Sea Star", value:0, rarity:'secret', image: CATALOG_BY_ID['new379'] ? CATALOG_BY_ID['new379'].image : null };
-CATALOG_BY_ID['dup_new380'] = { name:"Duped Mythic Sea Star", value:0, rarity:'secret', image: CATALOG_BY_ID['new380'] ? CATALOG_BY_ID['new380'].image : null };
-CATALOG_BY_ID['dup_new385'] = { name:"Duped Shiny Mythic Shadow Luminance", value:0, rarity:'secret', image: CATALOG_BY_ID['new385'] ? CATALOG_BY_ID['new385'].image : null };
-CATALOG_BY_ID['dup_new386'] = { name:"Duped Mythic Shadow Luminance", value:0, rarity:'secret', image: CATALOG_BY_ID['new386'] ? CATALOG_BY_ID['new386'].image : null };
-CATALOG_BY_ID['dup_new387'] = { name:"Duped Shiny Mythic Shadow Sundae Champion", value:0, rarity:'secret', image: CATALOG_BY_ID['new387'] ? CATALOG_BY_ID['new387'].image : null };
-CATALOG_BY_ID['dup_new389'] = { name:"Duped Mythic Shadow Sundae Champion", value:0, rarity:'secret', image: CATALOG_BY_ID['new389'] ? CATALOG_BY_ID['new389'].image : null };
-CATALOG_BY_ID['dup_new392'] = { name:"Duped Shiny Mythic Shattered Soul", value:0, rarity:'secret', image: CATALOG_BY_ID['new392'] ? CATALOG_BY_ID['new392'].image : null };
-CATALOG_BY_ID['dup_new393'] = { name:"Duped Mythic Shattered Soul", value:0, rarity:'secret', image: CATALOG_BY_ID['new393'] ? CATALOG_BY_ID['new393'].image : null };
-CATALOG_BY_ID['dup_new394'] = { name:"Duped Shiny Mythic Shard", value:0, rarity:'secret', image: CATALOG_BY_ID['new394'] ? CATALOG_BY_ID['new394'].image : null };
-CATALOG_BY_ID['dup_new397'] = { name:"Duped Shiny Mythic Shadow Wolflord", value:0, rarity:'secret', image: CATALOG_BY_ID['new397'] ? CATALOG_BY_ID['new397'].image : null };
-CATALOG_BY_ID['dup_new398'] = { name:"Duped Mythic Shadow Wolflord", value:0, rarity:'secret', image: CATALOG_BY_ID['new398'] ? CATALOG_BY_ID['new398'].image : null };
-CATALOG_BY_ID['dup_new402'] = { name:"Duped Shiny Mythic Sinister Shard", value:0, rarity:'secret', image: CATALOG_BY_ID['new402'] ? CATALOG_BY_ID['new402'].image : null };
-CATALOG_BY_ID['dup_new403'] = { name:"Duped Mythic Sinister Shard", value:300000, rarity:'secret', image: CATALOG_BY_ID['new403'] ? CATALOG_BY_ID['new403'].image : null };
-CATALOG_BY_ID['dup_new418'] = { name:"Duped Mythic Vanilla Sundae Champion", value:0, rarity:'secret', image: CATALOG_BY_ID['new418'] ? CATALOG_BY_ID['new418'].image : null };
-CATALOG_BY_ID['dup_new419'] = { name:"Duped Shiny Mythic Strawberry Sundae Champion", value:0, rarity:'secret', image: CATALOG_BY_ID['new419'] ? CATALOG_BY_ID['new419'].image : null };
-CATALOG_BY_ID['dup_new420'] = { name:"Duped Mythic Strawberry Sundae Champion", value:0, rarity:'secret', image: CATALOG_BY_ID['new420'] ? CATALOG_BY_ID['new420'].image : null };
-CATALOG_BY_ID['dup_new421'] = { name:"Duped Shiny Mythic Chocolate Sundae Champion", value:0, rarity:'secret', image: CATALOG_BY_ID['new421'] ? CATALOG_BY_ID['new421'].image : null };
 CATALOG_BY_ID['dup_new422'] = { name:"Duped Mythic Chocolate Sundae Champion", value:0, rarity:'secret', image: CATALOG_BY_ID['new422'] ? CATALOG_BY_ID['new422'].image : null };
-CATALOG_BY_ID['dup_new423'] = { name:"Duped Shiny Mythic Mint Sundae Champion", value:0, rarity:'secret', image: CATALOG_BY_ID['new423'] ? CATALOG_BY_ID['new423'].image : null };
-CATALOG_BY_ID['dup_new424'] = { name:"Duped Mythic Mint Sundae Champion", value:0, rarity:'secret', image: CATALOG_BY_ID['new424'] ? CATALOG_BY_ID['new424'].image : null };
-CATALOG_BY_ID['dup_new425'] = { name:"Duped Shiny Mythic Vanilla Sundae Champion", value:0, rarity:'secret', image: CATALOG_BY_ID['new425'] ? CATALOG_BY_ID['new425'].image : null };
-CATALOG_BY_ID['dup_new429'] = { name:"Duped Shiny Mythic The Overlord", value:0, rarity:'secret', image: CATALOG_BY_ID['new429'] ? CATALOG_BY_ID['new429'].image : null };
-CATALOG_BY_ID['dup_new431'] = { name:"Duped Mythic The Overlord", value:0, rarity:'secret', image: CATALOG_BY_ID['new431'] ? CATALOG_BY_ID['new431'].image : null };
-CATALOG_BY_ID['dup_new432'] = { name:"Duped Shiny Mythic The OwOLord", value:0, rarity:'secret', image: CATALOG_BY_ID['new432'] ? CATALOG_BY_ID['new432'].image : null };
-CATALOG_BY_ID['dup_new434'] = { name:"Duped Mythic The OwOLord", value:0, rarity:'secret', image: CATALOG_BY_ID['new434'] ? CATALOG_BY_ID['new434'].image : null };
-CATALOG_BY_ID['dup_new436'] = { name:"Duped Mythic Tophat G", value:0, rarity:'secret', image: CATALOG_BY_ID['new436'] ? CATALOG_BY_ID['new436'].image : null };
-CATALOG_BY_ID['dup_new438'] = { name:"Duped Shiny Mythic Tophat G", value:0, rarity:'secret', image: CATALOG_BY_ID['new438'] ? CATALOG_BY_ID['new438'].image : null };
-CATALOG_BY_ID['dup_new448'] = { name:"Duped Shiny Mythic Wisplord", value:0, rarity:'secret', image: CATALOG_BY_ID['new448'] ? CATALOG_BY_ID['new448'].image : null };
-CATALOG_BY_ID['dup_new449'] = { name:"Duped Mythic Wisplord", value:0, rarity:'secret', image: CATALOG_BY_ID['new449'] ? CATALOG_BY_ID['new449'].image : null };
-CATALOG_BY_ID['dup_new452'] = { name:"Duped Shiny Mythic UFO", value:0, rarity:'secret', image: CATALOG_BY_ID['new452'] ? CATALOG_BY_ID['new452'].image : null };
 CATALOG_BY_ID['dup_new453'] = { name:"Duped Mythic UFO", value:0, rarity:'secret', image: CATALOG_BY_ID['new453'] ? CATALOG_BY_ID['new453'].image : null };
-CATALOG_BY_ID['dup_new456'] = { name:"Duped Shiny Mythic Galactic Dementor", value:0, rarity:'secret', image: CATALOG_BY_ID['new456'] ? CATALOG_BY_ID['new456'].image : null };
 CATALOG_BY_ID['dup_new457'] = { name:"Duped Mythic Galactic Dementor", value:0, rarity:'secret', image: CATALOG_BY_ID['new457'] ? CATALOG_BY_ID['new457'].image : null };
-CATALOG_BY_ID['dup_new458'] = { name:"Duped Shiny Galactic Dementor", value:0, rarity:'secret', image: CATALOG_BY_ID['new458'] ? CATALOG_BY_ID['new458'].image : null };
 CATALOG_BY_ID['dup_new459'] = { name:"Duped Galactic Dementor", value:0, rarity:'secret', image: CATALOG_BY_ID['new459'] ? CATALOG_BY_ID['new459'].image : null };
-CATALOG_BY_ID['dup_new460'] = { name:"Duped Shiny Mythic Space Entity", value:0, rarity:'secret', image: CATALOG_BY_ID['new460'] ? CATALOG_BY_ID['new460'].image : null };
-CATALOG_BY_ID['dup_new461'] = { name:"Duped Mythic Space Entity", value:0, rarity:'secret', image: CATALOG_BY_ID['new461'] ? CATALOG_BY_ID['new461'].image : null };
-CATALOG_BY_ID['dup_new462'] = { name:"Duped Shiny Space Entity", value:0, rarity:'secret', image: CATALOG_BY_ID['new462'] ? CATALOG_BY_ID['new462'].image : null };
-CATALOG_BY_ID['dup_new463'] = { name:"Duped Space Entity", value:0, rarity:'secret', image: CATALOG_BY_ID['new463'] ? CATALOG_BY_ID['new463'].image : null };
-CATALOG_BY_ID['dup_new464'] = { name:"Duped Shiny Mythic Soulflake", value:0, rarity:'secret', image: CATALOG_BY_ID['new464'] ? CATALOG_BY_ID['new464'].image : null };
-CATALOG_BY_ID['dup_new466'] = { name:"Duped Mythic Soulflake", value:0, rarity:'secret', image: CATALOG_BY_ID['new466'] ? CATALOG_BY_ID['new466'].image : null };
-CATALOG_BY_ID['dup_new470'] = { name:"Duped Shiny Mythic Frosted Duality", value:0, rarity:'secret', image: CATALOG_BY_ID['new470'] ? CATALOG_BY_ID['new470'].image : null };
-CATALOG_BY_ID['dup_new471'] = { name:"Duped Mythic Frosted Duality", value:230000, rarity:'secret', image: CATALOG_BY_ID['new471'] ? CATALOG_BY_ID['new471'].image : null };
-CATALOG_BY_ID['dup_new473'] = { name:"Duped Shiny Mythic Peppermint Heart", value:0, rarity:'secret', image: CATALOG_BY_ID['new473'] ? CATALOG_BY_ID['new473'].image : null };
-CATALOG_BY_ID['dup_new474'] = { name:"Duped Mythic Peppermint Heart", value:0, rarity:'secret', image: CATALOG_BY_ID['new474'] ? CATALOG_BY_ID['new474'].image : null };
-CATALOG_BY_ID['dup_new476'] = { name:"Duped Shiny Mythic Shadow One", value:0, rarity:'secret', image: CATALOG_BY_ID['new476'] ? CATALOG_BY_ID['new476'].image : null };
-CATALOG_BY_ID['dup_new477'] = { name:"Duped Mythic Shadow One", value:0, rarity:'secret', image: CATALOG_BY_ID['new477'] ? CATALOG_BY_ID['new477'].image : null };
-CATALOG_BY_ID['dup_new478'] = { name:"Duped Shiny Mythic Alien Kraken", value:0, rarity:'secret', image: CATALOG_BY_ID['new478'] ? CATALOG_BY_ID['new478'].image : null };
-CATALOG_BY_ID['dup_new479'] = { name:"Duped Shiny Alien Kraken", value:0, rarity:'secret', image: CATALOG_BY_ID['new479'] ? CATALOG_BY_ID['new479'].image : null };
-CATALOG_BY_ID['dup_new480'] = { name:"Duped Mythic Alien Kraken", value:0, rarity:'secret', image: CATALOG_BY_ID['new480'] ? CATALOG_BY_ID['new480'].image : null };
 CATALOG_BY_ID['dup_new481'] = { name:"Duped Alien Kraken", value:0, rarity:'secret', image: CATALOG_BY_ID['new481'] ? CATALOG_BY_ID['new481'].image : null };
 CATALOG_BY_ID['dup_new492'] = { name:"Duped Leprechaun Doggy", value:0, rarity:'common', image: CATALOG_BY_ID['new492'] ? CATALOG_BY_ID['new492'].image : null };
 CATALOG_BY_ID['dup_new493'] = { name:"Duped Alien Overlord", value:0, rarity:'secret', image: CATALOG_BY_ID['new493'] ? CATALOG_BY_ID['new493'].image : null };
@@ -15443,6 +14404,27 @@ function renderAdminWithdrawList(){
       $('admPromoList').querySelectorAll('[data-promo-toggle]').forEach((b) => b.addEventListener('click', () => mpSend({ type: 'admin:promoToggle', code: b.dataset.promoToggle, active: b.dataset.on === '1' })));
     });
   }
+
+  // ---------------- admin: wipe everything ----------------
+  const wipeForm = $('admWipeForm');
+  if (wipeForm) {
+    const PHRASE = 'DELETE EVERYTHING';
+    $('admWipeInput').addEventListener('input', () => { $('admWipeBtn').disabled = $('admWipeInput').value.trim() !== PHRASE; });
+    wipeForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      if ($('admWipeInput').value.trim() !== PHRASE) return;
+      if (!confirm('Last check: delete EVERY account, pet, coin, stat and all history on the site? There is no backup.')) return;
+      $('admWipeBtn').disabled = true; $('admWipeBtn').textContent = 'Deleting...';
+      mpSend({ type: 'admin:wipeAll', confirm: PHRASE });
+    });
+    mpOn('error', () => { if ($('admWipeBtn').textContent === 'Deleting...') { $('admWipeBtn').textContent = 'Delete everything'; $('admWipeBtn').disabled = $('admWipeInput').value.trim() !== PHRASE; } });
+  }
+  // The server deleted every account: forget the saved login and start fresh.
+  mpOn('site:reset', (msg) => {
+    try { clearSession(); } catch (e) {}
+    try { showToast(msg.message || 'The site has been reset. Please log in again.'); } catch (e) {}
+    setTimeout(() => location.reload(), 1500);
+  });
 
   // one ticker for countdowns
   setInterval(() => {

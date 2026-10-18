@@ -1503,7 +1503,9 @@ async function runBattle(b) {
     });
     broadcast({ type: 'casebattle:round', battleId: b.id, roundIdx, players: roundPlayers });
     if (roundIdx < b.caseQueue.length - 1) await new Promise((r) => setTimeout(r, ROUND_PACE_MS));
+    if (b.cancelled) return; // site was reset mid-battle - never pay out afterwards
   }
+  if (b.cancelled) return;
 
   const battleTotal = b.players.reduce((s, p) => s + p.total, 0); // winner takes ALL pulled value, not just their own side
   const perPlayerCost = battleEntryCost(b.caseQueue, b.borrow);
@@ -2977,6 +2979,66 @@ async function handleAdminPromoToggle(username, msg) {
 }
 
 // ---------------------------------------------------------------------------
+// ADMIN: DELETE EVERYTHING (changing games). Empties the whole database -
+// accounts, pets, coins, stats, history - logs everyone out, and clears all
+// in-memory state. No backup. Database first; memory only changes if that
+// succeeds.
+// ---------------------------------------------------------------------------
+const WIPE_CONFIRM_PHRASE = 'DELETE EVERYTHING';
+let wipeInProgress = false;
+async function handleAdminWipeAll(username, msg) {
+  if (username !== ADMIN_USERNAME) return;
+  const ws = usernameToSocket.get(username);
+  if (String(msg.confirm || '') !== WIPE_CONFIRM_PHRASE) return send(ws, { type: 'error', message: `Type ${WIPE_CONFIRM_PHRASE} exactly to confirm.` });
+  if (wipeInProgress) return;
+  wipeInProgress = true;
+  const lockdownBefore = siteLockdown;
+  siteLockdown = true; // block every money/pet action while this runs
+  try {
+    await db.wipeEverything();
+  } catch (err) {
+    siteLockdown = lockdownBefore; wipeInProgress = false;
+    console.error('[wipe] FAILED, nothing was changed:', err);
+    return send(ws, { type: 'error', message: 'Wipe failed - nothing was changed. Check the server logs.' });
+  }
+  // --- stop every running game so nothing pays out afterwards ---
+  for (const b of battles.values()) b.cancelled = true;
+  battles.clear();
+  for (const d of diceDuels.values()) d.status = 'cancelled';
+  diceDuels.clear();
+  cfLobbies = [];
+  if (jackpotRound && jackpotRound.timer) clearTimeout(jackpotRound.timer);
+  jackpotRound = null;
+  activeMinesRounds.clear();
+  if (sinkRound && sinkRound.players) sinkRound.players.clear();
+  sinkHistory = [];
+  for (const g of giveaways.values()) clearTimeout(g.timer);
+  giveaways.clear();
+  withdrawRequests = [];
+  for (const id of Object.keys(shopStock)) delete shopStock[id];
+  // --- forget every account and everything about them ---
+  users.clear();
+  ignoreLists.clear();
+  sessionTokens.clear();
+  discordRoleSyncedLevel.clear();
+  pendingDiscordStates.clear();
+  rainPool = RAIN_BASE;
+  rainClaimants.clear();
+  liveFeed = [];
+  chatHistory = [];
+  leaderboardCache = null;
+  siteLockdown = lockdownBefore;
+  wipeInProgress = false;
+  console.log(`[wipe] ${username} deleted EVERYTHING (all accounts, pets, coins, stats, history).`);
+  // --- log everyone out; their pages reload as brand-new visitors ---
+  broadcast({ type: 'site:reset', message: 'The site has been reset for a new game. Please log in again.' });
+  setTimeout(() => {
+    for (const client of wss.clients) { try { client.close(4000, 'site reset'); } catch (e) {} }
+    socketToUsername.clear(); usernameToSocket.clear();
+  }, 800);
+}
+
+// ---------------------------------------------------------------------------
 // GIVEAWAYS - a player gives away pets; every pet is its own giveaway with a
 // timer. Anyone (except the host) can join, optionally only from a minimum
 // level. Random winner when it ends; if nobody joined, the pet goes back.
@@ -3860,6 +3922,7 @@ wss.on('connection', (ws) => {
       case 'admin:promoCreate': return handleAdminPromoCreate(username, msg);
       case 'admin:promoList': return handleAdminPromoList(username);
       case 'admin:promoToggle': return handleAdminPromoToggle(username, msg);
+      case 'admin:wipeAll': return handleAdminWipeAll(username, msg);
       case 'giveaway:create': return handleGiveawayCreate(username, msg);
       case 'giveaway:join': return handleGiveawayJoin(username, msg);
     }

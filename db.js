@@ -839,6 +839,18 @@ async function redeemPromoCode(code, username) {
   }
 }
 
+// FULL RESET (admin "delete everything", changing games): empties EVERY
+// table - accounts, pets, coins, vaults, stats, all history, notifications,
+// promo codes, ignore lists, server state. One statement, so it either all
+// happens or nothing does. There is no backup.
+async function wipeEverything() {
+  await pool.query(`TRUNCATE TABLE
+    promo_redemptions, promo_codes, game_history, ignored_users, server_state, shop_stock, escrows,
+    transactions, notifications, coinflip_history, coinflip_lobbies, withdraw_requests,
+    vault_items, inventory_items, users
+    RESTART IDENTITY CASCADE`);
+}
+
 async function loadAllIgnores() {
   const res = await pool.query(`SELECT username, ignored FROM ignored_users`);
   const map = new Map();
@@ -906,6 +918,7 @@ module.exports = {
   setDiscordLink,
   clearDiscordLink,
   loadAllIgnores,
+  wipeEverything,
   createPromoCode,
   listPromoCodes,
   setPromoActive,
