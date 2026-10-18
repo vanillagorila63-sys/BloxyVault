@@ -275,6 +275,10 @@ async function initSchema() {
 // username -> { coins, inventory: {catalogId: qty}, stats: {wagered, won, lost} }
 async function loadAllUsers() {
   const usersRes = await pool.query('SELECT username, coins, stats_wagered, stats_won, stats_lost, discord_id, discord_username, discord_avatar, vault_coins, vault_lock_until FROM users');
+  // This game has no duped pets: clear out any left over from the version
+  // that briefly had them (only ids starting with dup_ - nothing else).
+  await pool.query("DELETE FROM inventory_items WHERE catalog_id LIKE 'dup\\_%'");
+  await pool.query("DELETE FROM vault_items WHERE catalog_id LIKE 'dup\\_%'");
   const invRes = await pool.query('SELECT username, catalog_id, qty FROM inventory_items WHERE qty > 0');
   const vaultRes = await pool.query('SELECT username, catalog_id, qty FROM vault_items WHERE qty > 0');
 
