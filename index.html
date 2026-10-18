@@ -3260,9 +3260,23 @@ body.cbn-open #cbnRoot .backdrop { opacity: 1; pointer-events: auto; }
 #cbnRoot .bv-wait-tag.joined{ background:rgba(52,211,153,0.15); color:var(--green); border:1px solid rgba(52,211,153,0.35); }
 #cbnRoot .bv-wait-note{ text-align:center; font-size:12.5px; color:var(--text-faint); padding:16px 0 20px; flex-shrink:0; }
 @media (max-width:820px){
-  #cbnRoot .bv-wait-cols{ flex-direction:column; }
-  #cbnRoot .bv-wait-slot{ border-right:none; border-bottom:1px solid rgba(255,160,80,0.18); padding:16px 12px; }
-  #cbnRoot .bv-wait-slot:last-child{ border-bottom:none; }
+  /* Phones/tablets: seats in a 2-wide grid (2x2 for 4 players) instead of one
+     tall column that ran off the bottom and hid the later Call Bot buttons.
+     The seat area can also scroll, as a safety net on very short screens. */
+  #cbnRoot .bv-wait-slots{ overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; }
+  #cbnRoot .bv-wait-cols{ display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); grid-auto-rows:minmax(min-content, 1fr); flex:1 0 auto; }
+  #cbnRoot .bv-wait-slot{ border-right:none; border-bottom:1px solid rgba(255,160,80,0.18); padding:12px 8px; gap:8px; }
+  #cbnRoot .bv-wait-slot:nth-child(odd):not(:last-child){ border-right:1px solid rgba(255,160,80,0.18); }
+  #cbnRoot .bv-wait-cols > .bv-wait-slot:nth-last-child(-n+2):nth-child(odd),
+  #cbnRoot .bv-wait-cols > .bv-wait-slot:last-child{ border-bottom:none; }
+  #cbnRoot .bv-wait-cols > .bv-wait-slot:last-child:nth-child(odd){ grid-column:1 / -1; }
+  #cbnRoot .bv-wait-avatar{ width:36px; height:36px; font-size:16px; }
+  #cbnRoot .bv-wait-status{ font-size:10.5px; letter-spacing:.6px; }
+  #cbnRoot .bv-wait-callbot, #cbnRoot .bv-wait-cancel{ padding:9px 16px; font-size:12.5px; }
+  #cbnRoot .bv-wait-note{ padding:10px 0 12px; }
+  #cbnRoot .bv-wait-slot .bv-wait-note{ padding:0; font-size:11px; }
+  /* Give the waiting room enough height for two rows of seats. */
+  #cbnRoot .bv-stage:has(.bv-wait-slots:not([hidden])){ min-height:320px; }
 }
 
 #cbnRoot .battle-creation {
@@ -4350,6 +4364,44 @@ body.cbn-open #cbnRoot .backdrop { opacity: 1; pointer-events: auto; }
     .mobile-tabbar{ height:calc(50px + env(safe-area-inset-bottom, 0px)); }
     #cbnRoot .battle-view, #cbnRoot .battle-creation{ bottom:calc(50px + env(safe-area-inset-bottom, 0px)) !important; }
   }
+
+  /* ---------- Leaderboard: #1 spotlight + lighter rows ---------- */
+  .lb-row{ animation:none !important; }
+  .lb-row:nth-child(1){ border-left-color:#c9cfe8; } .lb-row:nth-child(1) .lb-row-rank{ color:#c9cfe8; }
+  .lb-row:nth-child(2){ border-left-color:#eab171; } .lb-row:nth-child(2) .lb-row-rank{ color:#eab171; }
+  .lb-row:nth-child(3){ border-left-color:transparent; } .lb-row:nth-child(3) .lb-row-rank{ color:var(--text-faint); }
+  .leaderboard-panel::before{ display:none !important; }
+  #lbList{ contain:content; }
+  .lb-spotlight{
+    --lb-accent:#f4c430; --lb-accent-soft:rgba(244,196,48,.14);
+    position:relative; overflow:hidden; display:flex; align-items:center; gap:24px;
+    padding:22px 26px; margin-bottom:22px; border-radius:16px;
+    background:linear-gradient(120deg, var(--lb-accent-soft), rgba(255,255,255,.02) 55%, transparent);
+    border:1px solid color-mix(in srgb, var(--lb-accent) 45%, transparent);
+  }
+  .lb-spotlight[hidden]{ display:none; }
+  .leaderboard-panel[data-lb-active="won"] .lb-spotlight{ --lb-accent:#4ade80; --lb-accent-soft:rgba(74,222,128,.12); }
+  .leaderboard-panel[data-lb-active="lost"] .lb-spotlight{ --lb-accent:#f87171; --lb-accent-soft:rgba(248,113,113,.12); }
+  .lb-spot-glow{ position:absolute; left:-60px; top:50%; width:260px; height:260px; transform:translateY(-50%); border-radius:50%;
+    background:radial-gradient(circle, color-mix(in srgb, var(--lb-accent) 22%, transparent), transparent 70%); pointer-events:none; }
+  .lb-spot-avatar-wrap{ position:relative; flex-shrink:0; }
+  .lb-spot-avatar{ width:96px; height:96px; border-radius:50%; overflow:hidden; display:flex; align-items:center; justify-content:center;
+    font-family:var(--font-display); font-weight:800; font-size:30px; color:#fff;
+    box-shadow:0 0 0 3px var(--lb-accent), 0 10px 28px -10px rgba(0,0,0,.7); }
+  .lb-spot-avatar img{ width:100%; height:100%; object-fit:cover; border-radius:50%; }
+  .lb-spot-crown{ position:absolute; top:-20px; left:50%; transform:translateX(-50%) rotate(-8deg); font-size:28px; line-height:1; filter:drop-shadow(0 3px 6px rgba(0,0,0,.5)); }
+  .lb-spot-rank{ position:absolute; right:-6px; bottom:-4px; min-width:34px; height:24px; padding:0 7px; border-radius:999px;
+    display:flex; align-items:center; justify-content:center; font-family:var(--font-display); font-weight:900; font-size:13px;
+    background:var(--lb-accent); color:#1a1306; box-shadow:0 0 0 3px var(--bg-panel); }
+  .lb-spot-info{ position:relative; min-width:0; display:flex; flex-direction:column; gap:4px; }
+  .lb-spot-kicker{ font-family:var(--font-display); font-weight:800; font-size:11.5px; letter-spacing:1.2px; text-transform:uppercase; color:var(--lb-accent); }
+  .lb-spot-name{ font-family:var(--font-display); font-weight:800; font-size:clamp(22px, 3vw, 32px); line-height:1.1; color:#fff; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .lb-spot-value{ display:inline-flex; align-items:center; gap:8px; font-family:var(--font-display); font-weight:800; font-size:clamp(18px, 2.2vw, 24px); color:var(--lb-accent); font-variant-numeric:tabular-nums; }
+  @media (max-width: 640px){
+    .lb-spotlight{ gap:16px; padding:18px 16px; margin-bottom:16px; }
+    .lb-spot-avatar{ width:72px; height:72px; font-size:24px; }
+    .lb-spot-crown{ top:-17px; font-size:22px; }
+  }
   /* Result overlay never wraps into the winner box */
   #cbnRoot .bv-result-banner{ white-space:nowrap; max-width:92%; overflow:hidden; text-overflow:ellipsis; font-size:13px !important; padding:6px 14px !important; }
   #cbnRoot .bv-result-summary{ top:56px !important; }
@@ -5017,6 +5069,7 @@ body.cbn-open #cbnRoot .backdrop { opacity: 1; pointer-events: auto; }
           </div>
         </div>
         <div class="leaderboard-panel" id="lbPanel" data-lb-active="played">
+          <div class="lb-spotlight" id="lbSpotlight" hidden></div>
           <div class="lb-section-title" id="lbSectionTitle">
             <span class="lb-col-icon purple" id="lbSectionIcon"><span class="nav-icon-slot" data-icon="coins" style="width:14px;height:14px;"></span></span>
             <span id="lbSectionText">Most Played</span>
@@ -6317,7 +6370,12 @@ function getCachedAvatarUrl(username, onLoaded){
   if(entry && !isStaleFailure) return entry.url;
 
   if(typeof onLoaded === 'function'){
-    (sharedAvatarWaiters[username] = sharedAvatarWaiters[username] || []).push(onLoaded);
+    // Never let the "redraw when this photo arrives" list snowball: the same
+    // callback is only kept once, and only a few per player. (Re-renders used
+    // to re-add themselves every time, so lists like the leaderboard could
+    // trigger more and more redraws until the browser crashed.)
+    const list = (sharedAvatarWaiters[username] = sharedAvatarWaiters[username] || []);
+    if (!list.includes(onLoaded) && list.length < 4) list.push(onLoaded);
   }
   if(!sharedAvatarPending.has(username)){
     sharedAvatarPending.add(username);
@@ -6328,7 +6386,10 @@ function getCachedAvatarUrl(username, onLoaded){
       delete sharedAvatarWaiters[username];
       if(url){
         upgradeAvatarPlaceholders(username, url);
-        waiters.forEach((cb) => { try { cb(); } catch(e){} });
+        // Run each distinct redraw once, on the next frame, instead of
+        // several times in a row.
+        const unique = [...new Set(waiters)];
+        if (unique.length) requestAnimationFrame(() => unique.forEach((cb) => { try { cb(); } catch(e){} }));
       }
     }).catch(() => { sharedAvatarPending.delete(username); delete sharedAvatarWaiters[username]; sharedAvatarCache[username] = { url: null, cachedAt: Date.now() }; });
   }
@@ -12199,16 +12260,24 @@ const LB_SECTION_META = {
   lost:   { title: 'Most Lost',   icon: 'arrowDownToLine' },
 };
 
+const LB_LIMIT = 25;
+let lbLastRequestAt = 0;
+let lbRenderedKey = '';
 function requestLeaderboard(){
   if(mpMockMode){
     document.getElementById('lbList').innerHTML = `<div class="cf-empty-note">Leaderboard needs a real multiplayer connection.</div>`;
     return;
   }
+  // Re-opening the page quickly shows what we already have instead of
+  // asking the server again every time.
+  if (Date.now() - lbLastRequestAt < 15000 && (lbData.played.length || lbData.won.length || lbData.lost.length)) { renderLeaderboard(); return; }
+  lbLastRequestAt = Date.now();
   mpSend({ type: 'leaderboard:request' });
 }
 
 mpOn('leaderboard:data', (msg) => {
-  lbData = { played: msg.mostPlayed || [], won: msg.mostWon || [], lost: msg.mostLost || [] };
+  const cut = (a) => (Array.isArray(a) ? a : []).slice(0, LB_LIMIT);
+  lbData = { played: cut(msg.mostPlayed), won: cut(msg.mostWon), lost: cut(msg.mostLost) };
   renderLeaderboard();
 });
 
@@ -12221,35 +12290,67 @@ document.querySelectorAll('.lb-tab').forEach(btn => {
   });
 });
 
+// Avatar for the leaderboard: photo if we already have it, otherwise
+// initials that get swapped for the photo in place once it loads
+// (upgradeAvatarPlaceholders) - the list itself is never rebuilt for that.
+function lbAvatarInner(username){
+  const html = avatarCircleInner(username);
+  return html.replace('<img ', '<img loading="lazy" decoding="async" ');
+}
+
 function renderLeaderboard(){
-  const rows = lbData[lbActiveTab] || [];
+  const rows = (lbData[lbActiveTab] || []).slice(0, LB_LIMIT);
   const label = LB_TAB_LABELS[lbActiveTab] || 'Played';
-  const valueHeadEl = document.getElementById('lbValueHead');
-  if(valueHeadEl) valueHeadEl.textContent = label;
-
   const meta = LB_SECTION_META[lbActiveTab] || LB_SECTION_META.played;
-  const sectionTextEl = document.getElementById('lbSectionText');
-  const sectionIconEl = document.getElementById('lbSectionIcon');
-  if(sectionTextEl) sectionTextEl.textContent = meta.title;
-  if(sectionIconEl) sectionIconEl.innerHTML = ICONS[meta.icon] || '';
-
   const listEl = document.getElementById('lbList');
+  const spot = document.getElementById('lbSpotlight');
   if(!listEl) return;
 
+  // Nothing changed since the last draw -> do nothing (no flicker, no work).
+  const key = lbActiveTab + '|' + rows.map(r => r.username + ':' + r.value).join(',');
+  if (key === lbRenderedKey && listEl.childElementCount) return;
+  lbRenderedKey = key;
+
+  const valueHeadEl = document.getElementById('lbValueHead');
+  if(valueHeadEl) valueHeadEl.textContent = label;
+  const sectionTextEl = document.getElementById('lbSectionText');
+  const sectionIconEl = document.getElementById('lbSectionIcon');
+  if(sectionTextEl) sectionTextEl.textContent = rows.length > 1 ? `Top ${Math.min(rows.length, LB_LIMIT)}` : meta.title;
+  if(sectionIconEl) sectionIconEl.innerHTML = ICONS[meta.icon] || '';
+
   if(rows.length === 0){
+    if (spot) { spot.hidden = true; spot.innerHTML = ''; }
     listEl.innerHTML = `<div class="cf-empty-note">No data yet.</div>`;
     return;
   }
 
-  listEl.innerHTML = rows.map((r, i) => {
-    return `
+  // Big #1 card
+  const top = rows[0];
+  if (spot) {
+    spot.hidden = false;
+    spot.innerHTML = `
+      <div class="lb-spot-glow" aria-hidden="true"></div>
+      <div class="lb-spot-avatar-wrap">
+        <div class="lb-spot-crown" aria-hidden="true">👑</div>
+        <div class="lb-spot-avatar" style="background:${colorForUsername(top.username)};">${lbAvatarInner(top.username)}</div>
+        <div class="lb-spot-rank">#1</div>
+      </div>
+      <div class="lb-spot-info">
+        <div class="lb-spot-kicker">${escapeHtml(meta.title)}</div>
+        <div class="lb-spot-name" title="${escapeHtml(top.username)}">${escapeHtml(top.username)}</div>
+        <div class="lb-spot-value" title="${fmt(top.value)} coins">${coinIcon(22)} ${fmt(top.value)}</div>
+      </div>`;
+  }
+
+  // #2 - #25 below it
+  const rest = rows.slice(1);
+  listEl.innerHTML = rest.length ? rest.map((r, i) => `
     <div class="lb-row">
-      <div class="lb-row-rank">${i+1}</div>
-      <div class="leaderboard-avatar" style="border-radius:8px;background:${colorForUsername(r.username)};">${avatarCircleInner(r.username, renderLeaderboard)}</div>
+      <div class="lb-row-rank">${i + 2}</div>
+      <div class="leaderboard-avatar" style="border-radius:8px;background:${colorForUsername(r.username)};">${lbAvatarInner(r.username)}</div>
       <div class="lb-row-name">${escapeHtml(r.username)}</div>
       <div class="lb-row-value" title="${fmt(r.value)} coins">${coinIcon()} ${fmtCompact(r.value)}</div>
-    </div>
-  `;}).join('');
+    </div>`).join('') : `<div class="cf-empty-note">Only one player on the board so far.</div>`;
 }
 
 function renderAdminWithdrawList(){
@@ -12852,7 +12953,11 @@ function renderAdminWithdrawList(){
     const usedNames = new Set(b.players.filter((p) => p.isBot).map((p) => p.username));
     let name = pickBotNames(cfg.count).find((n) => !usedNames.has(n));
     if (!name) name = pickBotNames(1)[0];
-    const team = cfg.isTeam ? b.players.length % 2 : 0;
+    let team = cfg.isTeam ? b.players.length % 2 : 0;
+    if (cfg.isTeam && (msg.team === 0 || msg.team === 1)) {
+      const size = cfg.teamSize || Math.floor(cfg.count / 2);
+      if (b.players.filter((p) => p.team === msg.team).length < size) team = msg.team;
+    }
     b.players.push({ username: name, isBot: true, team, total: 0 });
     mockBroadcastBattles();
     if (b.players.length >= cfg.count) {
@@ -13561,19 +13666,12 @@ function renderAdminWithdrawList(){
         ? `<div class="bv-wait-team-label ${entry.team === 0 ? 'a' : 'b'}">Team ${entry.team === 0 ? 'A' : 'B'}</div>`
         : '';
       if (entry.kind === 'empty') {
-        // "Call Bot" always fills whatever seat is NEXT in actual join
-        // order (b.players.length) server-side - it was never wired to
-        // target the specific seat that was clicked (data-seat was set but
-        // never read). Only the one seat that will truly be filled next
-        // gets a working button; any other empty seat is just a
-        // placeholder until it's actually reachable.
-        const isNextToFill = entry.joinIndex === b.players.length;
-        slot.innerHTML = teamLabelHtml + (isNextToFill ? `
+        // Every empty seat gets its own Call Bot. In team battles the bot
+        // joins the team of the seat that was tapped.
+        slot.innerHTML = teamLabelHtml + `
           <div class="bv-wait-status">Waiting for player</div>
-          <button class="bv-wait-callbot" data-seat="${entry.joinIndex}">Call Bot</button>
-        ` : `
-          <div class="bv-wait-status">Waiting for player</div>
-        `);
+          <button class="bv-wait-callbot" data-seat="${entry.joinIndex}"${isTeamMode ? ` data-team="${entry.team}"` : ''}>Call Bot</button>
+        `;
       } else {
         const p = entry.player;
         if (p.username === currentUser && !p.isBot) {
@@ -13608,7 +13706,9 @@ function renderAdminWithdrawList(){
       btn.addEventListener('click', () => {
         btn.disabled = true;
         btn.textContent = 'Calling...';
-        mpSend({ type: 'casebattle:callBot', battleId: b.id });
+        const msg = { type: 'casebattle:callBot', battleId: b.id };
+        if (btn.dataset.team !== undefined) msg.team = Number(btn.dataset.team);
+        mpSend(msg);
       });
     });
   }

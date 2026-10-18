@@ -1435,7 +1435,14 @@ function handleCaseBattleCallBot(username, msg) {
   const usedNames = new Set(b.players.filter((p) => p.isBot).map((p) => p.username));
   const availablePool = botNamesBattles.filter((n) => !usedNames.has(n));
   const bots = pickBotNames(1, availablePool.length ? availablePool : botNamesBattles);
-  const team = pickAutoTeam(b);
+  // Team battles: the bot goes to the team whose seat was tapped, if that
+  // team still has room; otherwise the usual automatic pick.
+  let team = pickAutoTeam(b);
+  if (b.cfg.isTeam && msg.team !== undefined) {
+    const requested = Number(msg.team);
+    const teamCount = b.cfg.teamSize || Math.floor(b.cfg.count / 2);
+    if ((requested === 0 || requested === 1) && b.players.filter((p) => p.team === requested).length < teamCount) team = requested;
+  }
   b.players.push({ username: bots[0], isBot: true, team, total: 0, lastPull: 0 });
   broadcastBattles();
   if (b.players.length >= b.cfg.count) startBattle(b);
@@ -1716,7 +1723,15 @@ function handleAccountReset(username) {
 // aren't real accounts (never touched via ensureUser), so they naturally
 // never appear here - only real players.
 const LEADERBOARD_SIZE = 25;
+// Built at most once every few seconds and shared by everyone who asks,
+// instead of re-sorting every account on every single request.
+let leaderboardCache = null;
+let leaderboardCacheAt = 0;
+const LEADERBOARD_CACHE_MS = 5000;
 function handleLeaderboardRequest(username) {
+  if (leaderboardCache && Date.now() - leaderboardCacheAt < LEADERBOARD_CACHE_MS) {
+    return send(usernameToSocket.get(username), leaderboardCache);
+  }
   const rows = [...users.entries()]
     // DTN_BGSI (the hand-out/giveaway + trading account) isn't a real
     // player - it exists purely to fund tips/trades, and its stats can run
@@ -1737,12 +1752,14 @@ function handleLeaderboardRequest(username) {
     .slice(0, LEADERBOARD_SIZE)
     .map((r) => ({ username: r.username, value: r[key] }));
 
-  send(usernameToSocket.get(username), {
+  leaderboardCache = {
     type: 'leaderboard:data',
     mostPlayed: topBy('wagered'),
     mostLost: topBy('lost'),
     mostWon: topBy('won'),
-  });
+  };
+  leaderboardCacheAt = Date.now();
+  send(usernameToSocket.get(username), leaderboardCache);
 }
 
 // Mines, Jackpot, and single Cases still run their actual game logic
