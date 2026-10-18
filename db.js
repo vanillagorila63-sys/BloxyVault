@@ -225,6 +225,44 @@ async function initSchema() {
   // show a real number in Transaction History. Older rows leave it empty.
   await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS value BIGINT;`);
 
+  // Allow giveaway wins in notifications.
+  await pool.query(`ALTER TABLE notifications DROP CONSTRAINT IF EXISTS notifications_type_check;`);
+  await pool.query(`ALTER TABLE notifications ADD CONSTRAINT notifications_type_check CHECK (type IN ('withdraw_fulfilled','withdraw_rejected','casebattle_win','giveaway_win'));`);
+
+  // Vault: coins + pets a player sets aside (not usable in games), with an
+  // optional time lock that blocks withdrawing until it runs out.
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS vault_coins BIGINT NOT NULL DEFAULT 0;`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS vault_lock_until TIMESTAMPTZ;`);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS vault_items (
+      username     TEXT NOT NULL,
+      catalog_id   TEXT NOT NULL,
+      qty          INTEGER NOT NULL DEFAULT 0 CHECK (qty >= 0),
+      PRIMARY KEY (username, catalog_id)
+    );
+  `);
+  // Promo codes (admin-made, coins only) and who has used which.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS promo_codes (
+      code        TEXT PRIMARY KEY,
+      coins       BIGINT NOT NULL CHECK (coins > 0),
+      max_uses    INTEGER NOT NULL CHECK (max_uses > 0),
+      uses        INTEGER NOT NULL DEFAULT 0,
+      expires_at  TIMESTAMPTZ,
+      active      BOOLEAN NOT NULL DEFAULT true,
+      created_by  TEXT,
+      created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS promo_redemptions (
+      code         TEXT NOT NULL,
+      username     TEXT NOT NULL,
+      redeemed_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+      PRIMARY KEY (code, username)
+    );
+  `);
+
   console.log('[db] Schema ready.');
 }
 
@@ -236,8 +274,9 @@ async function initSchema() {
 // Returns a Map in the exact shape server.js's `users` Map already expects:
 // username -> { coins, inventory: {catalogId: qty}, stats: {wagered, won, lost} }
 async function loadAllUsers() {
-  const usersRes = await pool.query('SELECT username, coins, stats_wagered, stats_won, stats_lost, discord_id, discord_username, discord_avatar FROM users');
+  const usersRes = await pool.query('SELECT username, coins, stats_wagered, stats_won, stats_lost, discord_id, discord_username, discord_avatar, vault_coins, vault_lock_until FROM users');
   const invRes = await pool.query('SELECT username, catalog_id, qty FROM inventory_items WHERE qty > 0');
+  const vaultRes = await pool.query('SELECT username, catalog_id, qty FROM vault_items WHERE qty > 0');
 
   const map = new Map();
   for (const row of usersRes.rows) {
@@ -246,11 +285,16 @@ async function loadAllUsers() {
       inventory: {},
       stats: { wagered: Number(row.stats_wagered), won: Number(row.stats_won), lost: Number(row.stats_lost) },
       discord: row.discord_id ? { id: row.discord_id, username: row.discord_username, avatar: row.discord_avatar } : null,
+      vault: { coins: Number(row.vault_coins || 0), items: {}, lockUntil: row.vault_lock_until ? new Date(row.vault_lock_until).getTime() : 0 },
     });
   }
   for (const row of invRes.rows) {
     const u = map.get(row.username);
     if (u) u.inventory[row.catalog_id] = row.qty;
+  }
+  for (const row of vaultRes.rows) {
+    const u = map.get(row.username);
+    if (u) u.vault.items[row.catalog_id] = row.qty;
   }
   return map;
 }
@@ -345,6 +389,25 @@ async function persistUserState(username, user, txn) {
          stats_won = EXCLUDED.stats_won, stats_lost = EXCLUDED.stats_lost, updated_at = now()`,
       [username, Math.max(0, Math.trunc(user.coins)), user.stats.wagered, user.stats.won, user.stats.lost]
     );
+
+    // Vault rides in the same transaction as the wallet, so moving coins/pets
+    // between the two can never lose or duplicate anything.
+    if (user.vault) {
+      await client.query(
+        `UPDATE users SET vault_coins = $2, vault_lock_until = $3 WHERE username = $1`,
+        [username, Math.max(0, Math.trunc(user.vault.coins || 0)), user.vault.lockUntil ? new Date(user.vault.lockUntil) : null]
+      );
+      if (txn && Array.isArray(txn.vaultItemsTouched)) {
+        for (const catalogId of txn.vaultItemsTouched) {
+          const qty = Math.max(0, (user.vault.items && user.vault.items[catalogId]) || 0);
+          await client.query(
+            `INSERT INTO vault_items (username, catalog_id, qty) VALUES ($1,$2,$3)
+             ON CONFLICT (username, catalog_id) DO UPDATE SET qty = $3`,
+            [username, catalogId, qty]
+          );
+        }
+      }
+    }
 
     if (txn && Array.isArray(txn.itemsTouched) && txn.itemsTouched.length) {
       for (const catalogId of txn.itemsTouched) {
@@ -734,6 +797,48 @@ async function loadTransactionHistory(username, types, excludeTypes, limit, offs
   })) };
 }
 
+// ---------------------------------------------------------------------------
+// Promo codes
+// ---------------------------------------------------------------------------
+async function createPromoCode({ code, coins, maxUses, expiresAt, createdBy }) {
+  const res = await pool.query(
+    `INSERT INTO promo_codes (code, coins, max_uses, expires_at, created_by) VALUES ($1,$2,$3,$4,$5)
+     ON CONFLICT (code) DO NOTHING RETURNING code`,
+    [code, coins, maxUses, expiresAt ? new Date(expiresAt) : null, createdBy]
+  );
+  return res.rowCount === 1;
+}
+async function listPromoCodes() {
+  const res = await pool.query(`SELECT code, coins, max_uses, uses, expires_at, active, created_at FROM promo_codes ORDER BY created_at DESC LIMIT 100`);
+  return res.rows.map((r) => ({ code: r.code, coins: Number(r.coins), maxUses: r.max_uses, uses: r.uses, expiresAt: r.expires_at ? new Date(r.expires_at).getTime() : null, active: r.active, createdAt: new Date(r.created_at).getTime() }));
+}
+async function setPromoActive(code, active) {
+  await pool.query(`UPDATE promo_codes SET active = $2 WHERE code = $1`, [code, !!active]);
+}
+// One atomic check-and-claim: the code must exist, be active, not expired,
+// have uses left, and this player must not have used it before.
+async function redeemPromoCode(code, username) {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const r = await client.query(`SELECT coins, max_uses, uses, expires_at, active FROM promo_codes WHERE code = $1 FOR UPDATE`, [code]);
+    if (!r.rows.length || !r.rows[0].active) { await client.query('ROLLBACK'); return { error: "That code doesn't exist." }; }
+    const row = r.rows[0];
+    if (row.expires_at && new Date(row.expires_at).getTime() < Date.now()) { await client.query('ROLLBACK'); return { error: 'That code has expired.' }; }
+    if (row.uses >= row.max_uses) { await client.query('ROLLBACK'); return { error: 'That code has been fully used up.' }; }
+    const ins = await client.query(`INSERT INTO promo_redemptions (code, username) VALUES ($1,$2) ON CONFLICT DO NOTHING`, [code, username]);
+    if (ins.rowCount !== 1) { await client.query('ROLLBACK'); return { error: "You've already used that code." }; }
+    await client.query(`UPDATE promo_codes SET uses = uses + 1 WHERE code = $1`, [code]);
+    await client.query('COMMIT');
+    return { ok: true, coins: Number(row.coins) };
+  } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
 async function loadAllIgnores() {
   const res = await pool.query(`SELECT username, ignored FROM ignored_users`);
   const map = new Map();
@@ -801,6 +906,10 @@ module.exports = {
   setDiscordLink,
   clearDiscordLink,
   loadAllIgnores,
+  createPromoCode,
+  listPromoCodes,
+  setPromoActive,
+  redeemPromoCode,
   loadGameHistory,
   loadTransactionHistory,
   addIgnore,

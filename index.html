@@ -4490,6 +4490,160 @@ body.cbn-open #cbnRoot .backdrop { opacity: 1; pointer-events: auto; }
     .pw-pet-img{ width:46px; height:46px; }
     .pw-modal{ max-height:92vh; }
   }
+
+  /* ---------- Account menu ---------- */
+  .topnav{ z-index:240 !important; } /* so menus that drop down from the top bar sit above the page and chat */
+  .user-chip{ cursor:pointer; transition:border-color .12s, background .12s; }
+  .user-chip:hover, .user-chip.open{ border-color:var(--purple) !important; }
+  .acct-menu{ position:absolute; top:calc(100% + 10px); right:0; z-index:330; width:300px; padding:8px;
+    background:var(--bg-panel); border:1px solid var(--border); border-radius:16px;
+    box-shadow:0 24px 60px -18px rgba(0,0,0,.8), 0 0 0 1px rgba(255,255,255,.02); animation:acctIn .16s ease-out; }
+  .acct-menu[hidden]{ display:none; }
+  @keyframes acctIn{ from{ opacity:0; transform:translateY(-6px); } to{ opacity:1; transform:none; } }
+  .acct-menu-head{ display:flex; align-items:center; gap:12px; padding:10px 10px 14px; margin-bottom:6px; border-bottom:1px solid var(--border); }
+  .acct-menu-avatar{ width:44px; height:44px; border-radius:50%; overflow:hidden; display:flex; align-items:center; justify-content:center; font-weight:800; color:#fff; flex-shrink:0; box-shadow:0 0 0 2px var(--purple); }
+  .acct-menu-avatar img{ width:100%; height:100%; object-fit:cover; }
+  .acct-menu-who{ flex:1; min-width:0; }
+  .acct-menu-name{ font-family:var(--font-display); font-weight:800; font-size:15px; color:#fff; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .acct-menu-level{ display:flex; align-items:center; gap:8px; font-size:11.5px; font-weight:700; color:var(--text-dim); margin-top:4px; }
+  .acct-menu-bar{ flex:1; height:5px; border-radius:4px; background:var(--bg-panel-3); overflow:hidden; }
+  .acct-menu-bar > div{ height:100%; width:0; border-radius:4px; background:linear-gradient(90deg, var(--purple), #f4c430); }
+  .acct-menu-item{ width:100%; display:flex; align-items:center; gap:12px; padding:10px; border:none; border-radius:12px; background:none; color:var(--text); font:inherit; text-align:left; cursor:pointer; }
+  .acct-menu-item:hover{ background:var(--bg-panel-2); }
+  .ami-ico{ width:38px; height:38px; border-radius:11px; display:flex; align-items:center; justify-content:center; font-size:19px; flex-shrink:0; }
+  .ami-vault{ background:linear-gradient(150deg, rgba(244,196,48,.22), rgba(244,196,48,.06)); box-shadow:inset 0 0 0 1px rgba(244,196,48,.35); }
+  .ami-promo{ background:linear-gradient(150deg, rgba(74,222,128,.2), rgba(74,222,128,.05)); box-shadow:inset 0 0 0 1px rgba(74,222,128,.32); }
+  .ami-gift{ background:linear-gradient(150deg, rgba(232,101,12,.25), rgba(232,101,12,.06)); box-shadow:inset 0 0 0 1px rgba(232,101,12,.4); }
+  .ami-plain{ background:var(--bg-panel-2); width:32px; height:32px; font-size:15px; }
+  .ami-text{ flex:1; min-width:0; display:flex; flex-direction:column; gap:1px; }
+  .ami-text b{ font-size:13.5px; font-weight:700; }
+  .ami-text small{ font-size:11.5px; color:var(--text-faint); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .ami-arrow{ color:var(--text-faint); font-size:20px; line-height:1; }
+  .acct-menu-item.small{ padding:7px 10px; }
+  .acct-menu-sep{ height:1px; background:var(--border); margin:6px 4px; }
+  @media (max-width: 640px){ .acct-menu{ position:fixed; top:64px; right:8px; left:8px; width:auto; } }
+
+  /* ---------- Vault ---------- */
+  .vt-modal, .pc-modal, .ga-modal{ position:relative; background:var(--bg-panel); border:1px solid var(--border); border-radius:18px; width:100%; max-height:90vh; overflow:auto; box-shadow:0 30px 80px -30px rgba(0,0,0,.85); }
+  .vt-modal{ max-width:560px; padding:22px 24px 24px; }
+  .vt-close{ position:absolute; top:14px; right:14px; z-index:2; }
+  .vt-hero{ display:flex; flex-direction:column; align-items:center; gap:6px; margin-bottom:18px; }
+  .vt-safe{ width:96px; height:88px; filter:drop-shadow(0 10px 22px rgba(244,196,48,.25)); }
+  .vt-title{ font-family:var(--font-display); font-weight:900; font-size:26px; color:#fff; }
+  .vt-status{ font-size:12px; font-weight:800; padding:4px 12px; border-radius:999px; color:#4ade80; background:rgba(74,222,128,.1); border:1px solid rgba(74,222,128,.3); }
+  .vt-status.locked{ color:#f4c430; background:rgba(244,196,48,.1); border-color:rgba(244,196,48,.35); }
+  .vt-tabs{ display:grid; grid-template-columns:repeat(3,1fr); gap:4px; padding:4px; border-radius:12px; background:var(--bg-deep); border:1px solid var(--border); margin-bottom:16px; }
+  .vt-tab{ border:none; background:none; color:var(--text-dim); font:inherit; font-weight:800; font-size:13px; padding:10px; border-radius:9px; cursor:pointer; }
+  .vt-tab.active{ background:var(--bg-panel-3); color:#fff; box-shadow:inset 0 -2px 0 #f4c430; }
+  .vt-balances{ display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:10px; margin-bottom:14px; }
+  .vt-bal{ padding:14px; border-radius:12px; background:var(--bg-panel-2); border:1px solid var(--border); display:flex; flex-direction:column; gap:4px; min-width:0; }
+  .vt-bal span{ font-size:11px; font-weight:800; letter-spacing:.6px; text-transform:uppercase; color:var(--text-faint); }
+  .vt-bal b{ display:flex; align-items:center; gap:6px; font-family:var(--font-display); font-size:18px; color:#fff; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .vt-bal.vault{ border-color:rgba(244,196,48,.35); background:linear-gradient(150deg, rgba(244,196,48,.08), var(--bg-panel-2)); }
+  .vt-bal-arrow{ color:var(--text-faint); font-size:18px; }
+  .vt-amount-row{ display:flex; gap:8px; margin-bottom:12px; }
+  .vt-amount{ flex:1; min-width:0; height:46px; padding:0 14px; border-radius:11px; background:var(--bg-deep); border:1px solid var(--border); color:#fff; font:inherit; font-size:16px; font-weight:700; outline:none; }
+  .vt-amount:focus{ border-color:var(--purple); }
+  .vt-chip{ flex-shrink:0; padding:0 12px; border-radius:10px; background:var(--bg-panel-2); border:1px solid var(--border); color:var(--text-dim); font:inherit; font-size:12px; font-weight:800; cursor:pointer; }
+  .vt-chip:hover{ color:#fff; }
+  .vt-actions{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .vt-btn{ height:46px; border:none; border-radius:11px; font:inherit; font-weight:800; font-size:14px; cursor:pointer; padding:0 18px; }
+  .vt-btn.deposit{ background:linear-gradient(155deg, #ffd45e, #f4b018); color:#2a1b00; }
+  .vt-btn.withdraw{ background:var(--bg-panel-3); color:#fff; border:1px solid var(--border); }
+  .vt-btn.lock{ width:100%; background:linear-gradient(155deg, #ff8a2a, #e8650c); color:#fff; margin-top:12px; }
+  .vt-btn.lock.armed{ background:linear-gradient(155deg, #ff6b6b, #d23c3c); animation:vtPulse .9s ease-in-out infinite; }
+  @keyframes vtPulse{ 50%{ filter:brightness(1.15); } }
+  .vt-btn:disabled{ opacity:.45; cursor:default; animation:none; }
+  .vt-pets-head{ display:flex; align-items:center; gap:10px; margin-bottom:10px; flex-wrap:wrap; }
+  .vt-mini{ padding:8px 12px; border-radius:10px; background:var(--bg-panel-2); border:1px solid var(--border); display:flex; flex-direction:column; }
+  .vt-mini span{ font-size:10px; font-weight:800; letter-spacing:.6px; text-transform:uppercase; color:var(--text-faint); }
+  .vt-mini b{ display:flex; align-items:center; gap:5px; font-size:14px; color:#fff; }
+  .vt-seg{ margin-left:auto; display:flex; padding:3px; border-radius:10px; background:var(--bg-deep); border:1px solid var(--border); }
+  .vt-seg button{ border:none; background:none; color:var(--text-dim); font:inherit; font-weight:800; font-size:12px; padding:8px 12px; border-radius:8px; cursor:pointer; }
+  .vt-seg button.on{ background:var(--bg-panel-3); color:#fff; }
+  .vt-grid{ max-height:300px; overflow-y:auto; padding:2px; }
+  .vt-empty{ grid-column:1/-1; display:flex; flex-direction:column; align-items:center; gap:4px; padding:34px 12px; text-align:center; border:1px dashed var(--border); border-radius:12px; }
+  .vt-empty b{ color:#fff; } .vt-empty span{ font-size:12.5px; color:var(--text-faint); }
+  .vt-pets-foot{ display:flex; align-items:center; gap:12px; margin-top:12px; }
+  .vt-pets-foot > span{ flex:1; font-size:12.5px; color:var(--text-dim); display:flex; align-items:center; gap:4px; }
+  .vt-lock-card{ display:flex; align-items:center; gap:14px; padding:14px 16px; border-radius:12px; background:var(--bg-panel-2); border:1px solid var(--border); margin-bottom:12px; }
+  .vt-lock-card.is-locked{ border-color:rgba(244,196,48,.4); background:linear-gradient(150deg, rgba(244,196,48,.1), var(--bg-panel-2)); }
+  .vt-lock-big{ font-size:30px; }
+  .vt-lock-card b{ display:block; color:#fff; font-size:15px; } .vt-lock-card span{ font-size:12.5px; color:var(--text-dim); }
+  .vt-rules{ margin:0 0 10px; padding-left:18px; font-size:13px; color:var(--text-dim); line-height:1.6; }
+  .vt-warn{ font-size:12.5px; font-weight:700; color:#fca5a5; background:rgba(239,68,68,.08); border:1px solid rgba(239,68,68,.3); border-radius:10px; padding:10px 12px; margin-bottom:12px; }
+  .vt-lock-opts{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+  .vt-lock-opts button{ padding:11px 6px; border-radius:10px; background:var(--bg-panel-2); border:1px solid var(--border); color:var(--text); font:inherit; font-weight:700; font-size:13px; cursor:pointer; }
+  .vt-lock-opts button.on{ border-color:#f4c430; color:#fff; background:linear-gradient(150deg, rgba(244,196,48,.15), var(--bg-panel-2)); }
+
+  /* ---------- Promo ---------- */
+  .pc-modal{ max-width:430px; padding:30px 26px 26px; text-align:center; }
+  .pc-ticket{ width:74px; height:74px; margin:0 auto 12px; border-radius:20px; display:flex; align-items:center; justify-content:center; font-size:38px;
+    background:linear-gradient(150deg, rgba(74,222,128,.22), rgba(74,222,128,.05)); box-shadow:inset 0 0 0 1px rgba(74,222,128,.35), 0 12px 30px -12px rgba(74,222,128,.45); transform:rotate(-6deg); }
+  .pc-title{ font-family:var(--font-display); font-weight:900; font-size:21px; color:#fff; }
+  .pc-sub{ font-size:13px; color:var(--text-dim); margin:6px 0 18px; line-height:1.45; }
+  .pc-form{ display:flex; gap:8px; }
+  .pc-input{ flex:1; min-width:0; height:50px; padding:0 14px; border-radius:12px; background:var(--bg-deep); border:1.5px dashed rgba(74,222,128,.45); color:#fff; font:inherit; font-size:17px; font-weight:800; letter-spacing:2px; text-transform:uppercase; text-align:center; outline:none; }
+  .pc-input:focus{ border-style:solid; border-color:#4ade80; }
+  .pc-btn{ height:50px; padding:0 20px; border:none; border-radius:12px; background:linear-gradient(155deg, #5ef09a, #22c55e); color:#06210f; font:inherit; font-weight:900; font-size:14px; cursor:pointer; }
+  .pc-btn:disabled{ opacity:.6; }
+  .pc-result{ min-height:20px; margin-top:12px; font-size:13.5px; font-weight:700; }
+  .pc-result.good{ color:#4ade80; } .pc-result.bad{ color:#f87171; }
+
+  /* ---------- Giveaway create ---------- */
+  .ga-modal{ max-width:820px; display:flex; flex-direction:column; overflow:hidden; }
+  .ga-head{ display:flex; gap:14px; align-items:flex-start; padding:20px 20px 14px; border-bottom:1px solid var(--border); }
+  .ga-head > div:nth-child(2){ flex:1; min-width:0; }
+  .ga-head-ico{ width:44px; height:44px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:22px; flex-shrink:0; background:rgba(232,101,12,.15); box-shadow:inset 0 0 0 1px rgba(232,101,12,.4); }
+  .ga-title{ font-family:var(--font-display); font-weight:800; font-size:18px; color:#fff; }
+  .ga-sub{ font-size:12.5px; color:var(--text-dim); margin-top:3px; line-height:1.45; }
+  .ga-opts{ display:grid; grid-template-columns:1fr 1fr; gap:14px; padding:14px 20px 4px; }
+  .ga-opt-label, .ga-pick-label{ font-size:11px; font-weight:800; letter-spacing:.7px; text-transform:uppercase; color:var(--text-faint); margin-bottom:7px; }
+  .ga-pick-label{ padding:10px 20px 0; margin:0; }
+  .ga-chips{ display:flex; gap:6px; flex-wrap:wrap; }
+  .ga-chips button{ padding:8px 11px; border-radius:9px; background:var(--bg-panel-2); border:1px solid var(--border); color:var(--text-dim); font:inherit; font-size:12.5px; font-weight:800; cursor:pointer; }
+  .ga-chips button.on{ color:#fff; border-color:var(--purple); background:rgba(232,101,12,.14); }
+  .ga-grid{ max-height:340px; overflow-y:auto; padding:10px 20px 14px; }
+  .ga-foot{ display:flex; align-items:center; gap:12px; padding:14px 20px; border-top:1px solid var(--border); }
+  .ga-summary{ flex:1; font-size:13px; font-weight:700; color:var(--text-dim); display:flex; align-items:center; gap:4px; flex-wrap:wrap; }
+  .ga-foot .exchange-btn{ height:42px; }
+  @media (max-width: 640px){ .ga-opts{ grid-template-columns:1fr; } .vt-modal{ padding:18px 16px 18px; } .vt-balances{ grid-template-columns:1fr; } .vt-bal-arrow{ display:none; } .vt-lock-opts{ grid-template-columns:repeat(2,1fr); } }
+
+  /* ---------- Giveaways in chat ---------- */
+  .ga-strip{ margin:10px 12px 0; padding:10px; border-radius:14px; background:linear-gradient(160deg, rgba(232,101,12,.12), var(--bg-panel-2) 60%); border:1px solid rgba(232,101,12,.35); }
+  .ga-strip[hidden]{ display:none; }
+  .ga-strip-head{ display:flex; align-items:center; gap:8px; font-family:var(--font-display); font-weight:800; font-size:13px; color:#fff; margin-bottom:8px; }
+  .ga-strip-count{ min-width:20px; height:20px; padding:0 6px; border-radius:999px; background:var(--purple); color:#fff; font-size:11px; display:inline-flex; align-items:center; justify-content:center; }
+  .ga-strip-new{ margin-left:auto; border:1px solid var(--border); background:var(--bg-panel-3); color:var(--text); font:inherit; font-size:11.5px; font-weight:800; padding:5px 10px; border-radius:8px; cursor:pointer; }
+  .ga-strip-list{ display:flex; gap:8px; overflow-x:auto; padding-bottom:4px; scrollbar-width:thin; -webkit-overflow-scrolling:touch; }
+  .ga-card{ flex:0 0 172px; display:flex; flex-direction:column; gap:7px; padding:10px; border-radius:12px; background:var(--bg-panel); border:1px solid var(--border); }
+  .ga-card.is-joined{ border-color:rgba(74,222,128,.45); }
+  .ga-card-top{ display:flex; gap:9px; align-items:center; }
+  .ga-card-pet{ width:44px; height:44px; border-radius:10px; background:var(--bg-panel-2); display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:26px; }
+  .ga-card-pet img{ max-width:40px; max-height:40px; object-fit:contain; }
+  .ga-card-info{ min-width:0; }
+  .ga-card-name{ font-size:12.5px; font-weight:800; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .ga-card-val{ font-size:11.5px; font-weight:800; color:var(--gold); display:flex; align-items:center; gap:4px; }
+  .ga-card-meta{ display:flex; align-items:center; gap:6px; font-size:11px; color:var(--text-faint); min-width:0; }
+  .ga-card-meta span:first-child{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; } .ga-card-meta b{ color:var(--text-dim); }
+  .ga-lvl{ flex-shrink:0; padding:1px 6px; border-radius:5px; background:rgba(244,196,48,.12); color:#f4c430; font-weight:800; }
+  .ga-card-row{ display:flex; justify-content:space-between; font-size:11.5px; font-weight:800; color:var(--text-dim); font-variant-numeric:tabular-nums; }
+  .ga-timer{ color:#ffb070; }
+  .ga-join{ height:32px; border:none; border-radius:9px; background:linear-gradient(155deg, #ff8a2a, #e8650c); color:#fff; font:inherit; font-weight:800; font-size:12.5px; cursor:pointer; }
+  .ga-join.joined{ background:rgba(74,222,128,.14); color:#4ade80; }
+  .ga-join.locked, .ga-join.mine{ background:var(--bg-panel-3); color:var(--text-faint); }
+  .ga-join:disabled{ cursor:default; }
+
+  /* ---------- Admin promo ---------- */
+  .adm-promo{ margin:6px 20px 0; padding:12px; border-radius:12px; background:var(--bg-panel-2); border:1px solid var(--border); }
+  .adm-promo-title{ font-weight:800; font-size:13px; margin-bottom:8px; }
+  .adm-promo-form{ display:grid; grid-template-columns:1fr 1fr 1fr 1.4fr auto; gap:8px; }
+  .adm-promo-list{ margin-top:10px; display:flex; flex-direction:column; gap:6px; max-height:200px; overflow-y:auto; }
+  .adm-promo-row{ display:grid; grid-template-columns:1.1fr 1fr .8fr 1.3fr auto auto; align-items:center; gap:8px; font-size:12px; color:var(--text-dim); padding:6px 8px; border-radius:8px; background:var(--bg-panel); }
+  .adm-promo-row b{ color:#fff; letter-spacing:1px; } .adm-promo-row span{ display:flex; align-items:center; gap:4px; }
+  .adm-promo-row .ghost-btn{ padding:5px 10px; font-size:11px; }
+  .adm-promo-state{ font-weight:800; } .adm-promo-state.live{ color:#4ade80; } .adm-promo-state.off, .adm-promo-state.expired, .adm-promo-state.usedup{ color:var(--text-faint); }
+  @media (max-width: 720px){ .adm-promo-form{ grid-template-columns:1fr 1fr; } .adm-promo-row{ grid-template-columns:1fr 1fr; } }
   /* Result overlay never wraps into the winner box */
   #cbnRoot .bv-result-banner{ white-space:nowrap; max-width:92%; overflow:hidden; text-overflow:ellipsis; font-size:13px !important; padding:6px 14px !important; }
   #cbnRoot .bv-result-summary{ top:56px !important; }
@@ -4647,7 +4801,21 @@ body.cbn-open #cbnRoot .backdrop { opacity: 1; pointer-events: auto; }
       </div>
       <button class="logout-btn" id="adminPanelBtn" title="Admin Panel" style="padding:8px; display:none; color:var(--gold); border-color:var(--gold);">🛡️</button>
       <button class="logout-btn" id="profileBtn" title="Profile" style="padding:8px;"><span class="nav-icon-slot" data-icon="user" style="width:16px;height:16px;"></span></button>
-      <div class="user-chip"><div class="avatar-dot"><img id="avatarImg" alt=""><span id="avatarInitial">?</span></div><span id="navUsername"></span><span class="nav-icon-slot" data-icon="badgeCheck" style="width:14px;height:14px; color:var(--teal);" title="Verified via Roblox"></span></div>
+      <div class="acct-menu" id="acctMenu" hidden>
+        <div class="acct-menu-head">
+          <div class="acct-menu-avatar" id="acctMenuAvatar"></div>
+          <div class="acct-menu-who">
+            <div class="acct-menu-name" id="acctMenuName"></div>
+            <div class="acct-menu-level"><span id="acctMenuLevel">Level 1</span><div class="acct-menu-bar"><div id="acctMenuBar"></div></div></div>
+          </div>
+        </div>
+        <button class="acct-menu-item" data-acct="vault" type="button"><span class="ami-ico ami-vault">🔐</span><span class="ami-text"><b>Vault</b><small id="acctMenuVaultSub">Keep coins &amp; pets safe</small></span><span class="ami-arrow">›</span></button>
+        <button class="acct-menu-item" data-acct="promo" type="button"><span class="ami-ico ami-promo">🎟️</span><span class="ami-text"><b>Redeem Promocode</b><small>Got a code? Claim it</small></span><span class="ami-arrow">›</span></button>
+        <button class="acct-menu-item" data-acct="giveaway" type="button"><span class="ami-ico ami-gift">🎁</span><span class="ami-text"><b>Create Giveaway</b><small>Give pets away in chat</small></span><span class="ami-arrow">›</span></button>
+        <div class="acct-menu-sep"></div>
+        <button class="acct-menu-item small" data-acct="account" type="button"><span class="ami-ico ami-plain">👤</span><span class="ami-text"><b>Profile &amp; History</b></span><span class="ami-arrow">›</span></button>
+      </div>
+      <div class="user-chip" id="userChip" role="button" tabindex="0" aria-haspopup="menu"><div class="avatar-dot"><img id="avatarImg" alt=""><span id="avatarInitial">?</span></div><span id="navUsername"></span><span class="nav-icon-slot" data-icon="badgeCheck" style="width:14px;height:14px; color:var(--teal);" title="Verified via Roblox"></span></div>
       <button class="logout-btn" id="logoutBtn"><span class="nav-icon-slot" data-icon="logOut" style="width:14px;height:14px;"></span> Log Out</button>
     </div>
   </div>
@@ -5321,6 +5489,10 @@ body.cbn-open #cbnRoot .backdrop { opacity: 1; pointer-events: auto; }
           <button class="rain-deposit-btn" id="rainDepositBtn"><span class="nav-icon-slot" data-icon="arrowDownToLine" style="width:13px;height:13px;"></span> Add</button>
         </div>
       </div>
+      <div class="ga-strip" id="gaStrip" hidden>
+        <div class="ga-strip-head"><span>🎁 Giveaways</span><span class="ga-strip-count" id="gaStripCount">0</span><button class="ga-strip-new" type="button" id="gaStripNew">+ Give</button></div>
+        <div class="ga-strip-list" id="gaStripList"></div>
+      </div>
       <div class="chat-divider"></div>
       <div class="chat-log" id="chatLog">
         <div class="chat-empty" id="chatEmptyState">No messages yet — say hi 👋</div>
@@ -5369,6 +5541,70 @@ body.cbn-open #cbnRoot .backdrop { opacity: 1; pointer-events: auto; }
   </div>
 </div>
 <div class="pw-toasts" id="pwToasts" aria-live="polite"></div>
+<!-- ============ VAULT ============ -->
+<div class="modal-overlay" id="vaultOverlay">
+  <div class="vt-modal" role="dialog" aria-labelledby="vtTitle">
+    <button class="close-x vt-close" data-close-modal="vaultOverlay" aria-label="Close"><span class="nav-icon-slot" data-icon="x" style="width:16px;height:16px;"></span></button>
+    <div class="vt-hero">
+      <svg class="vt-safe" viewBox="0 0 120 110" aria-hidden="true">
+        <defs><linearGradient id="vtSafeBody" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3a3346"/><stop offset="1" stop-color="#1b1622"/></linearGradient>
+        <radialGradient id="vtSafeGold" cx=".5" cy=".4" r=".6"><stop offset="0" stop-color="#ffe08a"/><stop offset="1" stop-color="#d99a12"/></radialGradient></defs>
+        <rect x="14" y="10" width="92" height="84" rx="10" fill="url(#vtSafeBody)" stroke="#4b4258" stroke-width="2"/>
+        <rect x="24" y="20" width="72" height="64" rx="6" fill="#141018" stroke="#2c2535"/>
+        <circle cx="60" cy="52" r="20" fill="none" stroke="url(#vtSafeGold)" stroke-width="5"/>
+        <circle cx="60" cy="52" r="6" fill="url(#vtSafeGold)"/>
+        <g stroke="url(#vtSafeGold)" stroke-width="4" stroke-linecap="round"><path d="M60 30v6M60 68v6M38 52h6M76 52h6"/></g>
+        <rect x="26" y="94" width="14" height="6" rx="2" fill="#2c2535"/><rect x="80" y="94" width="14" height="6" rx="2" fill="#2c2535"/>
+      </svg>
+      <div class="vt-title" id="vtTitle">Vault</div>
+      <div class="vt-status" id="vtStatus">Unlocked</div>
+    </div>
+    <div class="vt-tabs" role="tablist">
+      <button class="vt-tab active" data-vt-tab="coins" type="button">Coins</button>
+      <button class="vt-tab" data-vt-tab="pets" type="button">Pets</button>
+      <button class="vt-tab" data-vt-tab="lock" type="button">Lock</button>
+    </div>
+    <div class="vt-body" id="vtBody"></div>
+  </div>
+</div>
+
+<!-- ============ PROMO CODE ============ -->
+<div class="modal-overlay" id="promoOverlay">
+  <div class="pc-modal" role="dialog" aria-labelledby="pcTitle">
+    <button class="close-x vt-close" data-close-modal="promoOverlay" aria-label="Close"><span class="nav-icon-slot" data-icon="x" style="width:16px;height:16px;"></span></button>
+    <div class="pc-ticket" aria-hidden="true">🎟️</div>
+    <div class="pc-title" id="pcTitle">Redeem a promo code</div>
+    <div class="pc-sub">Codes are shared on our Discord and socials. Each code works once per account.</div>
+    <form class="pc-form" id="pcForm" autocomplete="off">
+      <input class="pc-input" id="pcInput" maxlength="32" placeholder="ENTER CODE" spellcheck="false" autocapitalize="characters">
+      <button class="pc-btn" id="pcBtn" type="submit">Redeem</button>
+    </form>
+    <div class="pc-result" id="pcResult" aria-live="polite"></div>
+  </div>
+</div>
+
+<!-- ============ CREATE GIVEAWAY ============ -->
+<div class="modal-overlay" id="gaOverlay">
+  <div class="ga-modal" role="dialog" aria-labelledby="gaTitle">
+    <div class="ga-head">
+      <div class="ga-head-ico">🎁</div>
+      <div><div class="ga-title" id="gaTitle">Create a giveaway</div><div class="ga-sub">Every pet you pick becomes its own giveaway in chat. A random player who joined wins it. If nobody joins, it comes back to you.</div></div>
+      <button class="close-x" data-close-modal="gaOverlay" aria-label="Close"><span class="nav-icon-slot" data-icon="x" style="width:16px;height:16px;"></span></button>
+    </div>
+    <div class="ga-opts">
+      <div class="ga-opt"><div class="ga-opt-label">Lasts</div><div class="ga-chips" id="gaDur">
+        <button type="button" data-min="5">5m</button><button type="button" data-min="10">10m</button><button type="button" data-min="15" class="on">15m</button><button type="button" data-min="30">30m</button><button type="button" data-min="60">1h</button></div></div>
+      <div class="ga-opt"><div class="ga-opt-label">Who can join</div><div class="ga-chips" id="gaLvl">
+        <button type="button" data-lvl="0" class="on">Anyone</button><button type="button" data-lvl="5">Lvl 5+</button><button type="button" data-lvl="10">Lvl 10+</button><button type="button" data-lvl="25">Lvl 25+</button><button type="button" data-lvl="50">Lvl 50+</button></div></div>
+    </div>
+    <div class="ga-pick-label">Pick up to 10 pets</div>
+    <div class="item-grid ga-grid" id="gaGrid"></div>
+    <div class="ga-foot">
+      <div class="ga-summary" id="gaSummary">Nothing picked yet</div>
+      <button class="exchange-btn" id="gaStartBtn" type="button" disabled style="width:auto; padding:0 22px;">Start giveaways</button>
+    </div>
+  </div>
+</div>
 <div class="modal-overlay" id="myItemsModalOverlay">
   <div class="exchange-modal" style="max-width:800px;">
     <div class="inv-header">
@@ -5464,6 +5700,17 @@ body.cbn-open #cbnRoot .backdrop { opacity: 1; pointer-events: auto; }
       <input class="amount-input" id="adminCoinReasonInput" type="text" placeholder="Reason (optional)" style="flex:1; min-width:160px;">
       <button class="exchange-btn" id="adminAddCoinsBtn" style="width:auto; padding:8px 14px; font-size:12px;">+ Add Coins</button>
       <button class="ghost-btn" id="adminRemoveCoinsBtn" style="padding:8px 14px; font-size:12px; color:var(--red); border-color:var(--red);">− Remove Coins</button>
+    </div>
+    <div class="adm-promo">
+      <div class="adm-promo-title">🎟️ Promo codes</div>
+      <form class="adm-promo-form" id="admPromoForm" autocomplete="off">
+        <input class="amount-input" id="admPromoCode" placeholder="CODE" maxlength="32">
+        <input class="amount-input" id="admPromoCoins" type="number" min="1" placeholder="Coins each">
+        <input class="amount-input" id="admPromoUses" type="number" min="1" placeholder="How many people">
+        <input class="amount-input" id="admPromoHours" type="number" min="0" placeholder="Expires in hours (0 = never)">
+        <button class="exchange-btn" type="submit" style="width:auto; padding:8px 14px; font-size:12px;">Create code</button>
+      </form>
+      <div class="adm-promo-list" id="admPromoList"><div class="cf-empty-note">No codes yet.</div></div>
     </div>
     <div id="adminWithdrawList" style="padding:14px 20px; max-height:420px; overflow-y:auto;"></div>
   </div>
@@ -6118,8 +6365,10 @@ function mpSyncAccount(serverUser) {
     robloxId: existing.robloxId,
     discord: serverUser.discord || null,
     ignored: Array.isArray(serverUser.ignored) ? serverUser.ignored : (existing.ignored || []),
+    vault: serverUser.vault || existing.vault || { coins: 0, items: {}, lockUntil: 0 },
   };
   if (currentUser === serverUser.username) applyIgnoreListToChat();
+  if (currentUser === serverUser.username && typeof refreshVaultUI === 'function') refreshVaultUI();
   if (currentUser === serverUser.username) {
     refreshBalanceUI();
     if (typeof renderExchange === 'function') renderExchange();
@@ -11541,6 +11790,8 @@ const HIST_TXN_FILTERS = [
   { key:'tip', label:'Tips' },
   { key:'exchange', label:'Exchange' },
   { key:'rain', label:'Rain' },
+  { key:'vault', label:'Vault' },
+  { key:'giveaway', label:'Giveaways & Codes' },
   { key:'other', label:'Other' },
 ];
 const HIST_TXN_LABELS = {
@@ -11549,6 +11800,8 @@ const HIST_TXN_LABELS = {
   exchange_buy:'Bought Pets', exchange_sell:'Sold Pets',
   rain_deposit:'Rain Added', rain_payout:'Rain Won',
   admin_adjust:'Balance Adjustment', escrow_refund:'Refund',
+  vault_deposit:'Vault Deposit', vault_withdraw:'Vault Withdraw', vault_deposit_items:'Pets to Vault', vault_withdraw_items:'Pets from Vault', vault_lock:'Vault Locked',
+  giveaway_create:'Giveaway Started', giveaway_win:'Giveaway Won', giveaway_return:'Giveaway Returned', promo_redeem:'Promo Code',
 };
 const histState = { kind:'games', filter:'all', page:1, loading:false, data:null };
 
@@ -14937,5 +15190,270 @@ function renderAdminWithdrawList(){
   <div class="hw-bat b3"><svg viewBox="0 0 64 32" fill="currentColor"><path d="M32 10c-2 0-3 2-3 2l-1-4-1 4c-5-6-15-9-27-6 6 3 9 8 9 12 3-2 7-2 9 1 2-3 6-3 8 0 1-2 3-3 6-3s5 1 6 3c2-3 6-3 8 0 2-3 6-3 9-1 0-4 3-9 9-12-12-3-22 0-27 6l-1-4-1 4s-1-2-3-2z"/></svg></div>
   <div class="hw-ghost">👻</div>
 </div>
+<script>
+/* ===========================================================
+   ACCOUNT MENU + VAULT + PROMO CODES + GIVEAWAYS
+   =========================================================== */
+(function(){
+  const $ = (id) => document.getElementById(id);
+  const me = () => (currentUser && users[currentUser]) || null;
+  const fmtLeft = (ms) => {
+    if (ms <= 0) return '0s';
+    const s = Math.ceil(ms / 1000), d = Math.floor(s / 86400), h = Math.floor((s % 86400) / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+    if (d) return `${d}d ${h}h`;
+    if (h) return `${h}h ${m}m`;
+    if (m) return `${m}m ${String(sec).padStart(2, '0')}s`;
+    return `${sec}s`;
+  };
+  function openModal(id){ $(id).classList.add('open'); closeMenu(); }
+  function closeModal(id){ $(id).classList.remove('open'); }
+  document.querySelectorAll('[data-close-modal]').forEach((b) => b.addEventListener('click', () => closeModal(b.dataset.closeModal)));
+  ['vaultOverlay','promoOverlay','gaOverlay'].forEach((id) => $(id).addEventListener('click', (e) => { if (e.target.id === id) closeModal(id); }));
+
+  // ---------------- account menu ----------------
+  const chip = $('userChip'), menu = $('acctMenu');
+  function renderMenu(){
+    const u = me(); if (!u) return;
+    $('acctMenuName').textContent = currentUser;
+    $('acctMenuAvatar').style.background = colorForUsername(currentUser);
+    $('acctMenuAvatar').innerHTML = avatarCircleInner(currentUser);
+    const w = (u.stats && u.stats.wagered) || 0;
+    const lvl = typeof levelForWagered === 'function' ? levelForWagered(w) : 1;
+    $('acctMenuLevel').textContent = `Level ${lvl}`;
+    let pct = 0;
+    if (typeof wageredForLevel === 'function') { const a = wageredForLevel(lvl), b = wageredForLevel(lvl + 1); pct = b > a ? Math.min(100, Math.max(0, (w - a) / (b - a) * 100)) : 100; }
+    $('acctMenuBar').style.width = pct + '%';
+    const v = u.vault || {};
+    const locked = v.lockUntil && v.lockUntil > Date.now();
+    $('acctMenuVaultSub').textContent = locked ? `Locked · ${fmtLeft(v.lockUntil - Date.now())} left` : (v.coins || Object.keys(v.items || {}).length ? `${fmtCompact(v.coins || 0)} coins inside` : 'Keep coins & pets safe');
+  }
+  function openMenu(){ if (!currentUser) return; renderMenu(); menu.hidden = false; chip.classList.add('open'); }
+  function closeMenu(){ menu.hidden = true; chip.classList.remove('open'); }
+  chip.addEventListener('click', (e) => { e.stopPropagation(); menu.hidden ? openMenu() : closeMenu(); });
+  chip.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); menu.hidden ? openMenu() : closeMenu(); } });
+  document.addEventListener('click', (e) => { if (!menu.hidden && !menu.contains(e.target) && !chip.contains(e.target)) closeMenu(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeMenu(); });
+  menu.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-acct]'); if (!b) return;
+    const a = b.dataset.acct;
+    if (a === 'vault') openVault();
+    else if (a === 'promo') openPromo();
+    else if (a === 'giveaway') openGiveawayCreate();
+    else if (a === 'account') { closeMenu(); openAccountModal('profile'); }
+  });
+
+  // ---------------- vault ----------------
+  let vtTab = 'coins', vtPetsMode = 'vault', vtPick = new Map(), vtLockChoice = null, vtLockArmed = false;
+  function vaultOf(){ const u = me(); return (u && u.vault) || { coins: 0, items: {}, lockUntil: 0 }; }
+  function vaultLocked(){ const v = vaultOf(); return !!(v.lockUntil && v.lockUntil > Date.now()); }
+  function vaultPetList(){
+    const items = vaultOf().items || {};
+    return Object.entries(items).filter(([, q]) => q > 0).map(([id, qty]) => ({ ...CATALOG_BY_ID[id], id, qty })).filter((p) => p.name).sort((a, b) => (b.value || 0) - (a.value || 0));
+  }
+  function openVault(){ vtTab = 'coins'; vtPetsMode = 'vault'; vtPick = new Map(); vtLockArmed = false; openModal('vaultOverlay'); renderVault(); }
+  window.refreshVaultUI = function(){ if ($('vaultOverlay').classList.contains('open')) renderVault(true); if (!menu.hidden) renderMenu(); };
+  document.querySelectorAll('.vt-tab').forEach((t) => t.addEventListener('click', () => { vtTab = t.dataset.vtTab; vtPetsMode = 'vault'; vtPick = new Map(); vtLockArmed = false; renderVault(); }));
+  function renderVaultStatus(){
+    const v = vaultOf(); const el = $('vtStatus');
+    if (vaultLocked()) { el.className = 'vt-status locked'; el.textContent = `🔒 Locked · ${fmtLeft(v.lockUntil - Date.now())} left`; }
+    else { el.className = 'vt-status'; el.textContent = '🔓 Unlocked'; }
+  }
+  function renderVault(keepInputs){
+    const u = me(); if (!u) return;
+    const v = vaultOf(), body = $('vtBody'), locked = vaultLocked();
+    document.querySelectorAll('.vt-tab').forEach((t) => t.classList.toggle('active', t.dataset.vtTab === vtTab));
+    renderVaultStatus();
+    if (vtTab === 'coins') {
+      const prev = keepInputs && $('vtAmount') ? $('vtAmount').value : '';
+      body.innerHTML = `
+        <div class="vt-balances">
+          <div class="vt-bal"><span>Wallet</span><b>${coinIcon(16)} ${fmt(u.coins || 0)}</b></div>
+          <div class="vt-bal-arrow">⇄</div>
+          <div class="vt-bal vault"><span>In vault</span><b>${coinIcon(16)} ${fmt(v.coins || 0)}</b></div>
+        </div>
+        <div class="vt-amount-row">
+          <input class="vt-amount" id="vtAmount" type="number" min="1" inputmode="numeric" placeholder="Amount" value="${escapeHtml(prev)}">
+          <button class="vt-chip" type="button" data-vt-fill="wallet">Wallet max</button>
+          <button class="vt-chip" type="button" data-vt-fill="vault">Vault max</button>
+        </div>
+        <div class="vt-actions">
+          <button class="vt-btn deposit" type="button" id="vtDeposit">Put in vault</button>
+          <button class="vt-btn withdraw" type="button" id="vtWithdraw" ${locked ? 'disabled' : ''}>${locked ? '🔒 Locked' : 'Take out'}</button>
+        </div>`;
+      body.querySelectorAll('[data-vt-fill]').forEach((b) => b.addEventListener('click', () => { $('vtAmount').value = b.dataset.vtFill === 'wallet' ? (u.coins || 0) : (v.coins || 0); }));
+      const amt = () => Math.floor(Number($('vtAmount').value));
+      $('vtDeposit').addEventListener('click', () => { const a = amt(); if (!(a > 0)) return showToast('Enter an amount.', true); mpSend({ type: 'vault:deposit', amount: a }); $('vtAmount').value = ''; });
+      $('vtWithdraw').addEventListener('click', () => { const a = amt(); if (!(a > 0)) return showToast('Enter an amount.', true); mpSend({ type: 'vault:withdraw', amount: a }); $('vtAmount').value = ''; });
+    } else if (vtTab === 'pets') {
+      const inVault = vaultPetList();
+      const totalVal = inVault.reduce((s, p) => s + (p.value || 0) * p.qty, 0), totalCnt = inVault.reduce((s, p) => s + p.qty, 0);
+      const adding = vtPetsMode === 'add';
+      const picked = selectedItemsCount(vtPick);
+      const pickedVal = [...vtPick.entries()].reduce((s, [id, q]) => s + ((CATALOG_BY_ID[id] && CATALOG_BY_ID[id].value) || 0) * q, 0);
+      body.innerHTML = `
+        <div class="vt-pets-head">
+          <div class="vt-mini"><span>Value</span><b>${coinIcon(14)} ${fmtCompact(totalVal)}</b></div>
+          <div class="vt-mini"><span>Pets</span><b>${totalCnt}</b></div>
+          <div class="vt-seg">
+            <button type="button" class="${adding ? '' : 'on'}" data-vt-mode="vault">In vault</button>
+            <button type="button" class="${adding ? 'on' : ''}" data-vt-mode="add">Add pets</button>
+          </div>
+        </div>
+        <div class="item-grid vt-grid" id="vtGrid"></div>
+        <div class="vt-pets-foot">
+          <span>${picked ? `${picked} picked · ${coinIcon(12)} ${fmtCompact(pickedVal)}` : (adding ? 'Pick pets from your inventory' : 'Pick pets to take out')}</span>
+          ${adding ? `<button class="vt-btn deposit" type="button" id="vtPetsGo" ${picked ? '' : 'disabled'}>Put ${picked || ''} in vault</button>`
+                   : `<button class="vt-btn withdraw" type="button" id="vtPetsGo" ${picked && !locked ? '' : 'disabled'}>${locked ? '🔒 Locked' : `Take ${picked || ''} out`}</button>`}
+        </div>`;
+      body.querySelectorAll('[data-vt-mode]').forEach((b) => b.addEventListener('click', () => { vtPetsMode = b.dataset.vtMode; vtPick = new Map(); renderVault(); }));
+      const grid = $('vtGrid');
+      const src = adding ? ownedList() : inVault;
+      if (!src.length) grid.innerHTML = `<div class="vt-empty"><b>${adding ? 'No pets to add' : 'Your vault has no pets'}</b><span>${adding ? 'Pets in a withdrawal request can\'t be added.' : 'Switch to "Add pets" to put some in.'}</span></div>`;
+      else renderQtyItemGrid(grid, src, vtPick, () => renderVault(), 200);
+      $('vtPetsGo').addEventListener('click', () => {
+        const items = []; vtPick.forEach((q, id) => { for (let i = 0; i < q; i++) items.push(id); });
+        if (!items.length) return;
+        mpSend({ type: adding ? 'vault:depositItems' : 'vault:withdrawItems', items });
+        vtPick = new Map();
+      });
+    } else {
+      const opts = [['1h','1 hour'],['6h','6 hours'],['12h','12 hours'],['1d','1 day'],['3d','3 days'],['7d','7 days']];
+      body.innerHTML = `
+        <div class="vt-lock-card ${locked ? 'is-locked' : ''}">
+          <div class="vt-lock-big">${locked ? '🔒' : '🔓'}</div>
+          <div><b>${locked ? `Locked for ${fmtLeft(vaultOf().lockUntil - Date.now())}` : 'Your vault is unlocked'}</b>
+          <span>${locked ? `Unlocks ${new Date(vaultOf().lockUntil).toLocaleString([], { weekday:'short', hour:'2-digit', minute:'2-digit', month:'short', day:'numeric' })}` : 'Lock it to stop yourself taking anything out for a while.'}</span></div>
+        </div>
+        <ul class="vt-rules">
+          <li>While locked you can still <b>put</b> coins and pets in, but you can't take anything out.</li>
+          <li>A lock can only be made <b>longer</b>, never shorter.</li>
+        </ul>
+        <div class="vt-warn">Nobody can unlock it early, not even the site admins. Only lock what you're sure about.</div>
+        <div class="vt-lock-opts">${opts.map(([k, l]) => `<button type="button" class="${vtLockChoice === k ? 'on' : ''}" data-lock="${k}">${l}</button>`).join('')}</div>
+        <button class="vt-btn lock ${vtLockArmed ? 'armed' : ''}" type="button" id="vtLockGo" ${vtLockChoice ? '' : 'disabled'}>${vtLockArmed ? 'Tap again to confirm' : (locked ? 'Extend lock' : 'Lock vault')}</button>`;
+      body.querySelectorAll('[data-lock]').forEach((b) => b.addEventListener('click', () => { vtLockChoice = b.dataset.lock; vtLockArmed = false; renderVault(); }));
+      $('vtLockGo').addEventListener('click', () => {
+        if (!vtLockChoice) return;
+        if (!vtLockArmed) { vtLockArmed = true; renderVault(); return; }
+        mpSend({ type: 'vault:lock', duration: vtLockChoice }); vtLockArmed = false; vtLockChoice = null;
+      });
+    }
+  }
+
+  // ---------------- promo codes ----------------
+  function openPromo(){ $('pcInput').value = ''; $('pcResult').textContent = ''; $('pcResult').className = 'pc-result'; openModal('promoOverlay'); setTimeout(() => $('pcInput').focus(), 60); }
+  $('pcForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const code = $('pcInput').value.trim();
+    if (!code) return;
+    if (mpMockMode) { $('pcResult').className = 'pc-result bad'; $('pcResult').textContent = 'Promo codes need the live server.'; return; }
+    $('pcBtn').disabled = true; $('pcBtn').textContent = 'Checking...';
+    mpSend({ type: 'promo:redeem', code });
+    setTimeout(() => { $('pcBtn').disabled = false; $('pcBtn').textContent = 'Redeem'; }, 3000);
+  });
+  mpOn('promo:result', (msg) => {
+    $('pcBtn').disabled = false; $('pcBtn').textContent = 'Redeem';
+    const r = $('pcResult');
+    r.className = 'pc-result ' + (msg.ok ? 'good' : 'bad');
+    r.innerHTML = msg.ok ? `🎉 ${escapeHtml(msg.message)}` : escapeHtml(msg.message || 'That code didn\'t work.');
+    if (msg.ok) $('pcInput').value = '';
+  });
+
+  // ---------------- giveaways: create ----------------
+  let gaPick = new Map(), gaMinutes = 15, gaLevel = 0;
+  function openGiveawayCreate(){ gaPick = new Map(); openModal('gaOverlay'); renderGaCreate(); }
+  $('gaStripNew').addEventListener('click', () => { if (currentUser) openGiveawayCreate(); });
+  function renderGaCreate(){
+    document.querySelectorAll('#gaDur button').forEach((b) => b.classList.toggle('on', Number(b.dataset.min) === gaMinutes));
+    document.querySelectorAll('#gaLvl button').forEach((b) => b.classList.toggle('on', Number(b.dataset.lvl) === gaLevel));
+    renderQtyItemGrid($('gaGrid'), ownedList(), gaPick, renderGaCreate, 10);
+    const n = selectedItemsCount(gaPick);
+    const val = [...gaPick.entries()].reduce((s, [id, q]) => s + ((CATALOG_BY_ID[id] && CATALOG_BY_ID[id].value) || 0) * q, 0);
+    $('gaSummary').innerHTML = n ? `${n} giveaway${n === 1 ? '' : 's'} · ${coinIcon(12)} ${fmtCompact(val)} total · ${gaMinutes >= 60 ? '1 hour' : gaMinutes + ' min'}${gaLevel ? ` · Lvl ${gaLevel}+` : ''}` : 'Nothing picked yet';
+    $('gaStartBtn').disabled = !n;
+  }
+  $('gaDur').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; gaMinutes = Number(b.dataset.min); renderGaCreate(); });
+  $('gaLvl').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; gaLevel = Number(b.dataset.lvl); renderGaCreate(); });
+  $('gaStartBtn').addEventListener('click', () => {
+    const items = []; gaPick.forEach((q, id) => { for (let i = 0; i < q; i++) items.push(id); });
+    if (!items.length) return;
+    if (mpMockMode) return showToast('Giveaways need the live server.', true);
+    mpSend({ type: 'giveaway:create', items, minutes: gaMinutes, minLevel: gaLevel });
+    closeModal('gaOverlay');
+  });
+
+  // ---------------- giveaways: chat cards ----------------
+  let gaList = [], gaOffset = 0;
+  mpOn('giveaway:list', (msg) => { gaList = Array.isArray(msg.giveaways) ? msg.giveaways : []; if (typeof msg.now === 'number') gaOffset = msg.now - Date.now(); renderGaStrip(); });
+  function myLevel(){ const u = me(); return typeof levelForWagered === 'function' ? levelForWagered((u && u.stats && u.stats.wagered) || 0) : 1; }
+  function renderGaStrip(){
+    const wrap = $('gaStrip'), list = $('gaStripList');
+    wrap.hidden = gaList.length === 0;
+    $('gaStripCount').textContent = gaList.length;
+    if (!gaList.length) { list.innerHTML = ''; return; }
+    const lvl = myLevel();
+    list.innerHTML = gaList.map((g) => {
+      const p = CATALOG_BY_ID[g.petId] || { name: g.petId };
+      const mineHost = g.host === currentUser;
+      const joined = currentUser && (g.joined || []).includes(currentUser);
+      const tooLow = g.minLevel && lvl < g.minLevel;
+      let btn;
+      if (mineHost) btn = `<button class="ga-join mine" disabled>Your giveaway</button>`;
+      else if (joined) btn = `<button class="ga-join joined" disabled>✓ Joined</button>`;
+      else if (tooLow) btn = `<button class="ga-join locked" disabled>Lvl ${g.minLevel} needed</button>`;
+      else btn = `<button class="ga-join" data-ga-join="${escapeHtml(g.id)}">Join</button>`;
+      return `<div class="ga-card${joined ? ' is-joined' : ''}">
+        <div class="ga-card-top"><div class="ga-card-pet">${itemIcon(p)}</div>
+          <div class="ga-card-info"><div class="ga-card-name" title="${escapeHtml(p.name)}">${escapeHtml(p.name)}</div><div class="ga-card-val">${coinIcon(11)} ${fmtCompact(p.value || 0)}</div></div></div>
+        <div class="ga-card-meta"><span>by <b>${escapeHtml(g.host)}</b></span>${g.minLevel ? `<span class="ga-lvl">Lvl ${g.minLevel}+</span>` : ''}</div>
+        <div class="ga-card-row"><span class="ga-timer" data-ga-end="${g.endsAt}">${fmtLeft(g.endsAt - (Date.now() + gaOffset))}</span><span class="ga-entrants">👥 ${g.entrants}</span></div>
+        ${btn}
+      </div>`;
+    }).join('');
+  }
+  $('gaStripList').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-ga-join]'); if (!b) return;
+    if (!currentUser) return;
+    b.disabled = true; b.textContent = 'Joining...';
+    mpSend({ type: 'giveaway:join', id: b.dataset.gaJoin });
+    setTimeout(() => { if (b.isConnected && b.textContent === 'Joining...') { b.disabled = false; b.textContent = 'Join'; } }, 3000);
+  });
+  mpOn('giveaway:ended', (msg) => {
+    const p = CATALOG_BY_ID[msg.petId] || { name: 'a pet' };
+    if (msg.winner && msg.winner === currentUser) showToast(`🎉 You won ${p.name} from ${msg.host}'s giveaway!`);
+    else if (msg.winner && msg.host === currentUser) showToast(`${msg.winner} won your ${p.name} giveaway.`);
+  });
+
+  // ---------------- admin: promo codes ----------------
+  const admForm = $('admPromoForm');
+  if (admForm) {
+    admForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      mpSend({ type: 'admin:promoCreate', code: $('admPromoCode').value.trim(), coins: Number($('admPromoCoins').value), maxUses: Number($('admPromoUses').value), expiresHours: Number($('admPromoHours').value) || 0 });
+    });
+    const adminBtn = $('adminPanelBtn');
+    if (adminBtn) adminBtn.addEventListener('click', () => { if (!mpMockMode) mpSend({ type: 'admin:promoList' }); });
+    mpOn('admin:promoList', (msg) => {
+      const codes = msg.codes || [];
+      $('admPromoList').innerHTML = codes.length ? codes.map((c) => {
+        const expired = c.expiresAt && c.expiresAt < Date.now();
+        const state = !c.active ? 'Off' : expired ? 'Expired' : c.uses >= c.maxUses ? 'Used up' : 'Live';
+        return `<div class="adm-promo-row"><b>${escapeHtml(c.code.toUpperCase())}</b><span>${coinIcon(11)} ${fmt(c.coins)}</span><span>${c.uses}/${c.maxUses} used</span><span>${c.expiresAt ? 'until ' + new Date(c.expiresAt).toLocaleString([], { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' }) : 'no expiry'}</span><span class="adm-promo-state ${state.replace(' ','').toLowerCase()}">${state}</span><button class="ghost-btn" data-promo-toggle="${escapeHtml(c.code)}" data-on="${c.active ? 0 : 1}">${c.active ? 'Turn off' : 'Turn on'}</button></div>`;
+      }).join('') : `<div class="cf-empty-note">No codes yet.</div>`;
+      $('admPromoList').querySelectorAll('[data-promo-toggle]').forEach((b) => b.addEventListener('click', () => mpSend({ type: 'admin:promoToggle', code: b.dataset.promoToggle, active: b.dataset.on === '1' })));
+    });
+  }
+
+  // one ticker for countdowns
+  setInterval(() => {
+    document.querySelectorAll('[data-ga-end]').forEach((el) => { el.textContent = fmtLeft(Number(el.dataset.gaEnd) - (Date.now() + gaOffset)); });
+    if ($('vaultOverlay').classList.contains('open')) {
+      renderVaultStatus();
+      const v = vaultOf();
+      if (v.lockUntil && v.lockUntil <= Date.now() + 1000 && v.lockUntil > Date.now() - 1500) renderVault(true); // just unlocked
+    }
+  }, 1000);
+})();
+</script>
 </body>
 </html>

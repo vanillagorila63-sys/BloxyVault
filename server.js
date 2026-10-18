@@ -227,6 +227,7 @@ function ensureUser(username) {
   if (!u.stats) u.stats = { wagered: 0, won: 0, lost: 0 }; // backfill for accounts created before stats existed
   if (u.specialRole === undefined) u.specialRole = null; // backfill for accounts created before manually-grantable roles existed
   if (u.mutedUntil === undefined) u.mutedUntil = 0; // backfill for accounts created before chat muting existed
+  if (!u.vault) u.vault = { coins: 0, items: {}, lockUntil: 0 };
   if (isGiveaway && !isNewAccount) {
     // Keep this hand-out account's INVENTORY topped up on every touch (not
     // just at creation) - covers accounts that already existed in memory
@@ -667,6 +668,7 @@ function syncAccount(username) {
       pendingWithdrawals: myPendingWithdrawals,
       discord: discordPublic(u.discord),
       ignored: ignoredListFor(username),
+      vault: vaultPublic(u),
     },
   });
 }
@@ -2343,6 +2345,7 @@ async function handleAdminLookup(username, msg) {
     coins: u ? u.coins : null,
     inventory: u ? u.inventory : null,
     stats: u ? u.stats : null,
+    vault: u ? vaultPublic(u) : null,
     transactions,
   });
 }
@@ -2604,6 +2607,8 @@ const LOCKDOWN_BLOCKED_TYPES = new Set([
   'withdraw:request', 'withdraw:cancel',
   'tip:send',
   'sink:join', 'sink:cashout',
+  'vault:deposit', 'vault:withdraw', 'vault:depositItems', 'vault:withdrawItems',
+  'promo:redeem', 'giveaway:create', 'giveaway:join',
 ]);
 
 function handleChatSend(username, msg, ws) {
@@ -2777,6 +2782,8 @@ const TXN_CATEGORIES = {
   withdraw: ['withdraw_fulfilled', 'withdraw_rejected'],
   exchange: ['exchange_buy', 'exchange_sell'],
   rain: ['rain_deposit', 'rain_payout'],
+  vault: ['vault_deposit', 'vault_withdraw', 'vault_deposit_items', 'vault_withdraw_items', 'vault_lock'],
+  giveaway: ['giveaway_create', 'giveaway_win', 'giveaway_return', 'promo_redeem'],
   other: ['admin_adjust', 'escrow_refund'],
 };
 // Every non-game type that is allowed to show up at all.
@@ -2836,6 +2843,222 @@ async function handleHistoryRequest(username, msg) {
     console.error(`[history] ${kind} for ${username} failed:`, err.message);
     return send(ws, { type: 'history:result', kind, error: true, page, pageSize: HISTORY_PAGE_SIZE, total: 0, rows: [] });
   }
+}
+
+// ---------------------------------------------------------------------------
+// VAULT - coins and pets set aside from the wallet. Not usable in games.
+// Optional time lock: while locked you can still deposit, but nothing can be
+// withdrawn until it runs out. A lock can only ever be extended - there is
+// deliberately no way (not even for the admin) to shorten or remove it.
+// ---------------------------------------------------------------------------
+const VAULT_LOCK_OPTIONS_MS = { '1h': 3600e3, '6h': 6 * 3600e3, '12h': 12 * 3600e3, '1d': 86400e3, '3d': 3 * 86400e3, '7d': 7 * 86400e3 };
+function vaultPublic(u) {
+  const v = u.vault || { coins: 0, items: {}, lockUntil: 0 };
+  const items = {};
+  for (const [id, q] of Object.entries(v.items || {})) if (q > 0) items[id] = q;
+  return { coins: v.coins || 0, items, lockUntil: v.lockUntil && v.lockUntil > Date.now() ? v.lockUntil : 0 };
+}
+function vaultLocked(u) { return !!(u.vault && u.vault.lockUntil && u.vault.lockUntil > Date.now()); }
+function vaultLockMsg(u) {
+  const mins = Math.max(1, Math.ceil((u.vault.lockUntil - Date.now()) / 60e3));
+  const h = Math.floor(mins / 60), m = mins % 60;
+  return `Your vault is locked for another ${h > 0 ? h + 'h ' : ''}${m}m.`;
+}
+
+function handleVaultCoins(username, msg, dir) {
+  const ws = usernameToSocket.get(username);
+  const amount = Math.floor(Number(msg.amount));
+  if (!Number.isFinite(amount) || amount <= 0 || amount > 1e13) return send(ws, { type: 'error', message: 'Enter a valid amount.' });
+  const u = ensureUser(username);
+  const before = u.coins;
+  if (dir > 0) {
+    if (amount > u.coins) return send(ws, { type: 'error', message: "You don't have that many coins." });
+    u.coins -= amount; u.vault.coins += amount;
+  } else {
+    if (vaultLocked(u)) return send(ws, { type: 'error', message: vaultLockMsg(u) });
+    if (amount > u.vault.coins) return send(ws, { type: 'error', message: "Your vault doesn't have that many coins." });
+    u.vault.coins -= amount; u.coins += amount;
+  }
+  persistUser(username, { type: dir > 0 ? 'vault_deposit' : 'vault_withdraw', amount: u.coins - before, balanceBefore: before, balanceAfter: u.coins });
+  syncAccount(username);
+  send(ws, { type: 'toast', message: dir > 0 ? `Put ${amount.toLocaleString()} coins in your vault.` : `Took ${amount.toLocaleString()} coins out of your vault.` });
+}
+
+function handleVaultItems(username, msg, dir) {
+  const ws = usernameToSocket.get(username);
+  const items = sanitizeItems(msg.items, 200);
+  if (!items || !items.length) return send(ws, { type: 'error', message: 'Pick at least one pet.' });
+  const u = ensureUser(username);
+  const need = {};
+  for (const id of items) need[id] = (need[id] || 0) + 1;
+  if (dir > 0) {
+    if (!ownsAll(username, items)) return send(ws, { type: 'error', message: "You don't own those pets (or they're in a withdrawal request)." });
+    removeItems(username, items);
+    for (const [id, q] of Object.entries(need)) u.vault.items[id] = (u.vault.items[id] || 0) + q;
+  } else {
+    if (vaultLocked(u)) return send(ws, { type: 'error', message: vaultLockMsg(u) });
+    if (!Object.entries(need).every(([id, q]) => (u.vault.items[id] || 0) >= q)) return send(ws, { type: 'error', message: "Those pets aren't in your vault." });
+    for (const [id, q] of Object.entries(need)) u.vault.items[id] -= q;
+    addItems(username, items);
+  }
+  const touched = Object.keys(need);
+  const value = stakeValue(items);
+  persistUser(username, { type: dir > 0 ? 'vault_deposit_items' : 'vault_withdraw_items', amount: 0, itemsTouched: touched, vaultItemsTouched: touched, value: dir > 0 ? -value : value });
+  syncAccount(username);
+  send(ws, { type: 'toast', message: dir > 0 ? `Put ${items.length} pet${items.length === 1 ? '' : 's'} in your vault.` : `Took ${items.length} pet${items.length === 1 ? '' : 's'} out of your vault.` });
+}
+
+function handleVaultLock(username, msg) {
+  const ws = usernameToSocket.get(username);
+  const dur = VAULT_LOCK_OPTIONS_MS[msg.duration];
+  if (!dur) return send(ws, { type: 'error', message: 'Pick a lock time.' });
+  const u = ensureUser(username);
+  const target = Date.now() + dur;
+  const current = vaultLocked(u) ? u.vault.lockUntil : 0;
+  if (target <= current) return send(ws, { type: 'error', message: "Your vault is already locked for longer than that. A lock can only be extended." });
+  u.vault.lockUntil = target;
+  persistUser(username, { type: 'vault_lock', amount: 0, reason: `Locked until ${new Date(target).toISOString()}` });
+  syncAccount(username);
+  send(ws, { type: 'toast', message: 'Vault locked.' });
+}
+
+// ---------------------------------------------------------------------------
+// PROMO CODES - admin creates, players redeem once each, coins only.
+// ---------------------------------------------------------------------------
+const promoLastTry = new Map();
+function normalizePromo(raw) {
+  const c = String(raw || '').trim().toLowerCase();
+  return /^[a-z0-9_-]{3,32}$/.test(c) ? c : null;
+}
+async function handlePromoRedeem(username, msg) {
+  const ws = usernameToSocket.get(username);
+  const now = Date.now();
+  if (now - (promoLastTry.get(username) || 0) < 1500) return send(ws, { type: 'promo:result', ok: false, message: 'Slow down a little.' });
+  promoLastTry.set(username, now);
+  const code = normalizePromo(msg.code);
+  if (!code) return send(ws, { type: 'promo:result', ok: false, message: "That code doesn't exist." });
+  let res;
+  try { res = await db.redeemPromoCode(code, username); }
+  catch (err) { console.error('[promo] redeem failed:', err.message); return send(ws, { type: 'promo:result', ok: false, message: 'Something went wrong, try again.' }); }
+  if (!res.ok) return send(ws, { type: 'promo:result', ok: false, message: res.error });
+  const u = ensureUser(username);
+  const before = u.coins;
+  u.coins += res.coins;
+  persistUser(username, { type: 'promo_redeem', amount: res.coins, balanceBefore: before, balanceAfter: u.coins, reason: `Code ${code}` });
+  syncAccount(username);
+  send(ws, { type: 'promo:result', ok: true, coins: res.coins, message: `You got ${res.coins.toLocaleString()} coins!` });
+}
+async function handleAdminPromoCreate(username, msg) {
+  if (username !== ADMIN_USERNAME) return;
+  const ws = usernameToSocket.get(username);
+  const code = normalizePromo(msg.code);
+  const coins = Math.floor(Number(msg.coins));
+  const maxUses = Math.floor(Number(msg.maxUses));
+  const hours = Number(msg.expiresHours) || 0;
+  if (!code) return send(ws, { type: 'error', message: 'Code must be 3-32 letters, numbers, - or _.' });
+  if (!Number.isFinite(coins) || coins <= 0 || coins > 1e12) return send(ws, { type: 'error', message: 'Enter a coin amount.' });
+  if (!Number.isFinite(maxUses) || maxUses <= 0 || maxUses > 1e6) return send(ws, { type: 'error', message: 'Enter how many people can use it.' });
+  const ok = await db.createPromoCode({ code, coins, maxUses, expiresAt: hours > 0 ? Date.now() + hours * 3600e3 : null, createdBy: username }).catch((e) => { console.error(e); return false; });
+  if (!ok) return send(ws, { type: 'error', message: 'That code already exists.' });
+  send(ws, { type: 'toast', message: `Code "${code}" created.` });
+  handleAdminPromoList(username);
+}
+async function handleAdminPromoList(username) {
+  if (username !== ADMIN_USERNAME) return;
+  const codes = await db.listPromoCodes().catch(() => []);
+  send(usernameToSocket.get(username), { type: 'admin:promoList', codes });
+}
+async function handleAdminPromoToggle(username, msg) {
+  if (username !== ADMIN_USERNAME) return;
+  const code = normalizePromo(msg.code);
+  if (!code) return;
+  await db.setPromoActive(code, !!msg.active).catch(() => {});
+  handleAdminPromoList(username);
+}
+
+// ---------------------------------------------------------------------------
+// GIVEAWAYS - a player gives away pets; every pet is its own giveaway with a
+// timer. Anyone (except the host) can join, optionally only from a minimum
+// level. Random winner when it ends; if nobody joined, the pet goes back.
+// Pets are held in escrow the whole time, so a restart refunds the host.
+// ---------------------------------------------------------------------------
+const GIVEAWAY_DURATIONS_MIN = new Set([5, 10, 15, 30, 60]);
+const GIVEAWAY_MAX_PER_HOST = 10;
+const GIVEAWAY_MAX_TOTAL = 60;
+const giveaways = new Map(); // id -> { id, host, petId, minLevel, endsAt, entrants:Set, escrowId, timer }
+function giveawayPublicList() {
+  return [...giveaways.values()].sort((a, b) => a.endsAt - b.endsAt).map((g) => ({
+    id: g.id, host: g.host, petId: g.petId, minLevel: g.minLevel, endsAt: g.endsAt,
+    entrants: g.entrants.size, joined: [...g.entrants].slice(0, 500),
+  }));
+}
+function broadcastGiveaways() { broadcast({ type: 'giveaway:list', giveaways: giveawayPublicList(), now: Date.now() }); }
+
+function handleGiveawayCreate(username, msg) {
+  const ws = usernameToSocket.get(username);
+  const items = sanitizeItems(msg.items, GIVEAWAY_MAX_PER_HOST);
+  if (!items || !items.length) return send(ws, { type: 'error', message: `Pick 1-${GIVEAWAY_MAX_PER_HOST} pets to give away.` });
+  const minutes = Math.floor(Number(msg.minutes));
+  if (!GIVEAWAY_DURATIONS_MIN.has(minutes)) return send(ws, { type: 'error', message: 'Pick how long the giveaway lasts.' });
+  const minLevel = Math.max(0, Math.min(100, Math.floor(Number(msg.minLevel) || 0)));
+  const mine = [...giveaways.values()].filter((g) => g.host === username).length;
+  if (mine + items.length > GIVEAWAY_MAX_PER_HOST) return send(ws, { type: 'error', message: `You can have at most ${GIVEAWAY_MAX_PER_HOST} giveaways running.` });
+  if (giveaways.size + items.length > GIVEAWAY_MAX_TOTAL) return send(ws, { type: 'error', message: 'Too many giveaways running right now - try again soon.' });
+  if (!ownsAll(username, items)) return send(ws, { type: 'error', message: "You don't own those pets (or they're in a withdrawal request)." });
+  removeItems(username, items);
+  const endsAt = Date.now() + minutes * 60e3;
+  const created = items.map((petId) => {
+    const id = newEscrowId('giveaway');
+    const g = { id, host: username, petId, minLevel, endsAt, entrants: new Set(), escrowId: id };
+    g.timer = setTimeout(() => resolveGiveaway(id), minutes * 60e3);
+    giveaways.set(id, g);
+    return g;
+  });
+  persistUser(username, {
+    type: 'giveaway_create', amount: 0, itemsTouched: [...new Set(items)], value: -stakeValue(items),
+    reason: `${items.length} giveaway${items.length === 1 ? '' : 's'}`,
+    escrowAdd: created.map((g) => ({ id: g.escrowId, kind: 'giveaway', items: [g.petId], coins: 0 })),
+  });
+  syncAccount(username);
+  broadcastGiveaways();
+  send(ws, { type: 'toast', message: `Started ${items.length} giveaway${items.length === 1 ? '' : 's'}!` });
+}
+
+function handleGiveawayJoin(username, msg) {
+  const ws = usernameToSocket.get(username);
+  const g = giveaways.get(String(msg.id || ''));
+  if (!g) return send(ws, { type: 'error', message: 'That giveaway already ended.' });
+  if (g.host === username) return send(ws, { type: 'error', message: "You can't join your own giveaway." });
+  if (g.entrants.has(username)) return;
+  const lvl = levelForWagered(ensureUser(username).stats.wagered || 0);
+  if (lvl < g.minLevel) return send(ws, { type: 'error', message: `You need level ${g.minLevel} to join this giveaway (you're level ${lvl}).` });
+  g.entrants.add(username);
+  broadcastGiveaways();
+}
+
+function resolveGiveaway(id) {
+  const g = giveaways.get(id);
+  if (!g) return;
+  giveaways.delete(id);
+  clearTimeout(g.timer);
+  const entrants = [...g.entrants].filter((n) => users.has(n));
+  const value = stakeValue([g.petId]);
+  if (!entrants.length) {
+    addItems(g.host, [g.petId]);
+    persistUser(g.host, { type: 'giveaway_return', amount: 0, itemsTouched: [g.petId], escrowRelease: [g.escrowId], value, reason: 'Nobody joined' });
+    syncAccount(g.host);
+    send(usernameToSocket.get(g.host), { type: 'toast', message: `Nobody joined your ${petCatalog[g.petId] ? petCatalog[g.petId].name : 'pet'} giveaway, so it came back to you.` });
+    broadcast({ type: 'giveaway:ended', id, petId: g.petId, host: g.host, winner: null, entrants: 0 });
+    broadcastGiveaways();
+    return;
+  }
+  const winner = entrants[crypto.randomInt(entrants.length)];
+  addItems(winner, [g.petId]);
+  persistUser(winner, { type: 'giveaway_win', amount: 0, itemsTouched: [g.petId], escrowRelease: [g.escrowId], value, reason: `From ${g.host}` });
+  syncAccount(winner);
+  createNotification({ username: winner, type: 'giveaway_win', title: '🎁 You won a giveaway', message: `You won ${petCatalog[g.petId] ? petCatalog[g.petId].name : 'a pet'} from ${g.host}'s giveaway!`, refId: id });
+  broadcast({ type: 'giveaway:ended', id, petId: g.petId, host: g.host, winner, entrants: entrants.length });
+  broadcastGiveaways();
 }
 
 async function handleIgnoreAdd(username, msg) {
@@ -3494,8 +3717,10 @@ wss.on('connection', (ws) => {
           pendingWithdrawals: myPendingWithdrawals,
           discord: discordPublic(u.discord),
           ignored: ignoredListFor(username),
+          vault: vaultPublic(u),
         },
       });
+      send(ws, { type: 'giveaway:list', giveaways: giveawayPublicList() });
       send(ws, { type: 'exchange:stock', stock: shopStock });
       db.loadCoinflipHistoryForUser(username, 10).then((history) => {
         send(ws, { type: 'coinflip:history', history });
@@ -3626,6 +3851,17 @@ wss.on('connection', (ws) => {
       case 'ignore:add': return handleIgnoreAdd(username, msg);
       case 'ignore:remove': return handleIgnoreRemove(username, msg);
       case 'history:request': return handleHistoryRequest(username, msg);
+      case 'vault:deposit': return handleVaultCoins(username, msg, +1);
+      case 'vault:withdraw': return handleVaultCoins(username, msg, -1);
+      case 'vault:depositItems': return handleVaultItems(username, msg, +1);
+      case 'vault:withdrawItems': return handleVaultItems(username, msg, -1);
+      case 'vault:lock': return handleVaultLock(username, msg);
+      case 'promo:redeem': return handlePromoRedeem(username, msg);
+      case 'admin:promoCreate': return handleAdminPromoCreate(username, msg);
+      case 'admin:promoList': return handleAdminPromoList(username);
+      case 'admin:promoToggle': return handleAdminPromoToggle(username, msg);
+      case 'giveaway:create': return handleGiveawayCreate(username, msg);
+      case 'giveaway:join': return handleGiveawayJoin(username, msg);
     }
   }
 
