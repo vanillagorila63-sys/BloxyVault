@@ -715,6 +715,14 @@ function sanitizeItems(raw, max = 100) {
   return raw.slice();
 }
 
+// N/A pets have no value yet (demand.gg lists them as N/A), so they can't be
+// staked in a game or sold/bought on the Exchange. Returns true if it refused.
+function refuseNaItems(username, items) {
+  if (!items || !items.some((id) => petCatalog[id] && petCatalog[id].na)) return false;
+  send(usernameToSocket.get(username), { type: 'error', message: "N/A pets don't have a value yet, so they can't be bet or sold." });
+  return true;
+}
+
 // Exchange stock + rain pool used to live only in memory (wiped by every
 // restart). These mirror changes to Postgres.
 function persistShopStock(ids) {
@@ -838,6 +846,7 @@ function resolveCoinflip(creator, creatorSide, creatorItems, joiner, joinerSide,
 
 function handleCoinflipCreate(username, msg) {
   const items = sanitizeItems(msg.items, 50) || [];
+  if (refuseNaItems(username, items)) return;
   if (!items.length || !ownsAll(username, items)) {
     return send(usernameToSocket.get(username), { type: 'error', message: "You don't own those items." });
   }
@@ -876,6 +885,7 @@ function handleCoinflipJoin(username, msg) {
   // and the house rake would silently take some of your pets.
   if (lobby.creator === username) return send(usernameToSocket.get(username), { type: 'error', message: "You can't join your own lobby." });
   const items = sanitizeItems(msg.items, 50) || [];
+  if (refuseNaItems(username, items)) return;
   if (!items.length || !ownsAll(username, items)) {
     return send(usernameToSocket.get(username), { type: 'error', message: "You don't own those items." });
   }
@@ -952,6 +962,7 @@ function isValidDiceNumber(n) {
 
 function handleDiceDuelCreate(username, msg) {
   const items = sanitizeItems(msg.items, 50) || [];
+  if (refuseNaItems(username, items)) return;
   const number = Number(msg.number);
   if (!items.length || !ownsAll(username, items)) {
     return send(usernameToSocket.get(username), { type: 'error', message: "You don't own those items." });
@@ -982,6 +993,7 @@ function handleDiceDuelJoin(username, msg) {
   }
   if (duel.creator === username) return; // can't join your own duel
   const items = sanitizeItems(msg.items, 50) || [];
+  if (refuseNaItems(username, items)) return;
   const number = Number(msg.number);
   if (!items.length || !ownsAll(username, items)) {
     return send(usernameToSocket.get(username), { type: 'error', message: "You don't own those items." });
@@ -1163,6 +1175,7 @@ function handleJackpotEnter(username, msg) {
   const amount = Math.max(0, Math.floor(Number(msg.amount) || 0));
   const items = msg.items == null ? [] : sanitizeItems(msg.items, 50);
   if (!items) return send(usernameToSocket.get(username), { type: 'error', message: 'Invalid items.' });
+  if (refuseNaItems(username, items)) return;
   if (amount <= 0 && items.length === 0) return;
 
   if (jackpotRound && jackpotRound.entrants.some((e) => e.username === username)) {
@@ -1645,6 +1658,7 @@ function handleExchangeSell(username, msg) {
   // stack regardless of selection, so partial sells work as expected.
   const sellIds = sanitizeItems(msg.items, 500);
   if (!sellIds) return send(usernameToSocket.get(username), { type: 'error', message: 'Invalid items.' });
+  if (refuseNaItems(username, sellIds)) return;
   const requested = {};
   for (const id of sellIds) requested[id] = (requested[id] || 0) + 1;
   const u = ensureUser(username);
@@ -1678,6 +1692,7 @@ function handleExchangeSell(username, msg) {
 function handleExchangeBuy(username, msg) {
   const ids = sanitizeItems(msg.items, 500);
   if (!ids || !ids.length) return send(usernameToSocket.get(username), { type: 'error', message: 'Invalid items.' });
+  if (refuseNaItems(username, ids)) return;
   const requested = {};
   for (const id of ids) requested[id] = (requested[id] || 0) + 1;
   // Every requested pet has to actually be in stock - no more minting pets
