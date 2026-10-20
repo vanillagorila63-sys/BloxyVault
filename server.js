@@ -29,6 +29,7 @@ modeConfigs['group-4'] = { count: 4, isTeam: false, isGroup: true };
 const STARTING_BALANCE = 0; // normal accounts start with nothing - no free coins on creation
 const CASEBATTLE_ABANDON_MS = 5 * 60 * 1000; // if a creator walks away without calling bots or getting joined, clean it up after 5 minutes
 const CASEBATTLE_FINISHED_DISPLAY_MS = 20 * 1000; // how long a finished battle stays visible in the list before it's removed
+const FAST_ROUND_PACE_MS = 1600;   // Fast Spin battles (client plays its animations ~3x quicker)
 const ROUND_PACE_MS = 4300;        // must match the client's MOCK_ROUND_PACE_MS
 const CF_MATCH_TOLERANCE = 0.10;   // coinflip stakes must be within ±10% of each other, matching the client's own join-range check
 
@@ -831,11 +832,30 @@ function weightedPick(pool) {
   }
   return pool[pool.length - 1];
 }
-function getPool(caseIndex) {
+function getPool(caseIndex, defs) {
+  if (typeof caseIndex === 'string') return (defs && defs[caseIndex] && defs[caseIndex].items) || [];
   const items = caseItems[caseIndex];
   if (items && items.length) return items;
   const c = caseData[caseIndex];
   return [{ name: 'Mystery Prize', value: c.price, chance: 100 }];
+}
+// A battle's case list can mix official cases (numbers) and community cases
+// ("c<id>"). Community cases are copied into the battle when it's created
+// (b.caseDefs), so the battle still works if the case is deleted meanwhile.
+function caseRefDef(ref, defs) {
+  if (typeof ref === 'number') return caseData[ref];
+  return defs ? defs[ref] : null;
+}
+function buildBattleCaseDefs(queue) {
+  const defs = {};
+  for (const ref of queue) {
+    if (typeof ref !== 'string' || defs[ref]) continue;
+    const c = communityCases.get(ref.slice(1));
+    if (!c || !c.active) return null;
+    defs[ref] = { name: c.name, price: c.price, image: c.image, ccId: c.id, creator: c.creator, commission: c.commission,
+      items: c.items.map((e) => ({ name: petCatalog[e.id] ? petCatalog[e.id].name : e.id, value: e.value, chance: e.chance })) };
+  }
+  return defs;
 }
 function pickBotNames(n, pool) {
   const shuffled = pool.slice().sort(() => Math.random() - 0.5);
@@ -1375,8 +1395,8 @@ const WIN_MODES = new Set(['normal', 'crazy', 'jackpot', 'terminal', 'coinflip']
 // Coinflip decides between exactly two sides, so it's only allowed in 1v1 and 2v2.
 const COINFLIP_MODES = new Set(['ffa-2', 'team-2v2']);
 
-function battleCost(caseQueue) {
-  return caseQueue.reduce((sum, idx) => sum + caseData[idx].price, 0);
+function battleCost(caseQueue, defs) {
+  return caseQueue.reduce((sum, idx) => sum + caseRefDef(idx, defs).price, 0);
 }
 // Borrow mode: the creator picks 20-80% (steps of 5). Every player pays that
 // much LESS for the cases, and every pull is worth that much less too - so the
@@ -1389,8 +1409,8 @@ function parseBorrow(v) {
 }
 function borrowMultiplier(borrow) { return (100 - (borrow || 0)) / 100; }
 // What one seat actually costs (rounded UP so borrowing never undercharges).
-function battleEntryCost(caseQueue, borrow) {
-  const full = battleCost(caseQueue);
+function battleEntryCost(caseQueue, borrow, defs) {
+  const full = battleCost(caseQueue, defs);
   return borrow ? Math.max(1, Math.ceil(full * borrowMultiplier(borrow))) : full;
 }
 // Picks a team for a new auto-assigned player (a bot, or a join that didn't
@@ -1411,12 +1431,18 @@ function pickAutoTeam(b) {
   if (teamBCount < teamSize) return 1;
   return 0; // both full - shouldn't be reachable since callers already check b.players.length < b.cfg.count first
 }
+function battlePublicDefs(b) {
+  if (!b.caseDefs) return undefined;
+  const out = {};
+  for (const [ref, d] of Object.entries(b.caseDefs)) out[ref] = { name: d.name, price: d.price, image: d.image, creator: d.creator, items: d.items };
+  return out;
+}
 function broadcastBattles() {
   broadcast({
     type: 'casebattle:list',
     battles: [...battles.values()].map((b) => ({
-      id: b.id, creator: b.creator, status: b.status, mode: b.mode, winMode: b.winMode, borrow: b.borrow || 0,
-      caseQueue: b.caseQueue, caseNames: b.caseNames,
+      id: b.id, creator: b.creator, status: b.status, mode: b.mode, winMode: b.winMode, borrow: b.borrow || 0, fast: !!b.fast,
+      caseQueue: b.caseQueue, caseNames: b.caseNames, caseDefs: battlePublicDefs(b),
       players: b.players.map((p) => ({ username: p.username, isBot: p.isBot, team: p.team, total: p.total || 0 })),
       winner: b.winner, winnerValue: b.winnerValue,
     })),
@@ -1428,7 +1454,8 @@ function isValidCaseQueue(q) {
   return Array.isArray(q)
     && q.length >= 1
     && q.length <= CASEBATTLE_MAX_CASES
-    && q.every((i) => Number.isInteger(i) && i >= 0 && i < caseData.length && caseData[i] && caseData[i].price > 0);
+    && q.every((i) => (Number.isInteger(i) && i >= 0 && i < caseData.length && caseData[i] && caseData[i].price > 0)
+      || (typeof i === 'string' && /^c\d{1,15}$/.test(i)));
 }
 
 function handleCaseBattleCreate(username, msg) {
@@ -1442,8 +1469,10 @@ function handleCaseBattleCreate(username, msg) {
   if (winMode === 'coinflip' && !COINFLIP_MODES.has(msg.mode)) {
     return send(usernameToSocket.get(username), { type: 'error', message: 'Coinflip battles can only be 1v1 or 2v2.' });
   }
+  const caseDefs = buildBattleCaseDefs(msg.caseQueue);
+  if (!caseDefs) return send(usernameToSocket.get(username), { type: 'error', message: 'One of those community cases no longer exists.' });
   const borrow = parseBorrow(msg.borrow);
-  const cost = battleEntryCost(msg.caseQueue, borrow);
+  const cost = battleEntryCost(msg.caseQueue, borrow, caseDefs);
   const u = ensureUser(username);
   if (u.coins < cost) return send(usernameToSocket.get(username), { type: 'error', message: "You don't have enough coins for this battle." });
   const before = u.coins;
@@ -1454,10 +1483,10 @@ function handleCaseBattleCreate(username, msg) {
   syncAccount(username);
 
   const id = 'battle_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
-  const caseNames = msg.caseQueue.map((i) => caseData[i].name);
+  const caseNames = msg.caseQueue.map((i) => caseRefDef(i, caseDefs).name);
   battles.set(id, {
-    id, creator: username, status: 'waiting', mode: msg.mode, winMode, borrow,
-    caseQueue: msg.caseQueue, caseNames, cfg,
+    id, creator: username, status: 'waiting', mode: msg.mode, winMode, borrow, fast: !!msg.fast,
+    caseQueue: msg.caseQueue, caseNames, caseDefs, cfg,
     players: [{ username, isBot: false, team: 0, total: 0, lastPull: 0, escrowId: creatorEscrowId }],
   });
   broadcastBattles();
@@ -1480,7 +1509,7 @@ function handleCaseBattleJoin(username, msg) {
   if (b.players.some((p) => p.username === username)) {
     return send(usernameToSocket.get(username), { type: 'error', message: "You're already in this battle." });
   }
-  const cost = battleEntryCost(b.caseQueue, b.borrow);
+  const cost = battleEntryCost(b.caseQueue, b.borrow, b.caseDefs);
   const u = ensureUser(username);
   if (u.coins < cost) return send(usernameToSocket.get(username), { type: 'error', message: "You don't have enough coins for this battle." });
 
@@ -1560,7 +1589,7 @@ function handleCaseBattleCancel(username, msg) {
   if (!b || b.creator !== username || b.status !== 'waiting') return;
   const anyoneElseJoined = b.players.length > 1;
   if (anyoneElseJoined) return;
-  const cost = battleEntryCost(b.caseQueue, b.borrow);
+  const cost = battleEntryCost(b.caseQueue, b.borrow, b.caseDefs);
   const u = ensureUser(username);
   const before = u.coins;
   u.coins += cost;
@@ -1583,13 +1612,30 @@ function startBattle(b) {
     });
   }
   broadcastBattles();
+  creditBattleCommissions(b);
   runBattle(b);
+}
+// Every real player who opens a community case in a battle counts as one
+// opening of it; the creator earns commission on it (not on their own
+// openings, and not on bots - bots pay nothing).
+function creditBattleCommissions(b) {
+  if (!b.caseDefs) return;
+  const mult = borrowMultiplier(b.borrow);
+  for (const ref of b.caseQueue) {
+    const d = b.caseDefs[ref]; if (!d || !d.ccId) continue;
+    const c = communityCases.get(d.ccId); if (!c) continue;
+    for (const p of b.players) {
+      if (p.isBot) continue;
+      const earn = p.username === d.creator ? 0 : Math.floor(d.price * mult * d.commission / 100);
+      ccaseCredit(c, earn, 1);
+    }
+  }
 }
 
 async function runBattle(b) {
   const pullMult = borrowMultiplier(b.borrow);
   for (let roundIdx = 0; roundIdx < b.caseQueue.length; roundIdx++) {
-    const pool = getPool(b.caseQueue[roundIdx]);
+    const pool = getPool(b.caseQueue[roundIdx], b.caseDefs);
     const isFinalRound = roundIdx === b.caseQueue.length - 1;
     const roundPlayers = b.players.map((p) => {
       const rawPull = weightedPick(pool);
@@ -1600,13 +1646,13 @@ async function runBattle(b) {
       return { username: p.username, pulled, total: p.total };
     });
     broadcast({ type: 'casebattle:round', battleId: b.id, roundIdx, players: roundPlayers });
-    if (roundIdx < b.caseQueue.length - 1) await new Promise((r) => setTimeout(r, ROUND_PACE_MS));
+    if (roundIdx < b.caseQueue.length - 1) await new Promise((r) => setTimeout(r, b.fast ? Math.min(ROUND_PACE_MS, FAST_ROUND_PACE_MS) : ROUND_PACE_MS));
     if (b.cancelled) return; // site was reset mid-battle - never pay out afterwards
   }
   if (b.cancelled) return;
 
   const battleTotal = b.players.reduce((s, p) => s + p.total, 0); // winner takes ALL pulled value, not just their own side
-  const perPlayerCost = battleEntryCost(b.caseQueue, b.borrow);
+  const perPlayerCost = battleEntryCost(b.caseQueue, b.borrow, b.caseDefs);
   const winMode = b.cfg.isGroup ? 'group' : (WIN_MODES.has(b.winMode) ? b.winMode : 'normal');
 
   // Group players the same way regardless of mode - teams for Team battles,
@@ -2451,7 +2497,27 @@ function ccasePriceFor(items, commission) {
 function ccasePublic(c) {
   return { id: c.id, creator: c.creator, name: c.name, image: c.image, commission: c.commission, price: c.price, items: c.items, opens: c.opens, createdAt: c.createdAt };
 }
-function ccaseList() { return [...communityCases.values()].map(ccasePublic); }
+function ccaseList() { return [...communityCases.values()].filter((c) => c.active).map(ccasePublic); }
+function ccaseMine(username) {
+  const mine = [...communityCases.values()].filter((c) => c.creator === username);
+  return {
+    cases: mine.map((c) => ({ ...ccasePublic(c), active: c.active, earned: c.earned, unclaimed: c.unclaimed })),
+    opens: mine.reduce((s, c) => s + c.opens, 0),
+    earned: mine.reduce((s, c) => s + c.earned, 0),
+    claimable: mine.reduce((s, c) => s + c.unclaimed, 0),
+  };
+}
+function sendCCaseMine(username) {
+  const ws = usernameToSocket.get(username);
+  if (ws) send(ws, { type: 'ccase:mine', ...ccaseMine(username) });
+}
+// One opening of a community case: counts it, and adds the creator's
+// commission to their claimable balance (not straight to their coins).
+function ccaseCredit(c, earn, opens) {
+  c.opens += opens; c.earned += earn; c.unclaimed = (c.unclaimed || 0) + earn;
+  db.bumpCommunityCase(c.id, earn, opens).catch((e) => console.error('[ccase] stats update failed:', e.message));
+  sendCCaseMine(c.creator);
+}
 function broadcastCommunityCases() { broadcast({ type: 'ccase:list', cases: ccaseList() }); }
 
 async function handleCCaseCreate(username, msg) {
@@ -2483,7 +2549,7 @@ async function handleCCaseCreate(username, msg) {
   }
   const total = items.reduce((s, e) => s + e.chance, 0);
   if (Math.abs(total - 100) > 0.001) return err(`The chances add up to ${Math.round(total * 100) / 100}%. They need to add up to exactly 100%.`);
-  const mine = [...communityCases.values()].filter((c) => c.creator === username).length;
+  const mine = [...communityCases.values()].filter((c) => c.creator === username && c.active).length;
   if (mine >= CCASE_MAX_PER_PLAYER) return err(`You already have ${CCASE_MAX_PER_PLAYER} cases. Delete one to make another.`);
   const price = ccasePriceFor(items, commission);
   if (price < 1) return err('That case would be free. Add more valuable pets or higher chances.');
@@ -2492,27 +2558,67 @@ async function handleCCaseCreate(username, msg) {
   let saved;
   try { saved = await db.insertCommunityCase({ creator: username, name, image, commission, price, items }); }
   catch (e) { console.error('[ccase] create failed:', e.message); return err('Could not save your case. Try again.'); }
-  const c = { id: saved.id, creator: username, name, image, commission, price, items, opens: 0, earned: 0, createdAt: saved.createdAt };
+  const c = { id: saved.id, creator: username, name, image, commission, price, items, opens: 0, earned: 0, unclaimed: 0, active: true, createdAt: saved.createdAt };
   communityCases.set(c.id, c);
   broadcastCommunityCases();
+  sendCCaseMine(username);
   send(ws, { type: 'ccase:created', id: c.id, name, price });
 }
 
+// "Deleting" a case makes it inactive: it leaves the Community list but stays
+// in the creator's Your Cases (with its stats) and can be restored.
 async function handleCCaseDelete(username, msg) {
   const ws = usernameToSocket.get(username);
   const c = communityCases.get(String(msg.id || ''));
-  if (!c) return send(ws, { type: 'error', message: 'That case no longer exists.' });
+  if (!c || !c.active) return send(ws, { type: 'error', message: 'That case is not active.' });
   if (c.creator !== username && username !== ADMIN_USERNAME) return send(ws, { type: 'error', message: 'You can only delete your own cases.' });
-  try { await db.deleteCommunityCase(c.id); } catch (e) { console.error('[ccase] delete failed:', e.message); return send(ws, { type: 'error', message: 'Could not delete that case. Try again.' }); }
-  communityCases.delete(c.id);
+  try { await db.setCommunityCaseActive(c.id, false); } catch (e) { console.error('[ccase] deactivate failed:', e.message); return send(ws, { type: 'error', message: 'Could not delete that case. Try again.' }); }
+  c.active = false;
   broadcastCommunityCases();
-  send(ws, { type: 'toast', message: `Deleted "${c.name}".` });
+  sendCCaseMine(c.creator);
+  send(ws, { type: 'toast', message: `"${c.name}" is now inactive.` });
+}
+
+async function handleCCaseRestore(username, msg) {
+  const ws = usernameToSocket.get(username);
+  const c = communityCases.get(String(msg.id || ''));
+  if (!c || c.creator !== username) return send(ws, { type: 'error', message: 'That case is not yours.' });
+  if (c.active) return;
+  const active = [...communityCases.values()].filter((x) => x.creator === username && x.active).length;
+  if (active >= CCASE_MAX_PER_PLAYER) return send(ws, { type: 'error', message: `You already have ${CCASE_MAX_PER_PLAYER} active cases. Delete one first.` });
+  try { await db.setCommunityCaseActive(c.id, true); } catch (e) { console.error('[ccase] restore failed:', e.message); return send(ws, { type: 'error', message: 'Could not restore that case. Try again.' }); }
+  c.active = true;
+  broadcastCommunityCases();
+  sendCCaseMine(username);
+  send(ws, { type: 'toast', message: `"${c.name}" is active again.` });
+}
+
+let ccClaiming = new Set();
+async function handleCCaseClaim(username) {
+  const ws = usernameToSocket.get(username);
+  if (ccClaiming.has(username)) return;
+  ccClaiming.add(username);
+  try {
+    const amount = await db.claimCommunityEarnings(username);
+    for (const c of communityCases.values()) if (c.creator === username) c.unclaimed = 0;
+    if (amount <= 0) { sendCCaseMine(username); return send(ws, { type: 'error', message: 'Nothing to claim yet.' }); }
+    const u = ensureUser(username);
+    const before = u.coins;
+    u.coins += amount;
+    persistUser(username, { type: 'ccase_commission', amount, balanceBefore: before, balanceAfter: u.coins, reason: 'Claimed case commission', value: amount });
+    syncAccount(username);
+    sendCCaseMine(username);
+    send(ws, { type: 'toast', message: `Claimed ${amount.toLocaleString('en-US')} coins of case commission.` });
+  } catch (e) {
+    console.error('[ccase] claim failed:', e.message);
+    send(ws, { type: 'error', message: 'Could not claim right now. Try again.' });
+  } finally { ccClaiming.delete(username); }
 }
 
 function handleCCaseOpen(username, msg) {
   const ws = usernameToSocket.get(username);
   const c = communityCases.get(String(msg.id || ''));
-  if (!c) return send(ws, { type: 'error', message: 'That case no longer exists.' });
+  if (!c || !c.active) return send(ws, { type: 'error', message: 'That case no longer exists.' });
   const u = ensureUser(username);
   if (u.coins < c.price) return send(ws, { type: 'error', message: "You don't have enough coins for this case." });
   const before = u.coins;
@@ -2526,20 +2632,9 @@ function handleCCaseOpen(username, msg) {
   trackWager(username, c.price);
   persistUser(username, { type: 'case_open', amount: payout - c.price, balanceBefore: before, balanceAfter: u.coins, reason: `Community case: ${c.name}`, game: { game: 'cases', wager: c.price, payout } });
   syncAccount(username);
-  // Creator's commission - not when they open their own case.
-  let earn = 0;
-  if (c.creator !== username && c.commission > 0) {
-    earn = Math.floor(c.price * c.commission / 100);
-    if (earn > 0) {
-      const cu = ensureUser(c.creator);
-      const cb = cu.coins;
-      cu.coins += earn;
-      persistUser(c.creator, { type: 'ccase_commission', amount: earn, balanceBefore: cb, balanceAfter: cu.coins, reason: `${username} opened ${c.name}`, value: earn });
-      syncAccount(c.creator);
-    }
-  }
-  c.opens += 1; c.earned += earn;
-  db.bumpCommunityCase(c.id, earn).catch((e) => console.error('[ccase] stats update failed:', e.message));
+  // Creator's commission (to their claimable balance) - not on their own case.
+  const earn = c.creator === username ? 0 : Math.floor(c.price * c.commission / 100);
+  ccaseCredit(c, earn, 1);
   send(ws, { type: 'case:opened', community: true, caseId: c.id, wonId: won.id, name: pet.name, value: payout, rarity: pet.rarity, pool: c.items.map((e) => ({ id: e.id, chance: e.chance, value: e.value })) });
   pushFeedEvent({ game: 'cases', username, amount: payout, itemName: pet.name });
 }
@@ -2825,7 +2920,7 @@ const LOCKDOWN_BLOCKED_TYPES = new Set([
   'jackpot:enter',
   'casebattle:create', 'casebattle:join', 'casebattle:start', 'casebattle:callBot', 'casebattle:cancel',
   'exchange:sell', 'exchange:buy',
-  'ccase:create', 'ccase:open', 'ccase:delete',
+  'ccase:create', 'ccase:open', 'ccase:delete', 'ccase:restore', 'ccase:claim',
   'account:reset',
   'game:wager', 'game:resolve',
   'case:open',
@@ -4021,6 +4116,7 @@ wss.on('connection', (ws) => {
       send(ws, { type: 'giveaway:list', giveaways: giveawayPublicList() });
       send(ws, { type: 'catalog:values', values: liveValueDiff(), at: valuesUpdatedAt, full: true });
       send(ws, { type: 'ccase:list', cases: ccaseList() });
+      send(ws, { type: 'ccase:mine', ...ccaseMine(username) });
       send(ws, { type: 'exchange:stock', stock: shopStock });
       db.loadCoinflipHistoryForUser(username, 10).then((history) => {
         send(ws, { type: 'coinflip:history', history });
@@ -4115,6 +4211,9 @@ wss.on('connection', (ws) => {
       case 'case:open': return handleCaseOpen(username, msg);
       case 'ccase:create': return handleCCaseCreate(username, msg);
       case 'ccase:delete': return handleCCaseDelete(username, msg);
+      case 'ccase:restore': return handleCCaseRestore(username, msg);
+      case 'ccase:claim': return handleCCaseClaim(username);
+      case 'ccase:mine': return sendCCaseMine(username);
       case 'ccase:open': return handleCCaseOpen(username, msg);
       case 'ccase:list': return send(usernameToSocket.get(username), { type: 'ccase:list', cases: ccaseList() });
       case 'mines:start': return handleMinesStart(username, msg);
@@ -4197,8 +4296,8 @@ function broadcastBattlesTo(ws) {
   send(ws, {
     type: 'casebattle:list',
     battles: [...battles.values()].map((b) => ({
-      id: b.id, creator: b.creator, status: b.status, mode: b.mode, winMode: b.winMode, borrow: b.borrow || 0,
-      caseQueue: b.caseQueue, caseNames: b.caseNames,
+      id: b.id, creator: b.creator, status: b.status, mode: b.mode, winMode: b.winMode, borrow: b.borrow || 0, fast: !!b.fast,
+      caseQueue: b.caseQueue, caseNames: b.caseNames, caseDefs: battlePublicDefs(b),
       players: b.players.map((p) => ({ username: p.username, isBot: p.isBot, team: p.team, total: p.total || 0 })),
       winner: b.winner, winnerValue: b.winnerValue,
     })),

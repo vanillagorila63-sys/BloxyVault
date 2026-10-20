@@ -4749,6 +4749,78 @@ body.cbn-open #cbnRoot .backdrop { opacity: 1; pointer-events: auto; }
     .cc-money-val{ font-size:24px; }
     .cc-create-btn{ margin-left:0; }
   }
+
+  /* ===== Cases page v2: segmented tabs, Your Cases, Fast Spin ===== */
+  #cbnRoot #cbnCaseGrid[hidden], #cbnRoot #cbnCaseGridEmpty[hidden]{ display:none !important; }
+  .cc-mine-wrap[hidden], .cc-sortmenu[hidden], .cc-bar-right[hidden], .cc-bar[hidden], .fs-row[hidden], #cbnCommunityGrid[hidden]{ display:none !important; }
+  .cc-bar{ display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
+  .cc-seg{ display:inline-flex; gap:4px; padding:5px; background:var(--bg-panel); border:1px solid var(--border-soft); border-radius:14px; max-width:100%; overflow-x:auto; }
+  .cc-seg .cc-tab{ border:0; background:none; box-shadow:none; color:var(--text-dim); font:700 15px var(--font-display); padding:10px 18px; border-radius:10px; white-space:nowrap; }
+  .cc-seg .cc-tab.on{ background:var(--bg-panel-3); color:var(--text); box-shadow:none; }
+  .cc-bar-right{ display:flex; gap:10px; align-items:center; flex:1 1 320px; justify-content:flex-end; min-width:0; }
+  .cc-searchbox{ display:flex; align-items:center; gap:10px; background:var(--bg-panel); border:1px solid var(--border); border-radius:12px; padding:0 14px; height:46px; flex:0 1 360px; min-width:0; }
+  .cc-searchbox:focus-within{ border-color:var(--purple-bright); }
+  .cc-searchbox input{ background:none; border:0; outline:0; color:var(--text); font:500 15px var(--font-body); width:100%; min-width:0; }
+  .cc-sortwrap{ position:relative; }
+  .cc-sortbtn{ width:46px; height:46px; border-radius:12px; background:var(--bg-panel-2); border:1px solid var(--border); color:var(--text); display:flex; align-items:center; justify-content:center; cursor:pointer; }
+  .cc-sortmenu{ position:absolute; right:0; top:52px; z-index:20; min-width:200px; background:var(--bg-panel-2); border:1px solid var(--border); border-radius:12px; padding:6px; box-shadow:var(--shadow-pop); display:flex; flex-direction:column; }
+  .cc-sortmenu button{ text-align:left; background:none; border:0; color:var(--text-dim); font:600 14px var(--font-body); padding:9px 12px; border-radius:8px; cursor:pointer; }
+  .cc-sortmenu button.on{ color:var(--text); background:var(--bg-panel-3); }
+  .cc-sortmenu button:hover{ color:var(--text); }
+  .fs-row{ display:flex; align-items:center; gap:12px; background:var(--bg-panel); border:1px solid var(--border-soft); border-radius:14px; padding:10px 16px; margin-bottom:14px; }
+  .fs-ico{ font-size:20px; color:var(--text-dim); }
+  .fs-text{ display:flex; flex-direction:column; flex:1; min-width:0; }
+  .fs-text b{ font:700 15px var(--font-display); color:var(--text); }
+  .fs-text small{ color:var(--text-dim); font-size:13px; }
+  .fs-switch{ position:relative; width:52px; height:30px; flex:0 0 52px; display:inline-block; cursor:pointer; }
+  .fs-switch input{ position:absolute; opacity:0; width:0; height:0; }
+  .fs-switch span{ position:absolute; inset:0; border-radius:999px; background:var(--bg-panel-3); border:1px solid var(--border); transition:background .2s; }
+  .fs-switch span::after{ content:""; position:absolute; top:3px; left:3px; width:22px; height:22px; border-radius:50%; background:#fff; transition:transform .2s; }
+  .fs-switch input:checked + span{ background:var(--purple-bright); border-color:var(--purple-bright); }
+  .fs-switch input:checked + span::after{ transform:translateX(22px); }
+  .fs-switch input:focus-visible + span{ outline:2px solid var(--purple-bright); outline-offset:2px; }
+  .fs-menu-row{ cursor:default; }
+  .fs-menu-row .fs-switch{ margin-left:auto; }
+  .cc2{ position:relative; display:flex; flex-direction:column; align-items:center; gap:10px; padding:18px 14px 16px; cursor:pointer; }
+  .cc2 .cc2-name{ font:700 16px var(--font-display); color:var(--text); text-align:center; max-width:100%; padding:0 26px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .cc2 .cc2-img{ width:100%; aspect-ratio:1/0.82; display:flex; align-items:center; justify-content:center; }
+  .cc2 .cc2-img img{ max-width:82%; max-height:100%; object-fit:contain; }
+  .cc2 .cc2-pill{ width:100%; max-width:220px; text-align:center; background:var(--bg-panel-3); border-radius:10px; padding:8px 10px; font:700 15px var(--font-num); color:var(--text); display:flex; align-items:center; justify-content:center; gap:6px; }
+  .cc2 .cc2-pill.dim{ font:600 13px var(--font-body); color:var(--text-dim); }
+  .cc2 .cc2-by{ font-size:12px; color:var(--text-dim); margin-top:-4px; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .cc2 .cc2-x{ position:absolute; top:12px; right:12px; width:32px; height:32px; border-radius:8px; background:rgba(239,74,95,.15); border:0; color:var(--red); font-size:16px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+  .cc2 .cc2-x.armed{ background:var(--red); color:#fff; width:auto; padding:0 10px; font-size:12px; }
+  .cc2 .cc2-restore{ position:absolute; top:12px; right:12px; font:700 12px var(--font-body); color:var(--green); background:rgba(52,211,153,.12); border:0; border-radius:8px; padding:7px 10px; cursor:pointer; }
+  .cc2.inactive .cc2-img{ opacity:.45; filter:grayscale(.7); }
+  .cc-mine-wrap{ display:flex; flex-direction:column; gap:14px; }
+  .cc-stats{ display:grid; grid-template-columns:repeat(3, minmax(0,1fr)) auto; align-items:center; gap:12px; background:var(--bg-panel); border:1px solid var(--border-soft); border-radius:16px; padding:18px 22px; }
+  .cc-stat{ text-align:center; display:flex; flex-direction:column; align-items:center; gap:6px; border-right:1px solid var(--border-soft); min-width:0; }
+  .cc-stat:nth-child(3){ border-right:0; }
+  .cc-stat-l{ font:700 12px var(--font-display); letter-spacing:.08em; color:var(--text-dim); }
+  .cc-stat-v{ font:800 24px var(--font-num); color:var(--text); display:flex; align-items:center; gap:6px; font-variant-numeric:tabular-nums; }
+  .cc-claim{ font:700 12px var(--font-display); color:#1a1306; background:var(--gold); border:0; border-radius:8px; padding:5px 14px; cursor:pointer; }
+  .cc-stats .cc-create-btn{ margin:0; padding:14px 26px; font-size:16px; border-radius:12px; }
+  .cc-subtabs{ display:flex; gap:4px; padding:5px; background:var(--bg-panel); border:1px solid var(--border-soft); border-radius:14px; }
+  .cc-subtab{ border:0; background:none; color:var(--text-dim); font:700 15px var(--font-display); padding:10px 20px; border-radius:10px; cursor:pointer; }
+  .cc-subtab.on{ background:var(--bg-panel-3); color:var(--text); }
+  @media (max-width:760px){
+    .cc-stats{ grid-template-columns:repeat(3, minmax(0,1fr)); padding:14px; }
+    .cc-stats .cc-create-btn{ grid-column:1/-1; }
+    .cc-stat-v{ font-size:18px; }
+    .cc-bar-right{ flex-basis:100%; }
+    .cc-searchbox{ flex:1 1 auto; }
+    .cc-seg .cc-tab{ padding:9px 12px; font-size:14px; }
+  }
+  @media (max-width:600px){
+    #caseGrid, #ccGrid, #ccMineGrid{ grid-template-columns:repeat(2, minmax(0,1fr)) !important; gap:10px !important; }
+    .cc2{ padding:12px 8px 10px; gap:8px; }
+    .cc2 .cc2-name{ font-size:13.5px; padding:0 22px; }
+    .cc2 .cc2-pill{ font-size:13px; padding:6px 6px; }
+    .cc2 .cc2-pill.dim{ font-size:11px; }
+    .cc2 .cc2-x{ width:26px; height:26px; top:8px; right:8px; font-size:13px; }
+    .cc2 .cc2-restore{ top:8px; right:8px; padding:5px 7px; font-size:11px; }
+  }
+  .bv-fast-tag{ display:inline-flex; align-items:center; gap:4px; font:800 11px var(--font-display); color:#1a1306; background:var(--gold); border-radius:6px; padding:2px 7px; margin-left:6px; vertical-align:middle; }
   /* Result overlay never wraps into the winner box */
   #cbnRoot .bv-result-banner{ white-space:nowrap; max-width:92%; overflow:hidden; text-overflow:ellipsis; font-size:13px !important; padding:6px 14px !important; }
   #cbnRoot .bv-result-summary{ top:56px !important; }
@@ -4917,6 +4989,7 @@ body.cbn-open #cbnRoot .backdrop { opacity: 1; pointer-events: auto; }
         <button class="acct-menu-item" data-acct="vault" type="button"><span class="ami-ico ami-vault">🔐</span><span class="ami-text"><b>Vault</b><small id="acctMenuVaultSub">Keep coins &amp; pets safe</small></span><span class="ami-arrow">›</span></button>
         <button class="acct-menu-item" data-acct="promo" type="button"><span class="ami-ico ami-promo">🎟️</span><span class="ami-text"><b>Redeem Promocode</b><small>Got a code? Claim it</small></span><span class="ami-arrow">›</span></button>
         <button class="acct-menu-item" data-acct="giveaway" type="button"><span class="ami-ico ami-gift">🎁</span><span class="ami-text"><b>Create Giveaway</b><small>Give pets away in chat</small></span><span class="ami-arrow">›</span></button>
+        <div class="acct-menu-item fs-menu-row"><span class="ami-ico ami-plain">⚡</span><span class="ami-text"><b>Fast Spin</b><small>Faster spin animations</small></span><label class="fs-switch"><input type="checkbox" data-fast-toggle aria-label="Fast Spin"><span></span></label></div>
         <div class="acct-menu-sep"></div>
         <button class="acct-menu-item small" data-acct="account" type="button"><span class="ami-ico ami-plain">👤</span><span class="ami-text"><b>Profile &amp; History</b></span><span class="ami-arrow">›</span></button>
       </div>
@@ -5035,26 +5108,43 @@ body.cbn-open #cbnRoot .backdrop { opacity: 1; pointer-events: auto; }
             <div class="view-sub" style="margin-bottom:0;">Official cases and cases made by players. Every pull converts straight to coins.</div>
           </div>
         </div>
-        <div class="cc-tabs" role="tablist">
-          <button class="cc-tab on" type="button" data-cc-tab="official">Official</button>
-          <button class="cc-tab" type="button" data-cc-tab="community">Community <span class="cc-tab-count" id="ccTabCount">0</span></button>
-          <button class="cc-create-btn" type="button" id="ccCreateBtn">＋ Create Case</button>
+        <div class="cc-bar" id="ccBar">
+          <div class="cc-seg" role="tablist">
+            <button class="cc-tab on" type="button" data-cc-tab="official">Official</button>
+            <button class="cc-tab" type="button" data-cc-tab="community">Community</button>
+            <button class="cc-tab" type="button" data-cc-tab="mine">Your Cases</button>
+          </div>
+          <div class="cc-bar-right" id="ccBarRight">
+            <label class="cc-searchbox"><span aria-hidden="true">🔍</span><input id="ccSearch" type="search" placeholder="Search for a case..." autocomplete="off"></label>
+            <div class="cc-sortwrap">
+              <button class="cc-sortbtn" type="button" id="ccSortBtn" aria-haspopup="menu" aria-label="Sort cases" title="Sort"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M3 5h12M3 10h9M3 15h6M3 20h3M18 4v15m0 0-3-3m3 3 3-3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+              <div class="cc-sortmenu" id="ccSortMenu" role="menu" hidden></div>
+            </div>
+          </div>
+        </div>
+        <div class="fs-row" data-fs-row>
+          <span class="fs-ico" aria-hidden="true">⚡</span>
+          <span class="fs-text"><b>Fast Spin</b><small>Faster spin animations</small></span>
+          <label class="fs-switch"><input type="checkbox" data-fast-toggle aria-label="Fast Spin"><span></span></label>
         </div>
         <div class="cases-panel" id="ccOfficialPanel">
           <div class="case-grid" id="caseGrid"></div>
         </div>
         <div class="cases-panel" id="ccCommunityPanel" hidden>
-          <div class="cc-toolbar">
-            <input class="amount-input cc-search" id="ccSearch" type="search" placeholder="Search cases or creators" autocomplete="off">
-            <select class="amount-input cc-sort" id="ccSort">
-              <option value="popular">Most opened</option>
-              <option value="new">Newest</option>
-              <option value="low">Price: low to high</option>
-              <option value="high">Price: high to low</option>
-            </select>
-            <label class="cc-mine"><input type="checkbox" id="ccMineOnly"> My cases</label>
-          </div>
           <div class="case-grid" id="ccGrid"></div>
+        </div>
+        <div class="cc-mine-wrap" id="ccMinePanel" hidden>
+          <div class="cc-stats">
+            <div class="cc-stat"><div class="cc-stat-l">TOTAL OPENS</div><div class="cc-stat-v" id="ccStatOpens">0</div></div>
+            <div class="cc-stat"><div class="cc-stat-l">TOTAL EARNED</div><div class="cc-stat-v" id="ccStatEarned">0</div></div>
+            <div class="cc-stat"><div class="cc-stat-l">CLAIMABLE</div><div class="cc-stat-v" id="ccStatClaim">0</div><button class="cc-claim" type="button" id="ccClaimBtn" hidden>Claim</button></div>
+            <button class="cc-create-btn" type="button" id="ccCreateBtn">Create Case</button>
+          </div>
+          <div class="cc-subtabs" role="tablist">
+            <button class="cc-subtab on" type="button" data-cc-sub="active">Active (<span id="ccActiveCount">0</span>)</button>
+            <button class="cc-subtab" type="button" data-cc-sub="inactive">Inactive (<span id="ccInactiveCount">0</span>)</button>
+          </div>
+          <div class="case-grid" id="ccMineGrid"></div>
         </div>
         <div class="cc-creator" id="ccCreator" hidden>
           <button class="cc-back" type="button" id="ccBackBtn">‹ Back to Cases</button>
@@ -5144,7 +5234,7 @@ body.cbn-open #cbnRoot .backdrop { opacity: 1; pointer-events: auto; }
       <div class="selector-top">
         <div class="tabs">
           <button class="tab active" id="cbnTabOfficial">Official</button>
-          <button class="tab" id="cbnTabCommunity" disabled title="Community cases coming soon">Community</button>
+          <button class="tab" id="cbnTabCommunity" title="Cases made by players">Community</button>
         </div>
         <div class="search-box">
           <span class="search-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></span>
@@ -5154,7 +5244,8 @@ body.cbn-open #cbnRoot .backdrop { opacity: 1; pointer-events: auto; }
       </div>
 
       <div class="case-grid" id="cbnCaseGrid"></div>
-      <div class="case-grid-empty" id="cbnCaseGridEmpty" hidden>No community cases yet — check back soon.</div>
+      <div class="case-grid" id="cbnCommunityGrid" hidden></div>
+      <div class="case-grid-empty" id="cbnCaseGridEmpty" hidden>No community cases yet. Players can make them on the Cases page.</div>
 
       <div class="selector-footer">
         <div class="footer-stats">
@@ -10479,14 +10570,27 @@ function renderCases(){
 
 let activeCase = null;
 // Fast mode (per browser): the case spin finishes in under a second.
+// Fast Spin (one setting, remembered per browser): cases spin in under a
+// second, and battles you create run ~3x faster for everyone in them.
 function caseFastMode(){ try { return localStorage.getItem('bv_fast_cases') === '1'; } catch (e) { return false; } }
-function syncCaseFastBtn(){ const b = document.getElementById('caseFastBtn'); if (b) b.setAttribute('aria-pressed', caseFastMode() ? 'true' : 'false'); }
-document.getElementById('caseFastBtn').addEventListener('click', () => {
-  const on = !caseFastMode();
+function setFastSpin(on){
   try { localStorage.setItem('bv_fast_cases', on ? '1' : '0'); } catch (e) {}
   syncCaseFastBtn();
-  showToast(on ? 'Fast mode on: cases open almost instantly.' : 'Fast mode off.');
+}
+function syncCaseFastBtn(){
+  const on = caseFastMode();
+  const b = document.getElementById('caseFastBtn'); if (b) b.setAttribute('aria-pressed', on ? 'true' : 'false');
+  document.querySelectorAll('[data-fast-toggle]').forEach((t) => { t.checked = on; });
+}
+document.getElementById('caseFastBtn').addEventListener('click', () => {
+  const on = !caseFastMode(); setFastSpin(on);
+  showToast(on ? 'Fast Spin on.' : 'Fast Spin off.');
 });
+document.addEventListener('change', (e) => {
+  if (e.target && e.target.matches && e.target.matches('[data-fast-toggle]')) setFastSpin(e.target.checked);
+});
+document.addEventListener('DOMContentLoaded', syncCaseFastBtn);
+setTimeout(syncCaseFastBtn, 0);
 function openCaseModal(c){
   activeCase = c;
   syncCaseFastBtn();
@@ -14919,6 +15023,18 @@ function renderAdminWithdrawList(){
       <div class="bc-config-block bc-borrow-block">
         <div class="bc-borrow-head">
           <div>
+            <div class="bc-config-title" style="margin-bottom:2px;">⚡ Fast Spin</div>
+            <div class="bc-borrow-help">This battle runs about 3x faster for everyone in it.</div>
+          </div>
+          <label class="bc-switch" title="Fast Spin">
+            <input type="checkbox" data-fast-toggle>
+            <span class="bc-switch-slider"></span>
+          </label>
+        </div>
+      </div>
+      <div class="bc-config-block bc-borrow-block">
+        <div class="bc-borrow-head">
+          <div>
             <div class="bc-config-title" style="margin-bottom:2px;">Borrow</div>
             <div class="bc-borrow-help">Cases cost less, pulls are worth the same % less.</div>
           </div>
@@ -15132,7 +15248,17 @@ function renderAdminWithdrawList(){
   let finishedBattleDetails = {}; // battleId -> full casebattle:finished payload, for the View modal
   let seenBattleStatus = {};      // battleId -> last status seen, to detect waiting->running transitions
 
+  // Community cases used in battles arrive with the battle list; add them to
+  // the case tables under their "c<id>" key so everything below can look
+  // them up the same way as official cases.
+  function registerBattleCase(key, d){
+    if (!d) return;
+    CASE_DATA[key] = { name: d.name, price: d.price, image: d.image, colors: ['#8f6bff', '#2b1d5c'], emoji: '📦', community: true, creator: d.creator };
+    CASE_ITEMS[key] = Array.isArray(d.items) ? d.items : [];
+  }
+  window.bvRegisterBattleCase = registerBattleCase;
   mpOn('casebattle:list', (msg) => {
+    (msg.battles || []).forEach((b) => { if (b.caseDefs) Object.entries(b.caseDefs).forEach(([k, d]) => registerBattleCase(k, d)); });
     mpBattles = msg.battles;
     renderMyBattles();
 
@@ -15196,7 +15322,7 @@ function renderAdminWithdrawList(){
   function mockBroadcastBattles(){
     mpDispatch({ type: 'casebattle:list', battles: mockBattles.map((b) => ({
       id: b.id, creator: b.creator, status: b.status, mode: b.mode, winMode: b.winMode, borrow: b.borrow || 0,
-      caseQueue: b.caseQueue, caseNames: b.caseNames,
+      caseQueue: b.caseQueue, caseNames: b.caseNames, fast: !!b.fast,
       players: b.players.map((p) => ({ username: p.username, isBot: p.isBot, team: p.team, total: p.total || 0 })),
       winner: b.winner, winnerValue: b.winnerValue,
     })) });
@@ -15231,7 +15357,7 @@ function renderAdminWithdrawList(){
         return { username: p.username, pulled, total: p.total };
       });
       mpDispatch({ type: 'casebattle:round', battleId: b.id, roundIdx, players: roundPlayers });
-      if (roundIdx < b.caseQueue.length - 1) await wait(MOCK_ROUND_PACE_MS);
+      if (roundIdx < b.caseQueue.length - 1) await wait(b.fast ? 1600 : MOCK_ROUND_PACE_MS);
     }
 
     // Winner takes the ENTIRE battle pot (every player's pulls, both
@@ -15343,7 +15469,7 @@ function renderAdminWithdrawList(){
       return;
     }
     mockBattles.push({
-      id, creator: currentUser, status: 'waiting', mode: msg.mode, winMode, borrow: mockBorrow,
+      id, creator: currentUser, status: 'waiting', mode: msg.mode, winMode, borrow: mockBorrow, fast: !!msg.fast,
       caseQueue: msg.caseQueue, caseNames, players: [{ username: currentUser, isBot: false, team: 0, total: 0, lastPull: 0 }],
     });
     mockBroadcastBattles();
@@ -15710,11 +15836,48 @@ function renderAdminWithdrawList(){
   // actually shows/hides the right content immediately, and Community shows
   // a real "nothing here yet" message instead of silently doing nothing.
   const caseGridEmpty = document.getElementById('cbnCaseGridEmpty');
+  const communityGrid = document.getElementById('cbnCommunityGrid');
+  let battleCommunityList = [];
   function renderTabView() {
     const showingCommunity = tabCommunity.classList.contains('active');
     caseGrid.hidden = showingCommunity;
-    if (caseGridEmpty) caseGridEmpty.hidden = !showingCommunity;
+    communityGrid.hidden = !showingCommunity || !battleCommunityList.length;
+    if (caseGridEmpty) caseGridEmpty.hidden = !showingCommunity || battleCommunityList.length > 0;
   }
+  // Community cases in the battle picker (sent by the Cases page script).
+  function renderBattleCommunity() {
+    const q = (searchInput && searchInput.value || '').toLowerCase();
+    communityGrid.innerHTML = battleCommunityList.filter((c) => !q || c.name.toLowerCase().includes(q) || c.creator.toLowerCase().includes(q)).map((c) => {
+      const key = 'c' + c.id; const count = selectedCounts[key] || 0;
+      return `<div class="case-card${count ? ' selected' : ''}" data-key="${key}" style="--c1:#8f6bff;--c2:#2b1d5c">
+        <button class="case-select-btn" type="button" title="Add to battle">+</button>
+        <div class="case-badge">x${count}</div>
+        <div class="case-name">${escapeHtml(c.name)}</div>
+        <div class="case-icon has-image"><img src="${escapeHtml(c.image)}" alt=""></div>
+        <div class="case-price">${COIN_ICON_HTML} ${commas(c.price)}</div>
+      </div>`;
+    }).join('');
+    renderTabView();
+  }
+  communityGrid.addEventListener('click', (e) => {
+    const card = e.target.closest('[data-key]'); if (!card) return;
+    const key = card.dataset.key;
+    if (e.target.closest('.case-select-btn')) { addCaseSelection(key); return; }
+    showDetail(key);
+  });
+  communityGrid.addEventListener('contextmenu', (e) => {
+    const btn = e.target.closest('.case-select-btn'); if (!btn) return;
+    e.preventDefault(); removeCaseSelection(btn.closest('[data-key]').dataset.key);
+  });
+  window.bvSetBattleCommunityCases = (list) => {
+    battleCommunityList = Array.isArray(list) ? list : [];
+    battleCommunityList.forEach((c) => registerBattleCase('c' + c.id, { name: c.name, price: c.price, image: c.image, creator: c.creator,
+      items: c.items.map((i) => ({ name: (CATALOG_BY_ID[i.id] || {}).name || i.id, value: i.value, chance: i.chance })) }));
+    // Drop selections of cases that were just deleted.
+    Object.keys(selectedCounts).forEach((k) => { if (k[0] === 'c' && !battleCommunityList.some((c) => 'c' + c.id === k)) delete selectedCounts[k]; });
+    renderBattleCommunity();
+    refreshFooter();
+  };
   tabOfficial.addEventListener('click', () => {
     tabOfficial.classList.add('active');
     tabCommunity.classList.remove('active');
@@ -15730,13 +15893,18 @@ function renderAdminWithdrawList(){
   // ===== Build case grid =====
   const selectedCounts = {}; // index -> count
 
+  // Official cases by index, then any selected community cases ("c<id>").
+  function selKeys() {
+    return [...CASE_DATA.keys(), ...Object.keys(selectedCounts).filter((k) => k[0] === 'c' && CASE_DATA[k] && selectedCounts[k] > 0)];
+  }
   function totalSelected() {
     return Object.values(selectedCounts).reduce((a, b) => a + b, 0);
   }
 
   function refreshFooter() {
     let cases = 0, total = 0;
-    CASE_DATA.forEach((c, i) => {
+    selKeys().forEach((i) => {
+      const c = CASE_DATA[i];
       const count = selectedCounts[i] || 0;
       cases += count;
       total += count * c.price;
@@ -15746,7 +15914,8 @@ function renderAdminWithdrawList(){
   }
 
   function refreshCard(i) {
-    const card = caseGrid.children[i];
+    const card = typeof i === 'string' ? document.querySelector(`#cbnCommunityGrid [data-key="${i}"]`) : caseGrid.children[i];
+    if (!card) return;
     const count = selectedCounts[i] || 0;
     card.classList.toggle('selected', count > 0);
     card.querySelector('.case-badge').textContent = `x${count}`;
@@ -15755,6 +15924,7 @@ function renderAdminWithdrawList(){
   function resetSelection() {
     Object.keys(selectedCounts).forEach((k) => delete selectedCounts[k]);
     CASE_DATA.forEach((c, i) => { if (caseGrid.children[i]) refreshCard(i); });
+    if (typeof renderBattleCommunity === 'function') renderBattleCommunity();
     refreshFooter();
   }
 
@@ -15816,6 +15986,7 @@ function renderAdminWithdrawList(){
     CASE_DATA.forEach((c, i) => {
       caseGrid.children[i].style.display = (!q || c.name.toLowerCase().includes(q)) ? '' : 'none';
     });
+    renderBattleCommunity();
   });
 
   // ===== Done: goes to Battle Creation instead of launching straight in =====
@@ -15831,7 +16002,8 @@ function renderAdminWithdrawList(){
     // Clear everything except the "Add Cases" tile
     Array.from(bcCasesGrid.querySelectorAll('.bc-case-tile')).forEach((el) => el.remove());
 
-    CASE_DATA.forEach((c, i) => {
+    selKeys().forEach((i) => {
+      const c = CASE_DATA[i];
       const count = selectedCounts[i] || 0;
       const iconMarkup = c.image ? `<img src="${c.image}" alt="${c.name}">` : c.emoji;
 
@@ -15861,7 +16033,8 @@ function renderAdminWithdrawList(){
   function borrowedPrice(full, pct){ return pct ? Math.max(1, Math.ceil(full * (100 - pct) / 100)) : full; }
   function updateCreationPill() {
     let totalCases = 0, totalCost = 0;
-    CASE_DATA.forEach((c, i) => {
+    selKeys().forEach((i) => {
+      const c = CASE_DATA[i];
       const count = selectedCounts[i] || 0;
       totalCases += count;
       totalCost += count * c.price;
@@ -15957,6 +16130,7 @@ function renderAdminWithdrawList(){
   });
 
   function showCreationScreen() {
+    if (typeof syncCaseFastBtn === 'function') syncCaseFastBtn();
     renderCreationCases();
     creationView.hidden = false;
   }
@@ -15993,13 +16167,14 @@ function renderAdminWithdrawList(){
   bcCreateBattleBtn.addEventListener('click', () => {
     getAudioCtx();
     const queue = [];
-    CASE_DATA.forEach((c, i) => {
+    selKeys().forEach((i) => {
+      const c = CASE_DATA[i];
       const count = selectedCounts[i] || 0;
       for (let n = 0; n < count; n++) queue.push(i);
     });
     if (queue.length === 0) return;
     hideCreationScreen();
-    mpSend({ type: 'casebattle:create', mode: selectedModeKey, winMode: selectedWinModeKey, caseQueue: queue, borrow: borrowPct });
+    mpSend({ type: 'casebattle:create', mode: selectedModeKey, winMode: selectedWinModeKey, caseQueue: queue, borrow: borrowPct, fast: caseFastMode() });
     showToast('Creating battle...');
   });
 
@@ -16142,6 +16317,8 @@ function renderAdminWithdrawList(){
     if (waitSlots) waitSlots.hidden = true;
     if (bvMarker) bvMarker.hidden = false;
     battleQueue = battle.caseQueue;
+    battleFast = !!battle.fast;
+    if (bvProgress) bvProgress.dataset.fast = battleFast ? '1' : '';
     currentBattleConfig = { count: battle.players.length, isTeam: battle.mode === 'team-2v2', isGroup: !!(MODE_CONFIGS[battle.mode] || {}).isGroup, teamSize: 2, mode: battle.mode };
     currentBattleWinMode = battle.winMode || 'normal';
     currentBattleBorrow = battle.borrow || 0;
@@ -16373,6 +16550,10 @@ function renderAdminWithdrawList(){
     return ""; // no placeholder art for synthetic "Mystery Prize" items
   }
 
+  // Fast Spin battles play every animation ~3x quicker (the server runs
+  // their rounds faster to match).
+  let battleFast = false;
+  const bf = (ms) => battleFast ? Math.round(ms * 0.32) : ms;
   function wait(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
@@ -16650,7 +16831,7 @@ function renderAdminWithdrawList(){
     bvCountdownNumber.style.animation = "none";
     void bvCountdownNumber.offsetWidth; // restart the pop animation
     bvCountdownNumber.style.animation = "";
-    setTimeout(() => runCountdown(n - 1, onDone, runToken), 1000);
+    setTimeout(() => runCountdown(n - 1, onDone, runToken), bf(1000));
   }
 
   async function waitForRoundData(battleId, roundIdx, runToken) {
@@ -16668,7 +16849,7 @@ function renderAdminWithdrawList(){
       return;
     }
 
-    bvProgress.textContent = `Case ${roundIdx + 1} of ${battleQueue.length}`;
+    bvProgress.innerHTML = `Case ${roundIdx + 1} of ${battleQueue.length}${battleFast ? ' <span class="bv-fast-tag">⚡ FAST</span>' : ''}`;
     Array.from(bvCaseStrip.children).forEach((chip, i) => {
       chip.classList.toggle("active", i === roundIdx);
       chip.classList.toggle("done", i < roundIdx);
@@ -16712,7 +16893,7 @@ function renderAdminWithdrawList(){
     // delay+duration, so this runs for as long as the slowest (last) one.
     const spinTotalMs = 30 + (columns.length - 1) * 130 + 3000 + (columns.length - 1) * 150;
     const stopSharedSpinRoll = startRollSound(spinTotalMs);
-    await Promise.all(columns.map((c, i) => animateStrip(c.strip, c.targetY, 3000 + i * 150, 30 + i * 130, false)));
+    await Promise.all(columns.map((c, i) => animateStrip(c.strip, c.targetY, bf(3000 + i * 150), bf(30 + i * 130), false)));
     stopSharedSpinRoll();
     if (isStaleRun(runToken)) return;
 
@@ -16742,13 +16923,13 @@ function renderAdminWithdrawList(){
         return;
       }
 
-      await wait(300); // let the mystery gold coin sit for a beat
+      await wait(bf(300)); // let the mystery gold coin sit for a beat
       if (isStaleRun(runToken)) return;
 
       const goldPool = pool.filter((it) => it.value > GOLD_THRESHOLD || it.goldSpin === true);
       const built2 = buildStrip(c.col, goldPool, c.landingItem, true);
       if (!goldRollSoundStarted) { goldRollSoundStarted = true; startRollSound(1200); }
-      await animateStrip(built2.strip, built2.targetY, 1200, 20, false);
+      await animateStrip(built2.strip, built2.targetY, bf(1200), 20, false);
       if (isStaleRun(runToken)) return;
 
       built2.landedBox.classList.add("landed");
@@ -16757,7 +16938,7 @@ function renderAdminWithdrawList(){
     }));
 
     if (isStaleRun(runToken)) return;
-    await wait(900);
+    await wait(bf(900));
     runRound(roundIdx + 1, runToken);
   }
 
@@ -17423,103 +17604,168 @@ function renderAdminWithdrawList(){
 </script>
 <script>
 // ===========================================================
-// COMMUNITY CASES - list, creator and opening. The server checks every
-// rule again (5 per player, price up to 500k, pets under 60M, chances = 100%)
-// and works out the real price; the numbers here are just a live preview.
+// CASES PAGE - Official / Community / Your Cases, the case creator and the
+// pet picker. The server checks every rule again (5 active per player,
+// price up to 500k, pets under 60M, chances = 100%) and works out the real
+// price; the numbers here are just a live preview.
 // ===========================================================
 (function(){
   const $ = (id) => document.getElementById(id);
   const MAX_PRICE = 500000, MAX_PET = 60000000, MAX_PER = 5, MAX_ITEMS = 30, RTP = 0.9;
   const IMAGES = ['/assets/img/8f04fa0bee21270e89c6.webp','/assets/img/d6c3b5e3856e69b03926.webp','/assets/img/aee331a2b59963d5c192.webp','/assets/img/5bc4ac1efdbe4b742eaf.webp','/assets/img/684c025c505c0193fbd5.png','/assets/img/fac645ae50cf89136139.webp','/assets/img/bb37ac1e45426d178506.webp','/assets/img/6178b795abe48c021aa8.png','/assets/img/dbddeda999aad8779d54.png','/assets/img/9b753997f22235880fca.png'];
   const RAR_COLOR = { common:'#9a8f94', rare:'#3a7fd9', epic:'#8b4fd9', legendary:'#d99a3a', mythic:'#d93a6e', secret:'#f4c430' };
-  let cases = [];
-  let tab = 'official';
-  const draft = { image: IMAGES[0], name: '', items: [], commission: 3 }; // items: [{id, chance}]
+  let cases = [];                       // active community cases (everyone's)
+  let mine = { cases: [], opens: 0, earned: 0, claimable: 0 };
+  let tab = 'official', sub = 'active';
+  const sortBy = { official: 'high', community: 'popular' };
+  const SORTS = { official: [['high','Price: high to low'],['low','Price: low to high'],['name','Name A–Z']],
+                  community: [['popular','Most opened'],['new','Newest'],['high','Price: high to low'],['low','Price: low to high'],['name','Name A–Z']] };
+  const draft = { image: IMAGES[0], name: '', items: [], commission: 3 };
   let busy = false;
 
   const priceOf = (items, c) => Math.round(items.reduce((s, e) => s + (CATALOG_BY_ID[e.id] ? CATALOG_BY_ID[e.id].value : 0) * (Number(e.chance) || 0) / 100, 0) * (1 + c / 100) / RTP);
   const isAdmin = () => !!currentUser && String(currentUser).toLowerCase() === ADMIN_USERNAME.toLowerCase();
   const eligible = (p) => !p.na && (p.value || 0) > 0 && p.value < MAX_PET;
+  const offline = () => typeof mpMockMode !== 'undefined' && mpMockMode;
+  const sorter = (key) => ({ popular: (a, b) => (b.opens || 0) - (a.opens || 0) || (b.createdAt || 0) - (a.createdAt || 0), new: (a, b) => (b.createdAt || 0) - (a.createdAt || 0),
+    low: (a, b) => a.price - b.price, high: (a, b) => b.price - a.price, name: (a, b) => a.name.localeCompare(b.name) })[key];
 
   // ---------- tabs ----------
   function showTab(t){
     tab = t;
-    document.querySelectorAll('.cc-tab').forEach((b) => b.classList.toggle('on', b.dataset.ccTab === t));
+    document.querySelectorAll('#ccBar .cc-tab').forEach((b) => b.classList.toggle('on', b.dataset.ccTab === t));
     $('ccOfficialPanel').hidden = t !== 'official';
     $('ccCommunityPanel').hidden = t !== 'community';
+    $('ccMinePanel').hidden = t !== 'mine';
     $('ccCreator').hidden = t !== 'create';
-    document.querySelector('#view-cases .cc-tabs').hidden = t === 'create';
+    $('ccBar').hidden = t === 'create';
+    $('ccBarRight').hidden = t === 'mine';
+    document.querySelector('#view-cases [data-fs-row]').hidden = t === 'create';
+    $('ccSortMenu').hidden = true;
+    if (t === 'official') renderCases();
     if (t === 'community') renderList();
+    if (t === 'mine') { renderMine(); if (currentUser && !offline()) mpSend({ type: 'ccase:mine' }); }
     if (t === 'create') renderCreator();
   }
-  document.querySelectorAll('.cc-tab').forEach((b) => b.addEventListener('click', () => showTab(b.dataset.ccTab)));
+  document.querySelectorAll('#ccBar .cc-tab').forEach((b) => b.addEventListener('click', () => showTab(b.dataset.ccTab)));
   $('ccCreateBtn').addEventListener('click', () => {
     if (!currentUser) return showToast('Log in to make a case.', true);
-    const mine = cases.filter((c) => c.creator === currentUser).length;
-    if (mine >= MAX_PER) return showToast(`You already have ${MAX_PER} cases. Delete one to make another.`, true);
-    showTab('create');
-    window.scrollTo({ top: 0 });
+    if (mine.cases.filter((c) => c.active).length >= MAX_PER) return showToast(`You already have ${MAX_PER} active cases. Delete one to make another.`, true);
+    showTab('create'); window.scrollTo({ top: 0 });
   });
-  $('ccBackBtn').addEventListener('click', () => showTab('community'));
+  $('ccBackBtn').addEventListener('click', () => showTab('mine'));
+  $('ccSearch').addEventListener('input', () => { if (tab === 'official') renderCases(); else renderList(); });
 
-  // ---------- community list ----------
+  // ---------- sort menu ----------
+  $('ccSortBtn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    const m = $('ccSortMenu');
+    if (!m.hidden) { m.hidden = true; return; }
+    const key = tab === 'community' ? 'community' : 'official';
+    m.innerHTML = SORTS[key].map(([k, label]) => `<button type="button" role="menuitem" data-sort="${k}" class="${sortBy[key] === k ? 'on' : ''}">${label}</button>`).join('');
+    m.hidden = false;
+  });
+  $('ccSortMenu').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-sort]'); if (!b) return;
+    const key = tab === 'community' ? 'community' : 'official';
+    sortBy[key] = b.dataset.sort; $('ccSortMenu').hidden = true;
+    if (key === 'official') renderCases(); else renderList();
+  });
+  document.addEventListener('click', (e) => { if (!e.target.closest('.cc-sortwrap')) $('ccSortMenu').hidden = true; });
+
+  // ---------- cards ----------
+  const cardHtml = (c, opts = {}) => `<div class="case-card cc2${opts.inactive ? ' inactive' : ''}" ${opts.attr || ''} tabindex="0" role="button">
+      ${opts.corner || ''}
+      <div class="cc2-name" title="${escapeHtml(c.name)}">${escapeHtml(c.name)}</div>
+      <div class="cc2-img">${c.image ? `<img src="${escapeHtml(c.image)}" alt="">` : (c.emoji || '📦')}</div>
+      ${opts.by ? `<div class="cc2-by">by ${escapeHtml(c.creator)}</div>` : ''}
+      ${opts.opens != null ? `<div class="cc2-pill dim">Opened ${fmt(opts.opens)} time${opts.opens === 1 ? '' : 's'}</div>` : ''}
+      <div class="cc2-pill">${coinIcon()} ${fmt(c.price)}</div>
+    </div>`;
+
+  // Official cases (replaces the original grid so it gets the same look,
+  // search and sort as the other tabs).
+  window.renderCases = function renderCases(){
+    const grid = $('caseGrid'); if (!grid) return;
+    const q = ($('ccSearch').value || '').trim().toLowerCase();
+    const list = CASES.map((c, i) => ({ c, i })).filter(({ c }) => !q || c.name.toLowerCase().includes(q)).sort((a, b) => sorter(sortBy.official)(a.c, b.c));
+    grid.innerHTML = list.length ? list.map(({ c, i }) => cardHtml(c, { attr: `data-official="${i}"` })).join('') : '<div class="cc-empty">No cases match that.</div>';
+  };
+  $('caseGrid').addEventListener('click', (e) => { const card = e.target.closest('[data-official]'); if (card) openCaseModal(CASES[Number(card.dataset.official)]); });
+
   function renderList(){
     const grid = $('ccGrid'); if (!grid) return;
     const q = ($('ccSearch').value || '').trim().toLowerCase();
-    const mineOnly = $('ccMineOnly').checked;
-    const sort = $('ccSort').value;
-    let list = cases.filter((c) => (!q || c.name.toLowerCase().includes(q) || c.creator.toLowerCase().includes(q)) && (!mineOnly || c.creator === currentUser));
-    const by = { popular: (a, b) => b.opens - a.opens || b.createdAt - a.createdAt, new: (a, b) => b.createdAt - a.createdAt, low: (a, b) => a.price - b.price, high: (a, b) => b.price - a.price }[sort];
-    list.sort(by);
-    if (!list.length) {
-      grid.innerHTML = `<div class="cc-empty">${cases.length ? 'No cases match that.' : '<b>No community cases yet.</b><br>Be the first: press <b>＋ Create Case</b>.'}</div>`;
-      return;
-    }
-    grid.innerHTML = list.map((c) => {
-      const mine = c.creator === currentUser;
-      return `<div class="case-card cc-card" data-cc-open="${escapeHtml(c.id)}" tabindex="0" role="button" style="position:relative">
-        ${mine ? '<span class="cc-card-mine">YOURS</span>' : ''}
-        ${mine || isAdmin() ? `<button class="cc-card-del" type="button" data-cc-del="${escapeHtml(c.id)}">Delete</button>` : ''}
-        <div class="case-icon"><img src="${escapeHtml(c.image)}" alt=""></div>
-        <div class="case-name">${escapeHtml(c.name)}</div>
-        <div class="case-price">${coinIcon()} ${fmt(c.price)}</div>
-        <div class="cc-card-by">by ${escapeHtml(c.creator)}</div>
-        <div class="cc-card-meta">${c.items.length} pet${c.items.length === 1 ? '' : 's'} · opened ${fmt(c.opens)}×</div>
-      </div>`;
-    }).join('');
+    const list = cases.filter((c) => !q || c.name.toLowerCase().includes(q) || c.creator.toLowerCase().includes(q)).sort(sorter(sortBy.community));
+    if (!list.length) { grid.innerHTML = `<div class="cc-empty">${cases.length ? 'No cases match that.' : '<b>No community cases yet.</b><br>Make one in <b>Your Cases</b>.'}</div>`; return; }
+    grid.innerHTML = list.map((c) => cardHtml(c, { attr: `data-cc-open="${escapeHtml(c.id)}"`, by: true, opens: c.opens,
+      corner: isAdmin() && c.creator !== currentUser ? `<button class="cc2-x" type="button" data-cc-del="${escapeHtml(c.id)}" aria-label="Delete case">✖</button>` : '' })).join('');
   }
-  ['ccSearch','ccSort','ccMineOnly'].forEach((id) => $(id).addEventListener(id === 'ccSearch' ? 'input' : 'change', renderList));
-  let delArm = null;
-  $('ccGrid').addEventListener('click', (e) => {
-    const del = e.target.closest('[data-cc-del]');
-    if (del) {
-      e.stopPropagation();
-      // Two-step delete (browser confirm boxes don't always show): first tap arms, second deletes.
-      if (delArm === del.dataset.ccDel) { mpSend({ type: 'ccase:delete', id: del.dataset.ccDel }); delArm = null; return; }
-      delArm = del.dataset.ccDel; del.textContent = 'Tap again';
-      setTimeout(() => { if (delArm === del.dataset.ccDel) { delArm = null; del.textContent = 'Delete'; } }, 3000);
-      return;
-    }
-    const card = e.target.closest('[data-cc-open]'); if (!card) return;
-    const c = cases.find((x) => x.id === card.dataset.ccOpen); if (!c) return;
-    if (typeof mpMockMode !== 'undefined' && mpMockMode) return showToast('Community cases need the live server.', true);
+  function openCommunity(id, list){
+    const c = list.find((x) => x.id === id); if (!c) return;
+    if (offline()) return showToast('Community cases need the live server.', true);
     openCaseModal({ community: true, id: c.id, name: c.name, creator: c.creator, image: c.image, price: c.price, pool: c.items.map((i) => ({ id: i.id, chance: i.chance, value: i.value })) });
+  }
+  // Two-step delete (browser confirm boxes don't always show): first tap arms.
+  let delArm = null;
+  function handleDelete(btn){
+    const id = btn.dataset.ccDel;
+    if (delArm === id) { mpSend({ type: 'ccase:delete', id }); delArm = null; return; }
+    delArm = id; btn.classList.add('armed'); btn.textContent = 'Delete?';
+    setTimeout(() => { if (delArm === id) { delArm = null; btn.classList.remove('armed'); btn.textContent = '✖'; } }, 3000);
+  }
+  $('ccGrid').addEventListener('click', (e) => {
+    const del = e.target.closest('[data-cc-del]'); if (del) { e.stopPropagation(); return handleDelete(del); }
+    const card = e.target.closest('[data-cc-open]'); if (card) openCommunity(card.dataset.ccOpen, cases);
   });
-  $('ccGrid').addEventListener('keydown', (e) => { if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('[data-cc-open]')) { e.preventDefault(); e.target.click(); } });
+
+  // ---------- Your Cases ----------
+  function renderMine(){
+    $('ccStatOpens').textContent = fmt(mine.opens);
+    $('ccStatEarned').innerHTML = `${coinIcon(20)} ${fmt(mine.earned)}`;
+    $('ccStatClaim').innerHTML = `${coinIcon(20)} ${fmt(mine.claimable)}`;
+    $('ccClaimBtn').hidden = !(mine.claimable > 0);
+    const act = mine.cases.filter((c) => c.active), inact = mine.cases.filter((c) => !c.active);
+    $('ccActiveCount').textContent = act.length; $('ccInactiveCount').textContent = inact.length;
+    document.querySelectorAll('.cc-subtab').forEach((b) => b.classList.toggle('on', b.dataset.ccSub === sub));
+    const list = (sub === 'active' ? act : inact).slice().sort((a, b) => b.createdAt - a.createdAt);
+    const grid = $('ccMineGrid');
+    if (!currentUser) { grid.innerHTML = '<div class="cc-empty">Log in to see your cases.</div>'; return; }
+    if (!list.length) { grid.innerHTML = `<div class="cc-empty">${sub === 'active' ? '<b>No active cases.</b><br>Press <b>Create Case</b> to make one.' : 'No inactive cases. Cases you delete show up here.'}</div>`; return; }
+    grid.innerHTML = list.map((c) => cardHtml(c, { attr: `data-mine="${escapeHtml(c.id)}"`, opens: c.opens, inactive: !c.active,
+      corner: c.active ? `<button class="cc2-x" type="button" data-cc-del="${escapeHtml(c.id)}" aria-label="Delete case">✖</button>`
+                       : `<button class="cc2-restore" type="button" data-cc-restore="${escapeHtml(c.id)}">Restore</button>` })).join('');
+  }
+  document.querySelectorAll('.cc-subtab').forEach((b) => b.addEventListener('click', () => { sub = b.dataset.ccSub; renderMine(); }));
+  $('ccMineGrid').addEventListener('click', (e) => {
+    const del = e.target.closest('[data-cc-del]'); if (del) { e.stopPropagation(); return handleDelete(del); }
+    const rs = e.target.closest('[data-cc-restore]'); if (rs) { e.stopPropagation(); return mpSend({ type: 'ccase:restore', id: rs.dataset.ccRestore }); }
+    const card = e.target.closest('[data-mine]'); if (!card) return;
+    const c = mine.cases.find((x) => x.id === card.dataset.mine);
+    if (c && c.active) openCommunity(c.id, mine.cases);
+    else showToast('Restore this case to open it again.', true);
+  });
+  $('ccClaimBtn').addEventListener('click', () => { $('ccClaimBtn').hidden = true; mpSend({ type: 'ccase:claim' }); });
+  ['ccGrid','ccMineGrid','caseGrid'].forEach((id) => $(id).addEventListener('keydown', (e) => {
+    if ((e.key === 'Enter' || e.key === ' ') && e.target.classList.contains('case-card')) { e.preventDefault(); e.target.click(); }
+  }));
 
   mpOn('ccase:list', (msg) => {
     cases = Array.isArray(msg.cases) ? msg.cases : [];
-    $('ccTabCount').textContent = cases.length;
+    if (typeof window.bvSetBattleCommunityCases === 'function') window.bvSetBattleCommunityCases(cases);
     if (tab === 'community') renderList();
+  });
+  mpOn('ccase:mine', (msg) => {
+    mine = { cases: Array.isArray(msg.cases) ? msg.cases : [], opens: msg.opens || 0, earned: msg.earned || 0, claimable: msg.claimable || 0 };
+    if (tab === 'mine') renderMine();
   });
   mpOn('ccase:created', (msg) => {
     busy = false;
     showToast(`"${msg.name}" is live for ${fmt(msg.price)} coins.`);
     draft.name = ''; draft.items = []; draft.commission = 3; draft.image = IMAGES[0];
-    $('ccMineOnly').checked = true;
-    showTab('community');
+    sub = 'active'; showTab('mine');
   });
-  mpOn('error', () => { if (busy) { busy = false; updateSummary(); } });
+  mpOn('error', () => { if (busy) { busy = false; updateSummary(); } if (tab === 'mine') renderMine(); });
 
   // ---------- creator ----------
   function renderCreator(){
@@ -17632,6 +17878,7 @@ function renderAdminWithdrawList(){
   });
 
   renderCreator();
+  renderCases();
 })();
 </script>
 <script>

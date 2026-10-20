@@ -258,6 +258,10 @@ async function initSchema() {
       created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
     );
   `);
+  // Added later: deleted cases go inactive (kept for the creator's stats),
+  // and commission collects in 'unclaimed' until the creator claims it.
+  await pool.query(`ALTER TABLE community_cases ADD COLUMN IF NOT EXISTS active BOOLEAN NOT NULL DEFAULT true`);
+  await pool.query(`ALTER TABLE community_cases ADD COLUMN IF NOT EXISTS unclaimed BIGINT NOT NULL DEFAULT 0`);
   // Promo codes (admin-made, coins only) and who has used which.
   await pool.query(`
     CREATE TABLE IF NOT EXISTS promo_codes (
@@ -874,8 +878,8 @@ async function wipeEverything() {
 
 // ---- community cases ----
 async function loadCommunityCases() {
-  const res = await pool.query('SELECT id, creator, name, image, commission, price, items, opens, earned, created_at FROM community_cases ORDER BY id');
-  return res.rows.map((r) => ({ id: String(r.id), creator: r.creator, name: r.name, image: r.image, commission: Number(r.commission), price: Number(r.price), items: r.items, opens: Number(r.opens), earned: Number(r.earned), createdAt: new Date(r.created_at).getTime() }));
+  const res = await pool.query('SELECT id, creator, name, image, commission, price, items, opens, earned, unclaimed, active, created_at FROM community_cases ORDER BY id');
+  return res.rows.map((r) => ({ id: String(r.id), creator: r.creator, name: r.name, image: r.image, commission: Number(r.commission), price: Number(r.price), items: r.items, opens: Number(r.opens), earned: Number(r.earned), unclaimed: Number(r.unclaimed), active: r.active !== false, createdAt: new Date(r.created_at).getTime() }));
 }
 async function insertCommunityCase({ creator, name, image, commission, price, items }) {
   const res = await pool.query(
@@ -888,8 +892,20 @@ async function deleteCommunityCase(id) {
   const res = await pool.query('DELETE FROM community_cases WHERE id = $1', [id]);
   return res.rowCount === 1;
 }
-async function bumpCommunityCase(id, earned) {
-  await pool.query('UPDATE community_cases SET opens = opens + 1, earned = earned + $2 WHERE id = $1', [id, earned]);
+async function bumpCommunityCase(id, earned, opens = 1) {
+  await pool.query('UPDATE community_cases SET opens = opens + $3, earned = earned + $2, unclaimed = unclaimed + $2 WHERE id = $1', [id, earned, opens]);
+}
+async function setCommunityCaseActive(id, active) {
+  const res = await pool.query('UPDATE community_cases SET active = $2 WHERE id = $1', [id, !!active]);
+  return res.rowCount === 1;
+}
+// Zeroes every unclaimed commission for this creator in one statement and
+// returns how much that was - the database is the source of truth here.
+async function claimCommunityEarnings(creator) {
+  const res = await pool.query(
+    `WITH old AS (SELECT id, unclaimed FROM community_cases WHERE creator = $1 AND unclaimed > 0 FOR UPDATE)
+     UPDATE community_cases c SET unclaimed = 0 FROM old WHERE c.id = old.id RETURNING old.unclaimed`, [creator]);
+  return res.rows.reduce((sum, r) => sum + Number(r.unclaimed), 0);
 }
 
 async function loadAllIgnores() {
@@ -959,6 +975,8 @@ module.exports = {
   insertCommunityCase,
   deleteCommunityCase,
   bumpCommunityCase,
+  setCommunityCaseActive,
+  claimCommunityEarnings,
   pool,
   setDiscordLink,
   clearDiscordLink,
