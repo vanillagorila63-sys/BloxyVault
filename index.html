@@ -4461,6 +4461,7 @@ body.cbn-open #cbnRoot .backdrop { opacity: 1; pointer-events: auto; }
   .pw-pet-img img{ max-width:100%; max-height:100%; object-fit:contain; }
   .pw-pet-name{ font-size:12px; font-weight:700; text-align:center; line-height:1.25; max-width:100%; overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
   .na-val{ font-weight:800; color:var(--text-dim, #9a93b0); letter-spacing:.04em; }
+  .pw-more{ grid-column:1/-1; text-align:center; padding:14px; font-size:12px; color:var(--text-dim, #9a93b0); }
   .pw-pet-val{ display:inline-flex; align-items:center; gap:4px; font-size:11px; font-weight:800; color:var(--gold); }
   .pw-empty{ grid-column:1/-1; text-align:center; color:var(--text-faint); font-size:13px; padding:30px 10px; }
   .pw-foot{ display:flex; align-items:center; gap:10px; padding:14px 20px; border-top:1px solid var(--border); }
@@ -4656,6 +4657,98 @@ body.cbn-open #cbnRoot .backdrop { opacity: 1; pointer-events: auto; }
   .adm-danger-form input{ flex:1 1 220px; }
   .adm-danger-btn{ padding:0 16px; height:38px; border:none; border-radius:9px; background:#dc2626; color:#fff; font:inherit; font-weight:900; font-size:12.5px; cursor:pointer; }
   .adm-danger-btn:disabled{ opacity:.4; cursor:default; }
+
+  /* ===== Community cases + fast mode ===== */
+  .cc-creator[hidden], .cases-panel[hidden], .cc-note[hidden], .cc-tabs[hidden]{ display:none !important; }
+  .cc-tabs{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:0 0 14px; }
+  .cc-tab{ font:600 14px var(--font-display); color:var(--text-dim); background:var(--bg-panel); border:1px solid var(--border); border-radius:10px; padding:9px 16px; cursor:pointer; display:inline-flex; align-items:center; gap:8px; }
+  .cc-tab.on{ color:var(--text); border-color:var(--purple-bright); background:var(--bg-panel-2); box-shadow:inset 0 -2px 0 var(--purple-bright); }
+  .cc-tab-count{ font:700 11px var(--font-num); background:var(--bg-panel-3); color:var(--text-dim); border-radius:999px; padding:2px 7px; }
+  .cc-create-btn{ margin-left:auto; font:700 14px var(--font-display); color:#fff; background:linear-gradient(180deg, var(--purple-bright), var(--purple)); border:0; border-radius:10px; padding:10px 18px; cursor:pointer; }
+  .cc-toolbar{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom:16px; position:relative; z-index:1; }
+  .cc-search{ flex:1 1 220px; min-width:0; }
+  .cc-sort{ flex:0 0 auto; width:auto; }
+  .cc-mine{ display:inline-flex; align-items:center; gap:6px; font-size:13px; color:var(--text-dim); cursor:pointer; }
+  .cc-card-by{ font-size:12px; color:var(--text-dim); margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100%; }
+  .cc-card-meta{ font-size:11px; color:var(--text-faint); margin-top:2px; }
+  .cc-card-del{ position:absolute; top:8px; right:8px; z-index:2; font:700 11px var(--font-body); color:var(--red); background:var(--bg-panel-3); border:1px solid var(--border); border-radius:8px; padding:4px 8px; cursor:pointer; }
+  .cc-card-mine{ position:absolute; top:8px; left:8px; z-index:2; font:700 10px var(--font-body); letter-spacing:.06em; color:var(--gold); background:var(--bg-panel-3); border-radius:6px; padding:3px 6px; }
+  .cc-empty{ grid-column:1/-1; text-align:center; color:var(--text-dim); padding:40px 10px; }
+  .cc-empty b{ color:var(--text); }
+  .cc-creator{ display:flex; flex-direction:column; gap:16px; }
+  .cc-back{ align-self:flex-start; font:600 15px var(--font-display); color:var(--text-dim); background:none; border:0; cursor:pointer; padding:4px 0; }
+  .cc-back:hover{ color:var(--text); }
+  .cc-step{ background:var(--bg-panel); border:1px solid var(--border-soft); border-radius:16px; padding:22px; display:flex; flex-direction:column; gap:16px; min-width:0; }
+  .cc-step-head{ display:flex; align-items:center; gap:14px; flex-wrap:wrap; min-width:0; }
+  .cc-step-head h3{ margin:0; font:600 19px var(--font-display); color:var(--text); }
+  .cc-num{ width:38px; height:38px; flex:0 0 38px; border-radius:10px; background:var(--bg-panel-3); color:var(--purple-bright); font:700 17px var(--font-num); display:flex; align-items:center; justify-content:center; }
+  .cc-step-row h3{ flex:1 1 auto; }
+  .cc-imgs{ display:flex; gap:12px; overflow-x:auto; padding-bottom:6px; }
+  .cc-img{ flex:0 0 132px; height:132px; border-radius:14px; background:var(--bg-panel-2); border:2px solid transparent; padding:10px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+  .cc-img img{ max-width:100%; max-height:100%; object-fit:contain; }
+  .cc-img.on{ border-color:var(--purple-bright); background:var(--bg-panel-3); }
+  .cc-name-wrap{ position:relative; flex:0 1 320px; min-width:0; width:100%; }
+  .cc-name-wrap input{ width:100%; }
+  .cc-name-count{ position:absolute; right:4px; bottom:-18px; font:12px var(--font-num); color:var(--text-faint); }
+  .cc-total{ font:700 15px var(--font-num); color:var(--gold); }
+  .cc-total.ok{ color:var(--green); }
+  .cc-add-btn{ font:700 14px var(--font-display); color:#fff; background:linear-gradient(180deg, var(--purple-bright), var(--purple)); border:0; border-radius:10px; padding:10px 16px; cursor:pointer; }
+  .cc-items{ display:flex; flex-direction:column; gap:10px; min-height:90px; }
+  .cc-items-empty{ color:var(--text-faint); text-align:center; padding:34px 0; font-size:15px; }
+  .cc-item{ display:grid; grid-template-columns:minmax(0,1fr) 110px 36px; gap:10px; align-items:center; }
+  .cc-item-info{ display:flex; align-items:center; gap:12px; min-width:0; background:var(--bg-panel-2); border-radius:12px; padding:10px 14px; border-bottom:3px solid var(--c, var(--border)); }
+  .cc-item-info img{ width:46px; height:46px; object-fit:contain; flex:0 0 46px; }
+  .cc-item-name{ font-weight:700; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .cc-item-val{ font:700 14px var(--font-num); color:var(--gold); display:flex; align-items:center; gap:5px; }
+  .cc-chance{ position:relative; }
+  .cc-chance input{ width:100%; padding-right:26px; font-variant-numeric:tabular-nums; }
+  .cc-chance span{ position:absolute; right:10px; top:50%; transform:translateY(-50%); color:var(--text-faint); font-size:13px; pointer-events:none; }
+  .cc-rm{ width:36px; height:36px; border-radius:8px; background:none; border:0; color:var(--text-faint); font-size:18px; cursor:pointer; }
+  .cc-rm:hover{ color:var(--red); }
+  .cc-note{ border-radius:10px; padding:12px 16px; font-weight:600; font-size:14px; }
+  .cc-note.warn{ background:rgba(244,196,48,.08); color:var(--gold); }
+  .cc-note.bad{ background:rgba(239,74,95,.10); color:var(--red); }
+  .cc-rules{ font-size:12px; color:var(--text-faint); }
+  .cc-commission{ background:var(--bg-panel-2); border-radius:14px; padding:18px 20px; }
+  .cc-label{ font:700 12px var(--font-display); letter-spacing:.08em; color:var(--text-dim); }
+  .cc-label span{ color:var(--text-faint); font-weight:500; }
+  .cc-label b{ color:var(--green); }
+  .cc-slider-row{ display:flex; align-items:center; gap:16px; margin-top:12px; }
+  .cc-slider-row input{ flex:1; min-width:0; accent-color:var(--purple-bright); }
+  .cc-comm-val{ font:800 22px var(--font-num); color:var(--purple-bright); min-width:58px; text-align:right; }
+  .cc-money{ display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:12px; }
+  .cc-money-box{ background:var(--bg-panel-2); border-radius:14px; padding:16px 20px; border-left:3px solid var(--purple-bright); }
+  .cc-money-box.earn{ border-left-color:var(--green); }
+  .cc-money-val{ font:800 30px var(--font-num); color:var(--text); display:flex; align-items:center; gap:8px; margin-top:6px; font-variant-numeric:tabular-nums; }
+  .cc-money-box.price .cc-label{ color:var(--purple-bright); }
+  .cc-submit{ font:700 17px var(--font-display); color:#fff; background:linear-gradient(180deg, var(--purple-bright), var(--purple)); border:0; border-radius:12px; padding:15px; cursor:pointer; width:100%; }
+  .cc-submit:disabled{ opacity:.45; cursor:not-allowed; }
+  .cc-submit.small{ width:auto; padding:10px 22px; font-size:14px; }
+  .cc-pick-overlay{ z-index:300; }
+  .cc-pick{ background:var(--bg-panel); border:1px solid var(--border); border-radius:16px; width:min(760px, calc(100vw - 24px)); max-height:min(760px, calc(100dvh - 24px)); display:flex; flex-direction:column; gap:12px; padding:18px; box-shadow:var(--shadow-pop); }
+  .cc-pick-head{ display:flex; align-items:center; justify-content:space-between; font-family:var(--font-display); font-size:17px; color:var(--text); }
+  .cc-pick-sub{ font-size:12px; color:var(--text-faint); margin-top:-4px; }
+  .cc-pick-grid{ flex:1; min-height:200px; overflow-y:auto; display:grid; grid-template-columns:repeat(auto-fill, minmax(120px, 1fr)); gap:8px; align-content:start; padding-right:2px; }
+  .cc-pick-pet{ position:relative; display:flex; flex-direction:column; align-items:center; gap:4px; padding:10px 6px; background:var(--bg-panel-2); border:1px solid var(--border-soft); border-radius:12px; cursor:pointer; color:var(--text); font:inherit; text-align:center; }
+  .cc-pick-pet img{ width:52px; height:52px; object-fit:contain; }
+  .cc-pick-pet .n{ font-size:12px; font-weight:700; line-height:1.2; min-height:2.4em; display:flex; align-items:center; overflow-wrap:anywhere; }
+  .cc-pick-pet .v{ font:700 11px var(--font-num); color:var(--gold); }
+  .cc-pick-pet.on{ border-color:var(--purple-bright); background:var(--bg-panel-3); }
+  .cc-pick-pet.on::after{ content:"✓"; position:absolute; top:6px; right:6px; width:18px; height:18px; border-radius:50%; background:var(--purple-bright); color:#fff; font-size:11px; font-weight:800; display:flex; align-items:center; justify-content:center; }
+  .cc-pick-more{ grid-column:1/-1; text-align:center; font-size:12px; color:var(--text-faint); padding:12px; }
+  .cc-pick-foot{ display:flex; align-items:center; justify-content:space-between; gap:10px; color:var(--text-dim); font-size:13px; }
+  .cc-fast{ margin-left:auto; margin-right:10px; font:700 12px var(--font-display); color:var(--text-dim); background:var(--bg-panel-2); border:1px solid var(--border); border-radius:999px; padding:6px 12px; cursor:pointer; }
+  .cc-fast[aria-pressed="true"]{ color:#1a1306; background:var(--gold); border-color:var(--gold); }
+  .cc-by{ font:500 12px var(--font-body); color:var(--text-dim); margin-left:10px; }
+  @media (max-width:600px){
+    .cc-step{ padding:16px; }
+    .cc-item{ grid-template-columns:minmax(0,1fr) 92px 30px; gap:6px; }
+    .cc-item-info{ padding:8px 10px; gap:8px; }
+    .cc-item-info img{ width:36px; height:36px; flex-basis:36px; }
+    .cc-img{ flex-basis:104px; height:104px; }
+    .cc-money-val{ font-size:24px; }
+    .cc-create-btn{ margin-left:0; }
+  }
   /* Result overlay never wraps into the winner box */
   #cbnRoot .bv-result-banner{ white-space:nowrap; max-width:92%; overflow:hidden; text-overflow:ellipsis; font-size:13px !important; padding:6px 14px !important; }
   #cbnRoot .bv-result-summary{ top:56px !important; }
@@ -4939,11 +5032,63 @@ body.cbn-open #cbnRoot .backdrop { opacity: 1; pointer-events: auto; }
           <div class="cases-header-icon"><span class="nav-icon-slot" data-icon="package" style="width:26px;height:26px;"></span></div>
           <div class="cases-header-text">
             <div class="view-title" style="margin-bottom:3px;">Cases</div>
-            <div class="view-sub" style="margin-bottom:0;">Official cases only. Every pull converts straight to coins — no inventory needed.</div>
+            <div class="view-sub" style="margin-bottom:0;">Official cases and cases made by players. Every pull converts straight to coins.</div>
           </div>
         </div>
-        <div class="cases-panel">
+        <div class="cc-tabs" role="tablist">
+          <button class="cc-tab on" type="button" data-cc-tab="official">Official</button>
+          <button class="cc-tab" type="button" data-cc-tab="community">Community <span class="cc-tab-count" id="ccTabCount">0</span></button>
+          <button class="cc-create-btn" type="button" id="ccCreateBtn">＋ Create Case</button>
+        </div>
+        <div class="cases-panel" id="ccOfficialPanel">
           <div class="case-grid" id="caseGrid"></div>
+        </div>
+        <div class="cases-panel" id="ccCommunityPanel" hidden>
+          <div class="cc-toolbar">
+            <input class="amount-input cc-search" id="ccSearch" type="search" placeholder="Search cases or creators" autocomplete="off">
+            <select class="amount-input cc-sort" id="ccSort">
+              <option value="popular">Most opened</option>
+              <option value="new">Newest</option>
+              <option value="low">Price: low to high</option>
+              <option value="high">Price: high to low</option>
+            </select>
+            <label class="cc-mine"><input type="checkbox" id="ccMineOnly"> My cases</label>
+          </div>
+          <div class="case-grid" id="ccGrid"></div>
+        </div>
+        <div class="cc-creator" id="ccCreator" hidden>
+          <button class="cc-back" type="button" id="ccBackBtn">‹ Back to Cases</button>
+          <section class="cc-step">
+            <div class="cc-step-head"><span class="cc-num">1</span><h3>Select Case Image</h3></div>
+            <div class="cc-imgs" id="ccImgs"></div>
+          </section>
+          <section class="cc-step">
+            <div class="cc-step-head cc-step-row"><span class="cc-num">2</span><h3>Name Your Case</h3>
+              <div class="cc-name-wrap"><input class="amount-input" id="ccName" maxlength="23" placeholder="Enter case name..." autocomplete="off"><span class="cc-name-count" id="ccNameCount">0/23</span></div>
+            </div>
+          </section>
+          <section class="cc-step">
+            <div class="cc-step-head cc-step-row"><span class="cc-num">3</span><h3>Select item odds</h3>
+              <span class="cc-total" id="ccTotal"></span>
+              <button class="cc-add-btn" type="button" id="ccAddItemsBtn">＋ Add Items</button>
+            </div>
+            <div class="cc-items" id="ccItems"></div>
+            <div class="cc-note warn" id="ccRemaining" hidden></div>
+            <div class="cc-note bad" id="ccProblem" hidden></div>
+            <div class="cc-rules">Pets must be worth under 60M · chances must add up to 100% · price up to 500,000 · 5 cases per player</div>
+          </section>
+          <section class="cc-step">
+            <div class="cc-step-head"><span class="cc-num">4</span><h3>Finish case creation</h3></div>
+            <div class="cc-commission">
+              <div class="cc-label">COMMISSION <span>(0–3%)</span></div>
+              <div class="cc-slider-row"><input type="range" id="ccCommission" min="0" max="3" step="0.1" value="3"><span class="cc-comm-val" id="ccCommVal">3%</span></div>
+            </div>
+            <div class="cc-money">
+              <div class="cc-money-box price"><div class="cc-label">CASE PRICE</div><div class="cc-money-val" id="ccPrice">0</div></div>
+              <div class="cc-money-box earn"><div class="cc-label"><b>YOU EARN</b> / UNBOX</div><div class="cc-money-val" id="ccEarn">0</div></div>
+            </div>
+            <button class="cc-submit" type="button" id="ccSubmit" disabled>Create Case</button>
+          </section>
         </div>
       </div>
 
@@ -6088,7 +6233,8 @@ body.cbn-open #cbnRoot .backdrop { opacity: 1; pointer-events: auto; }
 <div class="case-modal-overlay" id="caseModalOverlay">
   <div class="case-modal">
     <div class="case-modal-header">
-      <div class="logo" style="font-size:16px;"><span id="caseModalName">Case</span></div>
+      <div class="logo" style="font-size:16px;"><span id="caseModalName">Case</span><span class="cc-by" id="caseModalBy"></span></div>
+      <button class="cc-fast" type="button" id="caseFastBtn" aria-pressed="false" title="Fast mode: the spin finishes much quicker">⚡ Fast</button>
       <button class="close-x" id="closeCaseModalBtn"><span class="nav-icon-slot" data-icon="x" style="width:16px;height:16px;"></span></button>
     </div>
     <div class="reel-viewport"><div class="reel-pointer"></div><div class="reel-strip" id="reelStrip"></div></div>
@@ -6097,6 +6243,15 @@ body.cbn-open #cbnRoot .backdrop { opacity: 1; pointer-events: auto; }
   </div>
 </div>
 
+<div class="modal-overlay cc-pick-overlay" id="ccPickOverlay">
+  <div class="cc-pick">
+    <div class="cc-pick-head"><b>Add pets to your case</b><button class="close-x" type="button" id="ccPickClose" aria-label="Close">✕</button></div>
+    <input class="amount-input" id="ccPickSearch" type="search" placeholder="Search pets..." autocomplete="off">
+    <div class="cc-pick-sub">Only pets worth under 60M with a real value can go in community cases.</div>
+    <div class="cc-pick-grid" id="ccPickGrid"></div>
+    <div class="cc-pick-foot"><span id="ccPickCount">0 pets in your case</span><button class="cc-submit small" type="button" id="ccPickDone">Done</button></div>
+  </div>
+</div>
 <div class="toast" id="toast"></div>
 
 <!-- ===========================================================
@@ -7160,7 +7315,7 @@ function trackLoss(amount){
 // Level curve: T(level) = C * (level-1)^k, calibrated so level 300 needs
 // ~5 billion lifetime wagered and level 500 needs ~10 billion - deliberately
 // steep/grindy per spec. Hard-capped at level 500.
-const LEVEL_CURVE_C = 2230808.28;
+const LEVEL_CURVE_C = 446161.656; // 5x easier than the original 2230808.28
 const LEVEL_CURVE_K = 1.353373;
 const MAX_LEVEL = 500;
 function wageredForLevel(level){
@@ -10274,6 +10429,7 @@ const CATALOG_BY_ID = {
   "void-pyramidium": { name:"VOID PYRAMIDIUM", value:0, na:true, rarity:'secret', image:'/assets/img/bgsi/void-pyramidium.webp' },
   "void-tyrant": { name:"VOID TYRANT", value:0, na:true, rarity:'secret', image:'/assets/img/bgsi/void-tyrant.webp' },
   "voidseeker": { name:"VOIDSEEKER", value:0, na:true, rarity:'secret', image:'/assets/img/bgsi/voidseeker.webp' },
+  "tourist-doggy": { name:"Tourist Doggy", value:1, rarity:'common', image:'/assets/img/bgsi/tourist-doggy.webp' },
 };
 
 const PET_CATALOG = Object.entries(CATALOG_BY_ID).map(([id, p]) => ({ id, ...p }));
@@ -10322,8 +10478,19 @@ function renderCases(){
 }
 
 let activeCase = null;
+// Fast mode (per browser): the case spin finishes in under a second.
+function caseFastMode(){ try { return localStorage.getItem('bv_fast_cases') === '1'; } catch (e) { return false; } }
+function syncCaseFastBtn(){ const b = document.getElementById('caseFastBtn'); if (b) b.setAttribute('aria-pressed', caseFastMode() ? 'true' : 'false'); }
+document.getElementById('caseFastBtn').addEventListener('click', () => {
+  const on = !caseFastMode();
+  try { localStorage.setItem('bv_fast_cases', on ? '1' : '0'); } catch (e) {}
+  syncCaseFastBtn();
+  showToast(on ? 'Fast mode on: cases open almost instantly.' : 'Fast mode off.');
+});
 function openCaseModal(c){
   activeCase = c;
+  syncCaseFastBtn();
+  document.getElementById('caseModalBy').textContent = c.community ? `by ${c.creator}` : '';
   document.getElementById('caseModalName').textContent = c.name;
   document.getElementById('caseModalPrice').textContent = fmt(c.price);
   const oddsBox = document.getElementById('caseOdds');
@@ -10339,7 +10506,7 @@ function openCaseModal(c){
     <div class="case-drop-card${displayValue === topValue ? ' top' : ''}">
       <div class="case-drop-thumb rarity-${p.rarity}">
         ${itemIcon(p)}
-        <span class="case-drop-chance">${chance.toFixed(1)}%</span>
+        <span class="case-drop-chance">${chance < 1 ? +chance.toFixed(2) : chance.toFixed(1)}%</span>
       </div>
       <div class="case-drop-name">${p.name}</div>
       <div class="case-drop-value">${coinIcon()} ${fmt(displayValue)}</div>
@@ -10380,8 +10547,9 @@ document.getElementById('closeCaseModalBtn').addEventListener('click', () => {
 
 document.getElementById('openCaseBtn').addEventListener('click', () => {
   if(!activeCase || !currentUser) return;
-  const caseIndex = CASES.indexOf(activeCase);
   const openBtn = document.getElementById('openCaseBtn');
+  if (activeCase.community) { openBtn.disabled = true; mpSend({ type: 'ccase:open', id: activeCase.id }); return; }
+  const caseIndex = CASES.indexOf(activeCase);
   openBtn.disabled = true;
   // The server decides the price check, the roll, and the payout - this
   // just asks for a result and plays the animation once it arrives. No
@@ -10416,14 +10584,14 @@ mpOn('case:opened', (msg) => {
   const viewportCenter = document.querySelector('.reel-viewport').offsetWidth / 2;
   const targetX = -(LAND_INDEX*ITEM_W + ITEM_W/2 - viewportCenter);
   requestAnimationFrame(() => {
-    strip.style.transition = 'transform 3s cubic-bezier(.12,.85,.15,1)';
+    strip.style.transition = `transform ${caseFastMode() ? 0.8 : 3}s cubic-bezier(.12,.85,.15,1)`;
     strip.style.transform = `translateX(${targetX}px)`;
   });
 
   setTimeout(() => {
     showToast(`Opened ${activeCase ? activeCase.name : ''} → ${won.name} converted to ${coinIcon()} ${fmt(won.value)} coins`);
     openBtn.disabled = false;
-  }, 3100);
+  }, caseFastMode() ? 900 : 3100);
 });
 
 // ===========================================================
@@ -10959,21 +11127,58 @@ function petWatchPopup(game, lobby, hits){
   while (box.children.length > 3) box.lastElementChild.remove();
   setTimeout(close, 15000);
 }
-function renderPetWatchGrid(){
-  const grid = document.getElementById('pwGrid');
-  if (!grid) return;
-  const q = (document.getElementById('pwSearch').value || '').trim().toLowerCase();
-  const onlyWatched = document.getElementById('pwOnlyWatched').checked;
-  const pets = PET_CATALOG
-    .filter((p) => (!q || String(p.name).toLowerCase().includes(q)) && (!onlyWatched || petWatch.has(p.id)))
-    .sort((a, b) => (petWatch.has(b.id) - petWatch.has(a.id)) || ((b.value || 0) - (a.value || 0)));
-  grid.innerHTML = pets.length ? pets.slice(0, 300).map((p) => `
+// Pets worth under 25k (case fillers like Dark Leviathan) never show in the
+// notifier - they exist only for cases. N/A pets still show.
+const PW_MIN_VALUE = 25000;
+function pwListable(p){ return p.na || (p.value || 0) >= PW_MIN_VALUE; }
+let pwList = [], pwShown = 0, pwObserver = null;
+const PW_CHUNK = 120;
+function pwCardHtml(p){
+  return `
     <button class="pw-pet${petWatch.has(p.id) ? ' on' : ''}" type="button" data-pet="${escapeHtml(p.id)}" title="${escapeHtml(p.name)}">
       <span class="pw-pet-check">✓</span>
       <span class="pw-pet-img">${itemIcon(p)}</span>
       <span class="pw-pet-name">${escapeHtml(p.name)}</span>
       <span class="pw-pet-val">${petValueHtml(p, coinIcon(11), fmtCompact)}</span>
-    </button>`).join('') : `<div class="pw-empty">${onlyWatched ? "You're not watching any pets yet." : 'No pets match that search.'}</div>`;
+    </button>`;
+}
+// Adds the next chunk of cards, plus an invisible marker after them; when the
+// marker scrolls into view, the next chunk loads - so every pet is reachable
+// without building thousands of cards at once.
+function pwAppendChunk(){
+  const grid = document.getElementById('pwGrid');
+  const old = grid.querySelector('.pw-more'); if (old) old.remove();
+  const next = pwList.slice(pwShown, pwShown + PW_CHUNK);
+  grid.insertAdjacentHTML('beforeend', next.map(pwCardHtml).join(''));
+  pwShown += next.length;
+  if (pwShown < pwList.length) {
+    const more = document.createElement('div');
+    more.className = 'pw-more';
+    more.textContent = `Loading more pets… (${pwShown} of ${pwList.length})`;
+    grid.appendChild(more);
+    if (pwObserver) pwObserver.observe(more);
+  }
+}
+function renderPetWatchGrid(){
+  const grid = document.getElementById('pwGrid');
+  if (!grid) return;
+  const q = (document.getElementById('pwSearch').value || '').trim().toLowerCase();
+  const onlyWatched = document.getElementById('pwOnlyWatched').checked;
+  pwList = PET_CATALOG
+    .filter((p) => pwListable(p) && (!q || String(p.name).toLowerCase().includes(q)) && (!onlyWatched || petWatch.has(p.id)))
+    .sort((a, b) => (petWatch.has(b.id) - petWatch.has(a.id)) || ((b.value || 0) - (a.value || 0)) || String(a.name).localeCompare(String(b.name)));
+  pwShown = 0;
+  if (!pwObserver && 'IntersectionObserver' in window) {
+    pwObserver = new IntersectionObserver((entries) => { if (entries.some((e) => e.isIntersecting)) pwAppendChunk(); }, { rootMargin: '400px' });
+  }
+  if (pwObserver) pwObserver.disconnect();
+  if (!pwList.length) {
+    grid.innerHTML = `<div class="pw-empty">${onlyWatched ? "You're not watching any pets yet." : 'No pets match that search.'}</div>`;
+  } else {
+    grid.innerHTML = '';
+    if (!pwObserver) { grid.innerHTML = pwList.map(pwCardHtml).join(''); pwShown = pwList.length; }
+    else pwAppendChunk();
+  }
   petWatchUpdateCounts();
 }
 function openPetWatch(){
@@ -13519,7 +13724,7 @@ const HIST_TXN_LABELS = {
   rain_deposit:'Rain Added', rain_payout:'Rain Won',
   admin_adjust:'Balance Adjustment', escrow_refund:'Refund',
   vault_deposit:'Vault Deposit', vault_withdraw:'Vault Withdraw', vault_deposit_items:'Pets to Vault', vault_withdraw_items:'Pets from Vault', vault_lock:'Vault Locked',
-  giveaway_create:'Giveaway Started', giveaway_win:'Giveaway Won', giveaway_return:'Giveaway Returned', promo_redeem:'Promo Code',
+  giveaway_create:'Giveaway Started', giveaway_win:'Giveaway Won', giveaway_return:'Giveaway Returned', promo_redeem:'Promo Code', ccase_commission:'Case Commission',
 };
 const histState = { kind:'games', filter:'all', page:1, loading:false, data:null };
 
@@ -17214,6 +17419,245 @@ function renderAdminWithdrawList(){
     var clean = src.split('?')[0];
     setTimeout(function(){ img.src = clean + '?r=' + Date.now(); }, 400 * (tries + 1));
   }, true);
+})();
+</script>
+<script>
+// ===========================================================
+// COMMUNITY CASES - list, creator and opening. The server checks every
+// rule again (5 per player, price up to 500k, pets under 60M, chances = 100%)
+// and works out the real price; the numbers here are just a live preview.
+// ===========================================================
+(function(){
+  const $ = (id) => document.getElementById(id);
+  const MAX_PRICE = 500000, MAX_PET = 60000000, MAX_PER = 5, MAX_ITEMS = 30, RTP = 0.9;
+  const IMAGES = ['/assets/img/8f04fa0bee21270e89c6.webp','/assets/img/d6c3b5e3856e69b03926.webp','/assets/img/aee331a2b59963d5c192.webp','/assets/img/5bc4ac1efdbe4b742eaf.webp','/assets/img/684c025c505c0193fbd5.png','/assets/img/fac645ae50cf89136139.webp','/assets/img/bb37ac1e45426d178506.webp','/assets/img/6178b795abe48c021aa8.png','/assets/img/dbddeda999aad8779d54.png','/assets/img/9b753997f22235880fca.png'];
+  const RAR_COLOR = { common:'#9a8f94', rare:'#3a7fd9', epic:'#8b4fd9', legendary:'#d99a3a', mythic:'#d93a6e', secret:'#f4c430' };
+  let cases = [];
+  let tab = 'official';
+  const draft = { image: IMAGES[0], name: '', items: [], commission: 3 }; // items: [{id, chance}]
+  let busy = false;
+
+  const priceOf = (items, c) => Math.round(items.reduce((s, e) => s + (CATALOG_BY_ID[e.id] ? CATALOG_BY_ID[e.id].value : 0) * (Number(e.chance) || 0) / 100, 0) * (1 + c / 100) / RTP);
+  const isAdmin = () => !!currentUser && String(currentUser).toLowerCase() === ADMIN_USERNAME.toLowerCase();
+  const eligible = (p) => !p.na && (p.value || 0) > 0 && p.value < MAX_PET;
+
+  // ---------- tabs ----------
+  function showTab(t){
+    tab = t;
+    document.querySelectorAll('.cc-tab').forEach((b) => b.classList.toggle('on', b.dataset.ccTab === t));
+    $('ccOfficialPanel').hidden = t !== 'official';
+    $('ccCommunityPanel').hidden = t !== 'community';
+    $('ccCreator').hidden = t !== 'create';
+    document.querySelector('#view-cases .cc-tabs').hidden = t === 'create';
+    if (t === 'community') renderList();
+    if (t === 'create') renderCreator();
+  }
+  document.querySelectorAll('.cc-tab').forEach((b) => b.addEventListener('click', () => showTab(b.dataset.ccTab)));
+  $('ccCreateBtn').addEventListener('click', () => {
+    if (!currentUser) return showToast('Log in to make a case.', true);
+    const mine = cases.filter((c) => c.creator === currentUser).length;
+    if (mine >= MAX_PER) return showToast(`You already have ${MAX_PER} cases. Delete one to make another.`, true);
+    showTab('create');
+    window.scrollTo({ top: 0 });
+  });
+  $('ccBackBtn').addEventListener('click', () => showTab('community'));
+
+  // ---------- community list ----------
+  function renderList(){
+    const grid = $('ccGrid'); if (!grid) return;
+    const q = ($('ccSearch').value || '').trim().toLowerCase();
+    const mineOnly = $('ccMineOnly').checked;
+    const sort = $('ccSort').value;
+    let list = cases.filter((c) => (!q || c.name.toLowerCase().includes(q) || c.creator.toLowerCase().includes(q)) && (!mineOnly || c.creator === currentUser));
+    const by = { popular: (a, b) => b.opens - a.opens || b.createdAt - a.createdAt, new: (a, b) => b.createdAt - a.createdAt, low: (a, b) => a.price - b.price, high: (a, b) => b.price - a.price }[sort];
+    list.sort(by);
+    if (!list.length) {
+      grid.innerHTML = `<div class="cc-empty">${cases.length ? 'No cases match that.' : '<b>No community cases yet.</b><br>Be the first: press <b>＋ Create Case</b>.'}</div>`;
+      return;
+    }
+    grid.innerHTML = list.map((c) => {
+      const mine = c.creator === currentUser;
+      return `<div class="case-card cc-card" data-cc-open="${escapeHtml(c.id)}" tabindex="0" role="button" style="position:relative">
+        ${mine ? '<span class="cc-card-mine">YOURS</span>' : ''}
+        ${mine || isAdmin() ? `<button class="cc-card-del" type="button" data-cc-del="${escapeHtml(c.id)}">Delete</button>` : ''}
+        <div class="case-icon"><img src="${escapeHtml(c.image)}" alt=""></div>
+        <div class="case-name">${escapeHtml(c.name)}</div>
+        <div class="case-price">${coinIcon()} ${fmt(c.price)}</div>
+        <div class="cc-card-by">by ${escapeHtml(c.creator)}</div>
+        <div class="cc-card-meta">${c.items.length} pet${c.items.length === 1 ? '' : 's'} · opened ${fmt(c.opens)}×</div>
+      </div>`;
+    }).join('');
+  }
+  ['ccSearch','ccSort','ccMineOnly'].forEach((id) => $(id).addEventListener(id === 'ccSearch' ? 'input' : 'change', renderList));
+  let delArm = null;
+  $('ccGrid').addEventListener('click', (e) => {
+    const del = e.target.closest('[data-cc-del]');
+    if (del) {
+      e.stopPropagation();
+      // Two-step delete (browser confirm boxes don't always show): first tap arms, second deletes.
+      if (delArm === del.dataset.ccDel) { mpSend({ type: 'ccase:delete', id: del.dataset.ccDel }); delArm = null; return; }
+      delArm = del.dataset.ccDel; del.textContent = 'Tap again';
+      setTimeout(() => { if (delArm === del.dataset.ccDel) { delArm = null; del.textContent = 'Delete'; } }, 3000);
+      return;
+    }
+    const card = e.target.closest('[data-cc-open]'); if (!card) return;
+    const c = cases.find((x) => x.id === card.dataset.ccOpen); if (!c) return;
+    if (typeof mpMockMode !== 'undefined' && mpMockMode) return showToast('Community cases need the live server.', true);
+    openCaseModal({ community: true, id: c.id, name: c.name, creator: c.creator, image: c.image, price: c.price, pool: c.items.map((i) => ({ id: i.id, chance: i.chance, value: i.value })) });
+  });
+  $('ccGrid').addEventListener('keydown', (e) => { if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('[data-cc-open]')) { e.preventDefault(); e.target.click(); } });
+
+  mpOn('ccase:list', (msg) => {
+    cases = Array.isArray(msg.cases) ? msg.cases : [];
+    $('ccTabCount').textContent = cases.length;
+    if (tab === 'community') renderList();
+  });
+  mpOn('ccase:created', (msg) => {
+    busy = false;
+    showToast(`"${msg.name}" is live for ${fmt(msg.price)} coins.`);
+    draft.name = ''; draft.items = []; draft.commission = 3; draft.image = IMAGES[0];
+    $('ccMineOnly').checked = true;
+    showTab('community');
+  });
+  mpOn('error', () => { if (busy) { busy = false; updateSummary(); } });
+
+  // ---------- creator ----------
+  function renderCreator(){
+    $('ccImgs').innerHTML = IMAGES.map((src) => `<button type="button" class="cc-img${src === draft.image ? ' on' : ''}" data-img="${src}" aria-pressed="${src === draft.image}"><img src="${src}" alt=""></button>`).join('');
+    $('ccName').value = draft.name;
+    $('ccCommission').value = draft.commission;
+    renderItems();
+  }
+  $('ccImgs').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-img]'); if (!b) return;
+    draft.image = b.dataset.img;
+    document.querySelectorAll('.cc-img').forEach((x) => { x.classList.toggle('on', x === b); x.setAttribute('aria-pressed', x === b); });
+  });
+  $('ccName').addEventListener('input', (e) => { draft.name = e.target.value; updateSummary(); });
+  $('ccCommission').addEventListener('input', (e) => { draft.commission = Number(e.target.value); updateSummary(); });
+
+  function renderItems(){
+    const box = $('ccItems');
+    if (!draft.items.length) { box.innerHTML = '<div class="cc-items-empty">No items selected</div>'; updateSummary(); return; }
+    box.innerHTML = draft.items.map((it, i) => {
+      const p = CATALOG_BY_ID[it.id] || { name: it.id, value: 0, rarity: 'common' };
+      return `<div class="cc-item">
+        <div class="cc-item-info" style="--c:${RAR_COLOR[p.rarity] || '#9a8f94'}">${itemIcon(p)}<div style="min-width:0"><div class="cc-item-name">${escapeHtml(p.name)}</div><div class="cc-item-val">${coinIcon(13)} ${fmt(p.value)}</div></div></div>
+        <label class="cc-chance"><input class="amount-input" type="number" inputmode="decimal" min="0.01" max="100" step="0.01" data-chance="${i}" value="${it.chance}" aria-label="Chance for ${escapeHtml(p.name)}"><span>%</span></label>
+        <button class="cc-rm" type="button" data-rm="${i}" aria-label="Remove ${escapeHtml(p.name)}">✕</button>
+      </div>`;
+    }).join('');
+    updateSummary();
+  }
+  $('ccItems').addEventListener('input', (e) => {
+    const inp = e.target.closest('[data-chance]'); if (!inp) return;
+    draft.items[Number(inp.dataset.chance)].chance = inp.value === '' ? '' : Number(inp.value);
+    updateSummary();
+  });
+  $('ccItems').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-rm]'); if (!b) return;
+    draft.items.splice(Number(b.dataset.rm), 1); renderItems();
+  });
+
+  function problems(){
+    const total = Math.round(draft.items.reduce((s, e) => s + (Number(e.chance) || 0), 0) * 100) / 100;
+    const price = priceOf(draft.items, draft.commission);
+    const out = { total, price, remaining: null, problem: null };
+    if (draft.items.length && total < 100) out.remaining = `${(100 - total).toFixed(2)}% remaining — add more chances`;
+    if (total > 100) out.problem = `Chances add up to ${total.toFixed(2)}% — bring them down to 100%`;
+    else if (draft.items.some((e) => !(Number(e.chance) > 0))) out.problem = 'Every pet needs a chance above 0%';
+    else if (price > MAX_PRICE) out.problem = `Case price exceeds ${fmt(MAX_PRICE)} limit — change items or chances`;
+    return out;
+  }
+  function updateSummary(){
+    const r = problems();
+    const tot = $('ccTotal');
+    tot.textContent = draft.items.length ? `${r.total.toFixed(2)}% / 100%` : '';
+    tot.classList.toggle('ok', Math.abs(r.total - 100) < 0.001);
+    $('ccRemaining').hidden = !r.remaining; $('ccRemaining').textContent = r.remaining || '';
+    $('ccProblem').hidden = !r.problem; $('ccProblem').textContent = r.problem || '';
+    $('ccCommVal').textContent = `${+draft.commission.toFixed(1)}%`;
+    $('ccPrice').innerHTML = `${coinIcon(26)} ${fmt(r.price)}`;
+    $('ccEarn').innerHTML = `${coinIcon(26)} ${fmt(Math.floor(r.price * draft.commission / 100))}`;
+    $('ccNameCount').textContent = `${draft.name.length}/23`;
+    const ready = draft.name.trim() && draft.items.length && !r.problem && Math.abs(r.total - 100) < 0.001 && r.price > 0;
+    $('ccSubmit').disabled = !ready || busy;
+    $('ccSubmit').textContent = busy ? 'Creating...' : 'Create Case';
+  }
+  $('ccSubmit').addEventListener('click', () => {
+    if (!currentUser) return showToast('Log in to make a case.', true);
+    if (typeof mpMockMode !== 'undefined' && mpMockMode) return showToast('Creating cases needs the live server.', true);
+    busy = true; updateSummary();
+    mpSend({ type: 'ccase:create', name: draft.name.trim(), image: draft.image, commission: draft.commission, items: draft.items.map((e) => ({ id: e.id, chance: Number(e.chance) })) });
+  });
+
+  // ---------- pet picker ----------
+  let pickList = [], pickShown = 0, pickObs = null;
+  const PICK_CHUNK = 120;
+  const pickHtml = (p) => `<button type="button" class="cc-pick-pet${draft.items.some((e) => e.id === p.id) ? ' on' : ''}" data-pick="${escapeHtml(p.id)}" title="${escapeHtml(p.name)}">${itemIcon(p)}<span class="n">${escapeHtml(p.name)}</span><span class="v">${coinIcon(10)} ${fmtCompact(p.value)}</span></button>`;
+  function pickMore(){
+    const grid = $('ccPickGrid');
+    const old = grid.querySelector('.cc-pick-more'); if (old) old.remove();
+    const next = pickList.slice(pickShown, pickShown + PICK_CHUNK);
+    grid.insertAdjacentHTML('beforeend', next.map(pickHtml).join(''));
+    pickShown += next.length;
+    if (pickShown < pickList.length) {
+      const m = document.createElement('div'); m.className = 'cc-pick-more'; m.textContent = `Loading more… (${pickShown} of ${pickList.length})`;
+      grid.appendChild(m); if (pickObs) pickObs.observe(m);
+    }
+  }
+  function renderPick(){
+    const q = ($('ccPickSearch').value || '').trim().toLowerCase();
+    pickList = PET_CATALOG.filter((p) => eligible(p) && (!q || p.name.toLowerCase().includes(q))).sort((a, b) => b.value - a.value || a.name.localeCompare(b.name));
+    pickShown = 0;
+    if (!pickObs && 'IntersectionObserver' in window) pickObs = new IntersectionObserver((en) => { if (en.some((x) => x.isIntersecting)) pickMore(); }, { root: $('ccPickGrid'), rootMargin: '300px' });
+    if (pickObs) pickObs.disconnect();
+    $('ccPickGrid').innerHTML = pickList.length ? '' : '<div class="cc-pick-more">No pets match that search.</div>';
+    if (pickList.length) { if (pickObs) pickMore(); else { $('ccPickGrid').innerHTML = pickList.map(pickHtml).join(''); pickShown = pickList.length; } }
+    $('ccPickCount').textContent = `${draft.items.length} pet${draft.items.length === 1 ? '' : 's'} in your case`;
+  }
+  $('ccAddItemsBtn').addEventListener('click', () => { $('ccPickSearch').value = ''; $('ccPickOverlay').classList.add('open'); renderPick(); });
+  const closePick = () => { $('ccPickOverlay').classList.remove('open'); renderItems(); };
+  $('ccPickClose').addEventListener('click', closePick);
+  $('ccPickDone').addEventListener('click', closePick);
+  $('ccPickOverlay').addEventListener('click', (e) => { if (e.target.id === 'ccPickOverlay') closePick(); });
+  $('ccPickSearch').addEventListener('input', renderPick);
+  $('ccPickGrid').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-pick]'); if (!b) return;
+    const id = b.dataset.pick; const i = draft.items.findIndex((x) => x.id === id);
+    if (i >= 0) draft.items.splice(i, 1);
+    else { if (draft.items.length >= MAX_ITEMS) return showToast(`A case can have at most ${MAX_ITEMS} pets.`, true); draft.items.push({ id, chance: '' }); }
+    b.classList.toggle('on', i < 0);
+    $('ccPickCount').textContent = `${draft.items.length} pet${draft.items.length === 1 ? '' : 's'} in your case`;
+  });
+
+  renderCreator();
+})();
+</script>
+<script>
+// Live pet values: the server keeps pet values in step with demand.gg and
+// sends the ones that changed. Cases keep their own fixed values, so only
+// the pets themselves (inventory, games, exchange, notifier...) update.
+(function(){
+  const byId = new Map(PET_CATALOG.map((p) => [p.id, p]));
+  mpOn('catalog:values', (msg) => {
+    const vals = msg && msg.values; if (!vals || typeof vals !== 'object') return;
+    let n = 0;
+    for (const [id, pair] of Object.entries(vals)) {
+      if (!Array.isArray(pair)) continue;
+      const value = Number(pair[0]) || 0, na = !!pair[1];
+      for (const p of [CATALOG_BY_ID[id], byId.get(id)]) {
+        if (!p) continue;
+        p.value = na ? 0 : value;
+        if (na) p.na = true; else delete p.na;
+      }
+      n++;
+    }
+    window.bvValuesUpdatedAt = msg.at || Date.now();
+    if (n && typeof refreshBalanceUI === 'function') { try { refreshBalanceUI(); } catch (e) {} }
+    const pw = document.getElementById('petWatchOverlay');
+    if (n && pw && pw.classList.contains('open') && typeof renderPetWatchGrid === 'function') renderPetWatchGrid();
+  });
 })();
 </script>
 </body>

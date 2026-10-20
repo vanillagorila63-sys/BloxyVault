@@ -241,6 +241,23 @@ async function initSchema() {
       PRIMARY KEY (username, catalog_id)
     );
   `);
+  // Community cases: cases players build themselves. items is a JSON array of
+  // {id, chance, value} - value is frozen at creation so a case never changes
+  // underneath the people opening it.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS community_cases (
+      id          BIGSERIAL PRIMARY KEY,
+      creator     TEXT NOT NULL,
+      name        TEXT NOT NULL,
+      image       TEXT NOT NULL,
+      commission  NUMERIC(4,2) NOT NULL DEFAULT 0,
+      price       BIGINT NOT NULL CHECK (price > 0),
+      items       JSONB NOT NULL,
+      opens       BIGINT NOT NULL DEFAULT 0,
+      earned      BIGINT NOT NULL DEFAULT 0,
+      created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+  `);
   // Promo codes (admin-made, coins only) and who has used which.
   await pool.query(`
     CREATE TABLE IF NOT EXISTS promo_codes (
@@ -849,10 +866,30 @@ async function redeemPromoCode(code, username) {
 // happens or nothing does. There is no backup.
 async function wipeEverything() {
   await pool.query(`TRUNCATE TABLE
-    promo_redemptions, promo_codes, game_history, ignored_users, server_state, shop_stock, escrows,
+    community_cases, promo_redemptions, promo_codes, game_history, ignored_users, server_state, shop_stock, escrows,
     transactions, notifications, coinflip_history, coinflip_lobbies, withdraw_requests,
     vault_items, inventory_items, users
     RESTART IDENTITY CASCADE`);
+}
+
+// ---- community cases ----
+async function loadCommunityCases() {
+  const res = await pool.query('SELECT id, creator, name, image, commission, price, items, opens, earned, created_at FROM community_cases ORDER BY id');
+  return res.rows.map((r) => ({ id: String(r.id), creator: r.creator, name: r.name, image: r.image, commission: Number(r.commission), price: Number(r.price), items: r.items, opens: Number(r.opens), earned: Number(r.earned), createdAt: new Date(r.created_at).getTime() }));
+}
+async function insertCommunityCase({ creator, name, image, commission, price, items }) {
+  const res = await pool.query(
+    'INSERT INTO community_cases (creator, name, image, commission, price, items) VALUES ($1,$2,$3,$4,$5,$6::jsonb) RETURNING id, created_at',
+    [creator, name, image, commission, price, JSON.stringify(items)]
+  );
+  return { id: String(res.rows[0].id), createdAt: new Date(res.rows[0].created_at).getTime() };
+}
+async function deleteCommunityCase(id) {
+  const res = await pool.query('DELETE FROM community_cases WHERE id = $1', [id]);
+  return res.rowCount === 1;
+}
+async function bumpCommunityCase(id, earned) {
+  await pool.query('UPDATE community_cases SET opens = opens + 1, earned = earned + $2 WHERE id = $1', [id, earned]);
 }
 
 async function loadAllIgnores() {
@@ -918,6 +955,10 @@ async function saveServerState(key, value) {
 }
 
 module.exports = {
+  loadCommunityCases,
+  insertCommunityCase,
+  deleteCommunityCase,
+  bumpCommunityCase,
   pool,
   setDiscordLink,
   clearDiscordLink,

@@ -297,7 +297,7 @@ function trackLoss(username, amount) { if (amount > 0) ensureUser(username).stat
 // levelForWagered in the frontend) so a player's level, and therefore their
 // Rain Pool share, is computed identically on both sides.
 // ---------------------------------------------------------------------------
-const LEVEL_CURVE_C = 2230808.28;
+const LEVEL_CURVE_C = 446161.656; // 5x easier than the original 2230808.28
 const LEVEL_CURVE_K = 1.353373;
 const MAX_LEVEL = 500;
 function levelForWagered(wagered) {
@@ -721,6 +721,91 @@ function refuseNaItems(username, items) {
   if (!items || !items.some((id) => petCatalog[id] && petCatalog[id].na)) return false;
   send(usernameToSocket.get(username), { type: 'error', message: "N/A pets don't have a value yet, so they can't be bet or sold." });
   return true;
+}
+
+// ---------------------------------------------------------------------------
+// LIVE PET VALUES - every few minutes the server pulls the latest values from
+// demand.gg and updates the site's pets (estimates included; a pet that goes
+// N/A there becomes N/A here, and comes back when it gets a value again).
+// Cases are NOT affected: every case pool stores its own frozen value per pet.
+// Pets with a hand-picked value (MANUAL_VALUE_IDS) are never touched.
+// Settings (Railway -> Variables, both optional):
+//   VALUE_SYNC=off              turn automatic updates off
+//   VALUE_SYNC_MINUTES=10       how often to check (minimum 2)
+// ---------------------------------------------------------------------------
+const VALUE_SYNC_ON = String(process.env.VALUE_SYNC || '').toLowerCase() !== 'off';
+const VALUE_SYNC_MS = Math.max(2, Number(process.env.VALUE_SYNC_MINUTES) || 10) * 60e3;
+const DEMAND_ITEMS_URL = process.env.DEMAND_API_URL || 'https://api.demand.gg/api/g/bgsi/items';
+const MANUAL_VALUE_IDS = new Set(['tourist-doggy', 'mythic-dumb-sinister-lord']);
+// The values the site's page was built with - clients only need the pets
+// whose live value differs from this.
+const BASE_VALUES = Object.fromEntries(Object.entries(petCatalog).map(([id, p]) => [id, [p.value, p.na ? 1 : 0]]));
+let valuesUpdatedAt = 0;
+let valueSyncRunning = false;
+
+function applyLiveValue(id, value, na) {
+  const p = petCatalog[id]; if (!p) return false;
+  const v = na ? 0 : Math.max(0, Math.round(value));
+  const was = [p.value, p.na ? 1 : 0];
+  if (was[0] === v && was[1] === (na ? 1 : 0)) return false;
+  p.value = v;
+  if (na) p.na = true; else delete p.na;
+  return true;
+}
+function liveValueDiff(onlyIds) {
+  const out = {};
+  for (const id of onlyIds || Object.keys(petCatalog)) {
+    const p = petCatalog[id]; const base = BASE_VALUES[id]; if (!p || !base) continue;
+    const cur = [p.value, p.na ? 1 : 0];
+    if (onlyIds || cur[0] !== base[0] || cur[1] !== base[1]) out[id] = cur;
+  }
+  return out;
+}
+async function fetchDemandPage(page) {
+  const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), 30000);
+  try {
+    const res = await fetch(`${DEMAND_ITEMS_URL}?limit=500&page=${page}`, { headers: { accept: 'application/json', 'user-agent': 'BloxyVault value sync' }, signal: ctrl.signal });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } finally { clearTimeout(t); }
+}
+async function syncValuesFromDemand() {
+  if (valueSyncRunning) return; valueSyncRunning = true;
+  try {
+    const live = new Map();
+    let page = 1, pages = 1, total = 0;
+    do {
+      const data = await fetchDemandPage(page);
+      const items = Array.isArray(data && data.items) ? data.items : [];
+      pages = Math.min(100, Number(data && data.pagination && data.pagination.pages) || 1);
+      total = Number(data && data.pagination && data.pagination.total) || total;
+      for (const it of items) {
+        if (!it || it.categoryId !== 'pets' || typeof it.slug !== 'string') continue;
+        const val = it.value || {};
+        const n = Number(val.value != null ? val.value : val.estimate);
+        live.set(it.slug, Number.isFinite(n) && n > 0 ? { value: n, na: false } : { value: 0, na: true });
+      }
+      page++;
+      if (page <= pages) await new Promise((r) => setTimeout(r, 250)); // be gentle with their API
+    } while (page <= pages);
+    // A half-broken answer must never wipe out good values.
+    if (live.size < Math.max(1000, total * 0.5)) throw new Error(`only got ${live.size} of ${total} pets - skipping this update`);
+    const changed = [];
+    for (const id of Object.keys(petCatalog)) {
+      if (MANUAL_VALUE_IDS.has(id) || !live.has(id)) continue;
+      const l = live.get(id);
+      if (applyLiveValue(id, l.value, l.na)) changed.push(id);
+    }
+    valuesUpdatedAt = Date.now();
+    if (changed.length) {
+      leaderboardCache = null;
+      db.saveServerState('liveValues', { values: liveValueDiff(), at: valuesUpdatedAt }).catch((e) => console.error('[values] save failed:', e.message));
+      broadcast({ type: 'catalog:values', values: liveValueDiff(changed), at: valuesUpdatedAt });
+    }
+    console.log(`[values] Updated from demand.gg: ${changed.length} pet value(s) changed.`);
+  } catch (err) {
+    console.error('[values] Update from demand.gg failed (keeping current values):', err.message);
+  } finally { valueSyncRunning = false; }
 }
 
 // Exchange stock + rain pool used to live only in memory (wiped by every
@@ -2336,6 +2421,129 @@ function handleCaseOpen(username, msg) {
   pushFeedEvent({ game: 'cases', username, amount: payout, itemName: wonPet.name });
 }
 
+// ---------------------------------------------------------------------------
+// COMMUNITY CASES - players build their own cases from pets on the site.
+// Rules: up to 5 per player, price at most 500,000, only pets worth more
+// than 0 and under 60M (no N/A pets), chances must add up to 100%.
+// Price = expected payout x (1 + commission) / 0.9 - so the site keeps a
+// ~10% edge and the creator's 0-3% commission is added on top. The creator
+// earns price x commission% every time SOMEONE ELSE opens their case.
+// ---------------------------------------------------------------------------
+const CCASE_MAX_PER_PLAYER = 5;
+const CCASE_MAX_PRICE = 500000;
+const CCASE_MAX_PET_VALUE = 60000000; // pets must be worth LESS than this
+const CCASE_MAX_ITEMS = 30;
+const CCASE_NAME_MAX = 23;
+const CCASE_MAX_COMMISSION = 3;
+const CCASE_HOUSE_RTP = 0.9;
+const CCASE_IMAGES = [
+  '/assets/img/8f04fa0bee21270e89c6.webp', '/assets/img/d6c3b5e3856e69b03926.webp', '/assets/img/aee331a2b59963d5c192.webp',
+  '/assets/img/5bc4ac1efdbe4b742eaf.webp', '/assets/img/684c025c505c0193fbd5.png', '/assets/img/fac645ae50cf89136139.webp',
+  '/assets/img/bb37ac1e45426d178506.webp', '/assets/img/6178b795abe48c021aa8.png', '/assets/img/dbddeda999aad8779d54.png',
+  '/assets/img/9b753997f22235880fca.png',
+];
+const communityCases = new Map(); // id -> case
+
+function ccasePriceFor(items, commission) {
+  const ev = items.reduce((s, e) => s + e.value * e.chance / 100, 0);
+  return Math.round(ev * (1 + commission / 100) / CCASE_HOUSE_RTP);
+}
+function ccasePublic(c) {
+  return { id: c.id, creator: c.creator, name: c.name, image: c.image, commission: c.commission, price: c.price, items: c.items, opens: c.opens, createdAt: c.createdAt };
+}
+function ccaseList() { return [...communityCases.values()].map(ccasePublic); }
+function broadcastCommunityCases() { broadcast({ type: 'ccase:list', cases: ccaseList() }); }
+
+async function handleCCaseCreate(username, msg) {
+  const ws = usernameToSocket.get(username);
+  const err = (m) => send(ws, { type: 'error', message: m });
+  const name = String(msg.name == null ? '' : msg.name).replace(/[\u0000-\u001f\u007f]/g, '').replace(/\s+/g, ' ').trim();
+  if (!name) return err('Give your case a name.');
+  if (name.length > CCASE_NAME_MAX) return err(`Case names can be at most ${CCASE_NAME_MAX} characters.`);
+  const image = String(msg.image || '');
+  if (!CCASE_IMAGES.includes(image)) return err('Pick a case image.');
+  let commission = Number(msg.commission);
+  if (!Number.isFinite(commission) || commission < 0 || commission > CCASE_MAX_COMMISSION) return err(`Commission must be between 0% and ${CCASE_MAX_COMMISSION}%.`);
+  commission = Math.round(commission * 10) / 10;
+  const raw = Array.isArray(msg.items) ? msg.items : [];
+  if (!raw.length) return err('Add at least one pet to your case.');
+  if (raw.length > CCASE_MAX_ITEMS) return err(`A case can have at most ${CCASE_MAX_ITEMS} pets.`);
+  const seen = new Set(); const items = [];
+  for (const it of raw) {
+    const id = it && typeof it.id === 'string' ? it.id : '';
+    if (!Object.prototype.hasOwnProperty.call(petCatalog, id)) return err('One of those pets does not exist.');
+    if (seen.has(id)) return err('Each pet can only be in your case once.');
+    seen.add(id);
+    const pet = petCatalog[id];
+    if (pet.na || !(pet.value > 0)) return err(`${pet.name} has no value, so it can't go in a case.`);
+    if (pet.value >= CCASE_MAX_PET_VALUE) return err(`${pet.name} is worth 60M or more, so it can't go in a community case.`);
+    const chance = Math.round(Number(it.chance) * 100) / 100;
+    if (!Number.isFinite(chance) || chance <= 0 || chance > 100) return err(`Give ${pet.name} a chance between 0.01% and 100%.`);
+    items.push({ id, chance, value: pet.value });
+  }
+  const total = items.reduce((s, e) => s + e.chance, 0);
+  if (Math.abs(total - 100) > 0.001) return err(`The chances add up to ${Math.round(total * 100) / 100}%. They need to add up to exactly 100%.`);
+  const mine = [...communityCases.values()].filter((c) => c.creator === username).length;
+  if (mine >= CCASE_MAX_PER_PLAYER) return err(`You already have ${CCASE_MAX_PER_PLAYER} cases. Delete one to make another.`);
+  const price = ccasePriceFor(items, commission);
+  if (price < 1) return err('That case would be free. Add more valuable pets or higher chances.');
+  if (price > CCASE_MAX_PRICE) return err(`That case would cost ${price.toLocaleString('en-US')}. The limit is ${CCASE_MAX_PRICE.toLocaleString('en-US')} - change the pets or chances.`);
+  items.sort((a, b) => b.value - a.value);
+  let saved;
+  try { saved = await db.insertCommunityCase({ creator: username, name, image, commission, price, items }); }
+  catch (e) { console.error('[ccase] create failed:', e.message); return err('Could not save your case. Try again.'); }
+  const c = { id: saved.id, creator: username, name, image, commission, price, items, opens: 0, earned: 0, createdAt: saved.createdAt };
+  communityCases.set(c.id, c);
+  broadcastCommunityCases();
+  send(ws, { type: 'ccase:created', id: c.id, name, price });
+}
+
+async function handleCCaseDelete(username, msg) {
+  const ws = usernameToSocket.get(username);
+  const c = communityCases.get(String(msg.id || ''));
+  if (!c) return send(ws, { type: 'error', message: 'That case no longer exists.' });
+  if (c.creator !== username && username !== ADMIN_USERNAME) return send(ws, { type: 'error', message: 'You can only delete your own cases.' });
+  try { await db.deleteCommunityCase(c.id); } catch (e) { console.error('[ccase] delete failed:', e.message); return send(ws, { type: 'error', message: 'Could not delete that case. Try again.' }); }
+  communityCases.delete(c.id);
+  broadcastCommunityCases();
+  send(ws, { type: 'toast', message: `Deleted "${c.name}".` });
+}
+
+function handleCCaseOpen(username, msg) {
+  const ws = usernameToSocket.get(username);
+  const c = communityCases.get(String(msg.id || ''));
+  if (!c) return send(ws, { type: 'error', message: 'That case no longer exists.' });
+  const u = ensureUser(username);
+  if (u.coins < c.price) return send(ws, { type: 'error', message: "You don't have enough coins for this case." });
+  const before = u.coins;
+  u.coins -= c.price;
+  const total = c.items.reduce((s, e) => s + e.chance, 0);
+  let roll = Math.random() * total; let won = c.items[c.items.length - 1];
+  for (const e of c.items) { roll -= e.chance; if (roll <= 0) { won = e; break; } }
+  const pet = petCatalog[won.id] || { name: won.id, rarity: 'common' };
+  const payout = won.value;
+  u.coins += payout;
+  trackWager(username, c.price);
+  persistUser(username, { type: 'case_open', amount: payout - c.price, balanceBefore: before, balanceAfter: u.coins, reason: `Community case: ${c.name}`, game: { game: 'cases', wager: c.price, payout } });
+  syncAccount(username);
+  // Creator's commission - not when they open their own case.
+  let earn = 0;
+  if (c.creator !== username && c.commission > 0) {
+    earn = Math.floor(c.price * c.commission / 100);
+    if (earn > 0) {
+      const cu = ensureUser(c.creator);
+      const cb = cu.coins;
+      cu.coins += earn;
+      persistUser(c.creator, { type: 'ccase_commission', amount: earn, balanceBefore: cb, balanceAfter: cu.coins, reason: `${username} opened ${c.name}`, value: earn });
+      syncAccount(c.creator);
+    }
+  }
+  c.opens += 1; c.earned += earn;
+  db.bumpCommunityCase(c.id, earn).catch((e) => console.error('[ccase] stats update failed:', e.message));
+  send(ws, { type: 'case:opened', community: true, caseId: c.id, wonId: won.id, name: pet.name, value: payout, rarity: pet.rarity, pool: c.items.map((e) => ({ id: e.id, chance: e.chance, value: e.value })) });
+  pushFeedEvent({ game: 'cases', username, amount: payout, itemName: pet.name });
+}
+
 async function handleAdminLookup(username, msg) {
   if (username !== ADMIN_USERNAME) return;
   const rawTarget = String(msg.username || '');
@@ -2617,6 +2825,7 @@ const LOCKDOWN_BLOCKED_TYPES = new Set([
   'jackpot:enter',
   'casebattle:create', 'casebattle:join', 'casebattle:start', 'casebattle:callBot', 'casebattle:cancel',
   'exchange:sell', 'exchange:buy',
+  'ccase:create', 'ccase:open', 'ccase:delete',
   'account:reset',
   'game:wager', 'game:resolve',
   'case:open',
@@ -2801,7 +3010,7 @@ const TXN_CATEGORIES = {
   rain: ['rain_deposit', 'rain_payout'],
   vault: ['vault_deposit', 'vault_withdraw', 'vault_deposit_items', 'vault_withdraw_items', 'vault_lock'],
   giveaway: ['giveaway_create', 'giveaway_win', 'giveaway_return', 'promo_redeem'],
-  other: ['admin_adjust', 'escrow_refund'],
+  other: ['admin_adjust', 'escrow_refund', 'ccase_commission'],
 };
 // Every non-game type that is allowed to show up at all.
 const TXN_VISIBLE = [...new Set(Object.values(TXN_CATEGORIES).flat())];
@@ -3029,6 +3238,7 @@ async function handleAdminWipeAll(username, msg) {
   sinkHistory = [];
   for (const g of giveaways.values()) clearTimeout(g.timer);
   giveaways.clear();
+  communityCases.clear();
   withdrawRequests = [];
   for (const id of Object.keys(shopStock)) delete shopStock[id];
   // --- forget every account and everything about them ---
@@ -3809,6 +4019,8 @@ wss.on('connection', (ws) => {
         },
       });
       send(ws, { type: 'giveaway:list', giveaways: giveawayPublicList() });
+      send(ws, { type: 'catalog:values', values: liveValueDiff(), at: valuesUpdatedAt, full: true });
+      send(ws, { type: 'ccase:list', cases: ccaseList() });
       send(ws, { type: 'exchange:stock', stock: shopStock });
       db.loadCoinflipHistoryForUser(username, 10).then((history) => {
         send(ws, { type: 'coinflip:history', history });
@@ -3901,6 +4113,10 @@ wss.on('connection', (ws) => {
       // and these legacy endpoints trusted client-reported payouts/wagers
       // (free-coin exploit). Do not re-add them.
       case 'case:open': return handleCaseOpen(username, msg);
+      case 'ccase:create': return handleCCaseCreate(username, msg);
+      case 'ccase:delete': return handleCCaseDelete(username, msg);
+      case 'ccase:open': return handleCCaseOpen(username, msg);
+      case 'ccase:list': return send(usernameToSocket.get(username), { type: 'ccase:list', cases: ccaseList() });
       case 'mines:start': return handleMinesStart(username, msg);
       case 'mines:reveal': return handleMinesReveal(username, msg);
       case 'mines:cashout': return handleMinesCashout(username);
@@ -4054,6 +4270,8 @@ process.on('unhandledRejection', (err) => {
     const loadedUsers = await db.loadAllUsers();
     for (const [uname, u] of loadedUsers) users.set(uname, u);
     console.log(`[boot] Loaded ${loadedUsers.size} user account(s) from Postgres.`);
+    for (const c of await db.loadCommunityCases()) communityCases.set(c.id, c);
+    console.log(`[boot] Loaded ${communityCases.size} community case(s).`);
 
     // Refund anything a game was holding when the server last stopped
     // (crash, deploy, restart). Each refund + escrow release is one DB
@@ -4080,6 +4298,17 @@ process.on('unhandledRejection', (err) => {
         sinkHistory = savedSink.points.map(Number).filter((n) => Number.isFinite(n) && n >= 1).slice(0, SINK_HISTORY_SIZE);
       }
     } catch (err) { console.error('[boot] Could not load sink history:', err.message); }
+    try {
+      const savedValues = await db.loadServerState('liveValues');
+      if (savedValues && savedValues.values && typeof savedValues.values === 'object') {
+        let n = 0;
+        for (const [id, pair] of Object.entries(savedValues.values)) {
+          if (!MANUAL_VALUE_IDS.has(id) && Array.isArray(pair) && applyLiveValue(id, Number(pair[0]) || 0, !!pair[1])) n++;
+        }
+        valuesUpdatedAt = Number(savedValues.at) || 0;
+        console.log(`[boot] Restored ${n} live pet value(s) from the last demand.gg update.`);
+      }
+    } catch (err) { console.error('[boot] Could not load live values:', err.message); }
     const savedRain = await db.loadServerState('rainPool');
     if (savedRain && Number.isFinite(Number(savedRain.pool))) rainPool = Math.max(RAIN_BASE, Math.floor(Number(savedRain.pool)));
 
@@ -4110,6 +4339,11 @@ process.on('unhandledRejection', (err) => {
     loadPrivacyHtmlCache();
     startSinkJoiningPhase();
     server.listen(PORT, () => console.log(`BloxyVault server listening on :${PORT}`));
+    if (VALUE_SYNC_ON) {
+      setTimeout(syncValuesFromDemand, 15000);
+      setInterval(syncValuesFromDemand, VALUE_SYNC_MS);
+      console.log(`[values] Live values from demand.gg ON (every ${VALUE_SYNC_MS / 60e3} min).`);
+    } else console.log('[values] Live values from demand.gg OFF (VALUE_SYNC=off).');
   } catch (err) {
     console.error('[boot] Failed to start - could not initialize/load from Postgres:', err);
     process.exit(1);
