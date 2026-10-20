@@ -1616,8 +1616,8 @@ function startBattle(b) {
   runBattle(b);
 }
 // Every real player who opens a community case in a battle counts as one
-// opening of it; the creator earns commission on it (not on their own
-// openings, and not on bots - bots pay nothing).
+// opening of it, and the creator earns commission on each (bots pay nothing,
+// so they don't count).
 function creditBattleCommissions(b) {
   if (!b.caseDefs) return;
   const mult = borrowMultiplier(b.borrow);
@@ -1627,7 +1627,7 @@ function creditBattleCommissions(b) {
     let total = 0;
     for (const p of b.players) {
       if (p.isBot) continue;
-      const earn = p.username === d.creator ? 0 : Math.floor(d.price * mult * d.commission / 100);
+      const earn = Math.floor(d.price * mult * d.commission / 100);
       ccaseCredit(c, earn, 1);
       total += earn;
     }
@@ -2523,7 +2523,7 @@ function ccaseCredit(c, earn, opens, opener) {
   sendCCaseMine(c.creator);
   if (earn > 0 && opener) {
     const ws = usernameToSocket.get(c.creator);
-    if (ws) send(ws, { type: 'toast', message: `+${earn.toLocaleString('en-US')} commission: ${opener} opened "${c.name}". Claim it in Cases → Your Cases.` });
+    if (ws) send(ws, { type: 'toast', message: `+${earn.toLocaleString('en-US')} commission: ${opener === c.creator ? 'you' : opener} opened "${c.name}". Claim it in Cases → Your Cases.` });
   }
 }
 function broadcastCommunityCases() { broadcast({ type: 'ccase:list', cases: ccaseList() }); }
@@ -2640,8 +2640,9 @@ function handleCCaseOpen(username, msg) {
   trackWager(username, c.price);
   persistUser(username, { type: 'case_open', amount: payout - c.price, balanceBefore: before, balanceAfter: u.coins, reason: `Community case: ${c.name}`, game: { game: 'cases', wager: c.price, payout } });
   syncAccount(username);
-  // Creator's commission (to their claimable balance) - not on their own case.
-  const earn = c.creator === username ? 0 : Math.floor(c.price * c.commission / 100);
+  // Creator's commission goes to their claimable balance - on every opening,
+  // including the creator's own.
+  const earn = Math.floor(c.price * c.commission / 100);
   ccaseCredit(c, earn, 1, username);
   send(ws, { type: 'case:opened', community: true, caseId: c.id, wonId: won.id, name: pet.name, value: payout, rarity: pet.rarity, pool: c.items.map((e) => ({ id: e.id, chance: e.chance, value: e.value })) });
   pushFeedEvent({ game: 'cases', username, amount: payout, itemName: pet.name });

@@ -4866,6 +4866,50 @@ body.cbn-open #cbnRoot .backdrop { opacity: 1; pointer-events: auto; }
     .adm-coin-btns{ width:100%; }
     .adm-coin-btns button{ flex:1; }
   }
+
+  /* ===== Case Battles list rows ===== */
+  #cbnRoot .rows-area{ overflow:visible !important; flex:none !important; }
+  /* The battle list page grows with its rows (it used to sit in a fixed 640px box that cut them off). */
+  #cbnRoot #cbnMainScreen:not([hidden]){ position:relative !important; inset:auto !important; min-height:640px; }
+  #cbnRoot .bl-row{ display:grid; grid-template-columns:minmax(250px, auto) minmax(0, 1fr) minmax(170px, 0.7fr); align-items:center; gap:22px; padding:18px 24px; background:var(--bg-panel); border:1px solid var(--border-soft); border-radius:16px; margin-bottom:12px; }
+  #cbnRoot .bl-row.live{ border-color:rgba(52,211,153,.5); }
+  #cbnRoot .bl-row.won{ border-color:rgba(244,196,48,.55); }
+  #cbnRoot .bl-left{ display:flex; flex-direction:column; align-items:center; gap:10px; min-width:0; }
+  #cbnRoot .bl-count{ font:700 20px var(--font-display); color:var(--text); }
+  #cbnRoot .bl-seats{ display:flex; align-items:center; justify-content:center; gap:6px; flex-wrap:nowrap; }
+  #cbnRoot .bl-seat{ width:46px; height:46px; border-radius:50%; overflow:hidden; display:flex; align-items:center; justify-content:center; border:2px solid var(--border); flex:0 0 46px; font:700 14px var(--font-display); color:#fff; }
+  #cbnRoot .bl-seat img{ width:100%; height:100%; object-fit:cover; }
+  #cbnRoot .bl-seat.you{ border-color:var(--purple-bright); }
+  #cbnRoot .bl-seat.empty{ background:transparent !important; border:2px solid var(--border); gap:3px; }
+  #cbnRoot .bl-seat.empty i{ width:5px; height:5px; border-radius:50%; background:var(--purple-bright); opacity:.8; }
+  #cbnRoot .bl-vs{ color:var(--text-dim); display:flex; align-items:center; font:800 18px var(--font-display); }
+  #cbnRoot .bl-modes{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; justify-content:center; }
+  #cbnRoot .bl-mode{ width:40px; height:40px; border-radius:10px; background:var(--bg-panel-3); color:var(--purple-bright); display:flex; align-items:center; justify-content:center; }
+  #cbnRoot .bl-tag{ font:700 11px var(--font-display); color:var(--text-dim); background:var(--bg-panel-3); border-radius:7px; padding:4px 8px; display:inline-flex; align-items:center; gap:5px; }
+  #cbnRoot .bl-tag.fast{ color:#1a1306; background:var(--gold); }
+  #cbnRoot .bl-tag.live{ color:var(--green); }
+  #cbnRoot .bl-cases{ display:flex; align-items:center; gap:10px; overflow-x:auto; background:var(--bg-panel-2); border-radius:14px; padding:12px 16px; min-height:112px; min-width:0; scrollbar-width:thin; }
+  #cbnRoot .bl-case{ width:88px; height:88px; flex:0 0 88px; object-fit:contain; }
+  #cbnRoot .bl-case-txt{ display:flex; align-items:center; justify-content:center; background:var(--bg-panel-3); border-radius:12px; color:var(--text-dim); font-weight:800; }
+  #cbnRoot .bl-right{ display:flex; flex-direction:column; align-items:center; gap:8px; }
+  #cbnRoot .bl-cost-l{ font:700 17px var(--font-display); color:var(--text-dim); }
+  #cbnRoot .bl-cost{ font:800 22px var(--font-num); color:var(--text); display:flex; align-items:center; gap:8px; font-variant-numeric:tabular-nums; }
+  #cbnRoot .bl-note{ font-size:12px; color:var(--text-dim); text-align:center; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  #cbnRoot .bl-row.won .bl-note{ color:var(--gold); font-weight:800; }
+  #cbnRoot .bl-btn{ width:100%; max-width:240px; padding:13px 18px; border-radius:12px; border:1px solid var(--border); background:var(--bg-panel-3); color:var(--text); font:700 17px var(--font-display); cursor:pointer; }
+  #cbnRoot .bl-btn:hover{ border-color:var(--purple-bright); }
+  #cbnRoot .bl-btn.join{ background:linear-gradient(180deg, var(--purple-bright), var(--purple)); border-color:transparent; color:#fff; }
+  @media (max-width:900px){
+    #cbnRoot .bl-row{ grid-template-columns:1fr; gap:12px; padding:14px; }
+    #cbnRoot .bl-cases{ min-height:80px; padding:8px 10px; }
+    #cbnRoot .bl-case{ width:64px; height:64px; flex-basis:64px; }
+    #cbnRoot .bl-right{ flex-direction:row; flex-wrap:wrap; justify-content:space-between; }
+    #cbnRoot .bl-cost-l{ font-size:14px; }
+    #cbnRoot .bl-cost{ font-size:18px; }
+    #cbnRoot .bl-btn{ width:auto; flex:0 0 auto; padding:10px 22px; font-size:15px; }
+    #cbnRoot .bl-note{ flex-basis:100%; order:3; text-align:left; }
+    #cbnRoot .bl-seat{ width:40px; height:40px; flex-basis:40px; }
+  }
   /* Result overlay never wraps into the winner box */
   #cbnRoot .bv-result-banner{ white-space:nowrap; max-width:92%; overflow:hidden; text-overflow:ellipsis; font-size:13px !important; padding:6px 14px !important; }
   #cbnRoot .bv-result-summary{ top:56px !important; }
@@ -10650,7 +10694,7 @@ setTimeout(syncCaseFastBtn, 0);
 function openCaseModal(c){
   activeCase = c;
   syncCaseFastBtn();
-  document.getElementById('caseModalBy').textContent = !c.community ? '' : (c.creator === currentUser ? 'Your case · no commission on your own openings' : `by ${c.creator}`);
+  document.getElementById('caseModalBy').textContent = !c.community ? '' : (c.creator === currentUser ? `Your case · you earn ${c.commission != null ? c.commission : ''}% per opening` : `by ${c.creator}`);
   document.getElementById('caseModalName').textContent = c.name;
   document.getElementById('caseModalPrice').textContent = fmt(c.price);
   const oddsBox = document.getElementById('caseOdds');
@@ -15589,6 +15633,8 @@ function renderAdminWithdrawList(){
     const area = document.getElementById('cbnRowsArea');
     if (!area) return;
     if (mpBattles.length === 0) {
+      ['cbnStatActive', 'cbnStatTotalCases'].forEach((id) => { const el = document.getElementById(id); if (el) el.textContent = '0'; });
+      const tv = document.getElementById('cbnStatTotalValue'); if (tv) tv.innerHTML = `${coinIcon(16)} 0`;
       area.innerHTML = `
         <div class="empty-state">
           <div class="icon" id="cbnEmptyIcon"></div>
@@ -15607,53 +15653,77 @@ function renderAdminWithdrawList(){
       return 0;
     });
 
+    // Battle rows: players (with empty seats and ⚔ between sides), mode,
+    // the cases in the battle, and what one seat costs.
+    const MODE_ICONS = {
+      normal: '<svg viewBox="0 0 24 24" width="22" height="22"><path d="M3 7l4.5 4L12 4l4.5 7L21 7l-2 12H5L3 7z" fill="currentColor"/></svg>',
+      crazy: '<svg viewBox="0 0 24 24" width="22" height="22"><path d="M12 3v14m0 0-5-5m5 5 5-5M5 21h14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+      jackpot: '<svg viewBox="0 0 24 24" width="22" height="22"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2.2"/><circle cx="12" cy="12" r="4.5" fill="none" stroke="currentColor" stroke-width="2.2"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/></svg>',
+      terminal: '<svg viewBox="0 0 24 24" width="22" height="22"><path d="M5 21V4m0 0h11l-2 4 2 4H5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/></svg>',
+      coinflip: '<svg viewBox="0 0 24 24" width="22" height="22"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M9.5 9h3a2 2 0 010 4h-3m0-4v7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+      group: '<svg viewBox="0 0 24 24" width="22" height="22"><circle cx="8" cy="9" r="3" fill="currentColor"/><circle cx="16" cy="9" r="3" fill="currentColor"/><path d="M2.5 19c.6-3 2.8-4.5 5.5-4.5s4.9 1.5 5.5 4.5M10.5 19c.6-3 2.8-4.5 5.5-4.5s4.9 1.5 5.5 4.5" fill="currentColor"/></svg>',
+    };
+    const SWORDS = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M14.5 17.5L3 6V3h3l11.5 11.5M13 19l6-6M16 16l4 4M19 21l2-2M9.5 17.5L21 6V3h-3L6.5 14.5M11 19l-6-6M8 16l-4 4M5 21l-2-2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    const seat = (p) => p
+      ? `<span class="bl-seat${p.username === currentUser ? ' you' : ''}" title="${escapeHtml(p.username)}${p.isBot ? ' (bot)' : ''}" style="background:${colorForUsername(p.username)}">${avatarCircleInner(p.username)}</span>`
+      : '<span class="bl-seat empty" title="Open seat"><i></i><i></i><i></i></span>';
+    const seatsHtml = (b) => {
+      const cfg = MODE_CONFIGS[b.mode] || { count: 2 };
+      const count = cfg.count || 2;
+      if (b.mode === 'team-2v2') {
+        const side = (t) => { const m = b.players.filter((p) => p.team === t); return [0, 1].map((i) => seat(m[i])).join(''); };
+        return `${side(0)}<span class="bl-vs">${SWORDS}</span>${side(1)}`;
+      }
+      const out = [];
+      for (let i = 0; i < count; i++) { if (i) out.push(`<span class="bl-vs">${cfg.isGroup ? '+' : SWORDS}</span>`); out.push(seat(b.players[i])); }
+      return out.join('');
+    };
+    const seatCost = (b) => {
+      const full = b.caseQueue.reduce((sum, ref) => sum + ((CASE_DATA[ref] || {}).price || 0), 0);
+      return b.borrow ? Math.max(1, Math.ceil(full * (100 - b.borrow) / 100)) : full;
+    };
+    // Header stats: everything open or running right now, site-wide.
+    const activeBattles = mpBattles.filter((b) => b.status !== 'finished');
+    const setStat = (id, html) => { const el = document.getElementById(id); if (el) el.innerHTML = html; };
+    setStat('cbnStatActive', String(activeBattles.length));
+    setStat('cbnStatTotalValue', `${coinIcon(16)} ${fmtCompact(activeBattles.reduce((s, b) => s + seatCost(b) * ((MODE_CONFIGS[b.mode] || {}).count || 2), 0))}`);
+    setStat('cbnStatTotalCases', String(activeBattles.reduce((s, b) => s + b.caseQueue.length, 0)));
     area.innerHTML = sorted.map((b) => {
-      const caseThumbs = b.caseNames.slice(0, 4).map((n) => `<span class="bh-case-chip">${n}</span>`).join('');
-      const more = b.caseNames.length > 4 ? `<span class="bh-case-chip">+${b.caseNames.length - 4}</span>` : '';
       const modeLabel = battleModeLabel(b.mode, (MODE_CONFIGS[b.mode] || {}).count, b.winMode);
       const isMine = b.creator === currentUser || b.players.some((p) => p.username === currentUser);
-      const cap = { 'ffa-2': 2, 'ffa-3': 3, 'ffa-4': 4, 'team-2v2': 4 }[b.mode] || 2;
-
+      const cap = (MODE_CONFIGS[b.mode] || {}).count || 2;
+      const wm = (MODE_CONFIGS[b.mode] || {}).isGroup ? 'group' : (b.winMode || 'normal');
+      const nCases = b.caseQueue.length;
+      const cases = b.caseQueue.map((ref, i) => { const c = CASE_DATA[ref] || {}; return c.image
+        ? `<img class="bl-case" src="${escapeHtml(c.image)}" alt="" title="${escapeHtml(c.name || b.caseNames[i] || '')}" loading="lazy">`
+        : `<span class="bl-case bl-case-txt" title="${escapeHtml(b.caseNames[i] || '')}">${escapeHtml((b.caseNames[i] || '?').slice(0, 2))}</span>`; }).join('');
+      const tags = `${b.fast ? '<span class="bl-tag fast">⚡ Fast</span>' : ''}${b.borrow ? `<span class="bl-tag">Borrow ${b.borrow}%</span>` : ''}${b.status === 'running' ? '<span class="bl-tag live"><span class="bh-live-dot"></span>Live</span>' : ''}`;
+      let rowClass = '', action, note = '';
       if (b.status === 'finished') {
-        // b.winner can be "A & B" on a tie (Normal/Crazy/Terminal ties now
-        // split the pot - see server runBattle), so this checks membership
-        // in that split list rather than exact equality. Also fixes a
-        // pre-existing issue where any player in a team battle was marked
-        // as "won" whenever the label merely looked team-shaped, regardless
-        // of which team actually won - now it checks the player's own team.
         const winnerLabels = (b.winner || '').split(' & ');
         const me = b.players.find((p) => p.username === currentUser);
         const myLabel = me ? (b.mode === 'team-2v2' ? `Team ${String.fromCharCode(65 + Number(me.team))}` : currentUser) : null;
-        const youWon = !!myLabel && winnerLabels.includes(myLabel);
-        return `
-          <div class="bh-row ${youWon ? 'won' : ''}">
-            <div class="bh-main">
-              <div class="bh-title">${modeLabel} · ${b.caseNames.length} case${b.caseNames.length > 1 ? 's' : ''}${b.borrow ? ` <span class="bh-borrow">Borrow ${b.borrow}%</span>` : ''}</div>
-              <div class="bh-cases">${caseThumbs}${more}</div>
-            </div>
-            <div class="bh-result">
-              <div class="bh-winner">${escapeHtml(b.winner)} won</div>
-              <div class="bh-value">${COIN_ICON_HTML} ${commas(b.players.reduce((m,p)=>Math.max(m,p.total),0))}</div>
-              <button class="bh-view-btn" data-finished-id="${b.id}">View</button>
-            </div>
-          </div>`;
+        if (myLabel && winnerLabels.includes(myLabel)) rowClass = 'won';
+        action = `<button class="bl-btn" data-finished-id="${b.id}">View</button>`;
+        note = `<div class="bl-note">${escapeHtml(b.winner || '')} won</div>`;
+      } else {
+        if (b.status === 'running') rowClass = 'live';
+        action = isMine ? `<button class="bl-btn" data-rejoin-id="${b.id}">View</button>`
+          : (b.status === 'waiting' && b.players.length < cap ? `<button class="bl-btn join" data-join-id="${b.id}">Join</button>` : `<button class="bl-btn" data-rejoin-id="${b.id}">Watch</button>`);
       }
-
-      const statusText = b.status === 'running' ? 'In Progress' : (isMine ? 'Waiting for players...' : `Open · ${b.players.length}/${cap} players`);
-      const actionBtn = isMine
-        ? `<button class="bh-view-btn" data-rejoin-id="${b.id}">View</button>`
-        : (b.status === 'waiting' && b.players.length < cap
-            ? `<button class="bh-view-btn" data-join-id="${b.id}">Join</button>`
-            : `<button class="bh-view-btn" data-rejoin-id="${b.id}">Watch</button>`);
       return `
-        <div class="bh-row ${b.status === 'running' ? 'live' : ''}">
-          <div class="bh-main">
-            <div class="bh-title">${b.status === 'running' ? '<span class="bh-live-dot"></span>' : ''}${escapeHtml(b.creator)} · ${modeLabel} · ${b.caseNames.length} case${b.caseNames.length > 1 ? 's' : ''}${b.borrow ? ` <span class="bh-borrow">Borrow ${b.borrow}%</span>` : ''}</div>
-            <div class="bh-cases">${caseThumbs}${more}</div>
+        <div class="bl-row ${rowClass}">
+          <div class="bl-left">
+            <div class="bl-count">${nCases} Case${nCases === 1 ? '' : 's'}</div>
+            <div class="bl-seats">${seatsHtml(b)}</div>
+            <div class="bl-modes"><span class="bl-mode" title="${escapeHtml(modeLabel)}">${MODE_ICONS[wm] || MODE_ICONS.normal}</span>${tags}</div>
           </div>
-          <div class="bh-result">
-            <div class="bh-winner">${statusText}</div>
-            ${actionBtn}
+          <div class="bl-cases">${cases}</div>
+          <div class="bl-right">
+            <div class="bl-cost-l">Battle Cost</div>
+            <div class="bl-cost">${coinIcon(22)} ${commas(seatCost(b))}</div>
+            ${note}
+            ${action}
           </div>
         </div>`;
     }).join('');
@@ -15788,12 +15858,8 @@ function renderAdminWithdrawList(){
   }
   let myTotalCasesOpened = 0;
   let myTotalValueWon = 0;
-  function refreshHeaderStats(){
-    const casesEl = document.getElementById('cbnStatTotalCases');
-    const valueEl = document.getElementById('cbnStatTotalValue');
-    if (casesEl) casesEl.textContent = commas(myTotalCasesOpened);
-    if (valueEl) valueEl.innerHTML = `${COIN_ICON_HTML} ${commas(myTotalValueWon)}`;
-  }
+  // The header stats are site-wide now (set in renderMyBattles).
+  function refreshHeaderStats(){}
 
   function commas(n) {
     return Math.floor(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
@@ -16462,8 +16528,6 @@ function renderAdminWithdrawList(){
     refreshHeaderStats();
     const coinsEl = document.getElementById('cbnBvCoins');
     if (coinsEl) coinsEl.textContent = commas(battleTotalCost);
-    const statActiveEl = document.getElementById('cbnStatActive');
-    if (statActiveEl) statActiveEl.textContent = '1';
 
     bvProgress.textContent = `Case 1 of ${battleQueue.length}`;
     bvResultBanner.hidden = true;
@@ -17232,8 +17296,6 @@ function renderAdminWithdrawList(){
     bvProgress.textContent = "Battle Complete";
     Array.from(bvCaseStrip.children).forEach((chip) => chip.classList.add("done"));
 
-    const statActiveEl = document.getElementById('cbnStatActive');
-    if (statActiveEl) statActiveEl.textContent = '0';
 
     // wait for the server's authoritative finish (it also already handled payout)
     const battleId = myActiveBattleId;
@@ -17761,7 +17823,7 @@ function renderAdminWithdrawList(){
   function openCommunity(id, list){
     const c = list.find((x) => x.id === id); if (!c) return;
     if (offline()) return showToast('Community cases need the live server.', true);
-    openCaseModal({ community: true, id: c.id, name: c.name, creator: c.creator, image: c.image, price: c.price, pool: c.items.map((i) => ({ id: i.id, chance: i.chance, value: i.value })) });
+    openCaseModal({ community: true, id: c.id, name: c.name, creator: c.creator, commission: c.commission, image: c.image, price: c.price, pool: c.items.map((i) => ({ id: i.id, chance: i.chance, value: i.value })) });
   }
   // Two-step delete (browser confirm boxes don't always show): first tap arms.
   let delArm = null;
