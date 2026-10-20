@@ -1624,11 +1624,15 @@ function creditBattleCommissions(b) {
   for (const ref of b.caseQueue) {
     const d = b.caseDefs[ref]; if (!d || !d.ccId) continue;
     const c = communityCases.get(d.ccId); if (!c) continue;
+    let total = 0;
     for (const p of b.players) {
       if (p.isBot) continue;
       const earn = p.username === d.creator ? 0 : Math.floor(d.price * mult * d.commission / 100);
       ccaseCredit(c, earn, 1);
+      total += earn;
     }
+    const ws = total > 0 && usernameToSocket.get(c.creator);
+    if (ws) send(ws, { type: 'toast', message: `+${total.toLocaleString('en-US')} commission: "${c.name}" was opened in a case battle. Claim it in Cases → Your Cases.` });
   }
 }
 
@@ -2513,10 +2517,14 @@ function sendCCaseMine(username) {
 }
 // One opening of a community case: counts it, and adds the creator's
 // commission to their claimable balance (not straight to their coins).
-function ccaseCredit(c, earn, opens) {
+function ccaseCredit(c, earn, opens, opener) {
   c.opens += opens; c.earned += earn; c.unclaimed = (c.unclaimed || 0) + earn;
   db.bumpCommunityCase(c.id, earn, opens).catch((e) => console.error('[ccase] stats update failed:', e.message));
   sendCCaseMine(c.creator);
+  if (earn > 0 && opener) {
+    const ws = usernameToSocket.get(c.creator);
+    if (ws) send(ws, { type: 'toast', message: `+${earn.toLocaleString('en-US')} commission: ${opener} opened "${c.name}". Claim it in Cases → Your Cases.` });
+  }
 }
 function broadcastCommunityCases() { broadcast({ type: 'ccase:list', cases: ccaseList() }); }
 
@@ -2634,7 +2642,7 @@ function handleCCaseOpen(username, msg) {
   syncAccount(username);
   // Creator's commission (to their claimable balance) - not on their own case.
   const earn = c.creator === username ? 0 : Math.floor(c.price * c.commission / 100);
-  ccaseCredit(c, earn, 1);
+  ccaseCredit(c, earn, 1, username);
   send(ws, { type: 'case:opened', community: true, caseId: c.id, wonId: won.id, name: pet.name, value: payout, rarity: pet.rarity, pool: c.items.map((e) => ({ id: e.id, chance: e.chance, value: e.value })) });
   pushFeedEvent({ game: 'cases', username, amount: payout, itemName: pet.name });
 }
